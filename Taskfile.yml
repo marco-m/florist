@@ -1,0 +1,19 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GOTESTSUM:
+    sh: if which gotestsum > /dev/null; then echo gotestsum; fi
+  TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}}{{else}}go test{{end}}"
+
+tasks:
+  build:
+    desc: Build all packages
+    cmds:
+      - go build ./...
+
+  test:
+    desc: Run the tests
+    cmds:
+      - "{{.TESTRUNNER}} ./..."
