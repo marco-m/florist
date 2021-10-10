@@ -25,7 +25,6 @@ func Update(cacheValidity time.Duration) error {
 	log.Debug("", "cache", "expired")
 
 	cmd := exec.Command("apt", "update")
-
 	if err := florist.LogRun(log, cmd); err != nil {
 		return fmt.Errorf("apt.Update: %s", err)
 	}
