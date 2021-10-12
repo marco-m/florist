@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os/exec"
 	"os/user"
+	"strings"
 )
 
-// Add user and create home directory.
+// Add user and create home directory. Optionally also add the user to the
+// supplementary groups.
 // Password login is disabled (use SSH public key or use passwd)
-func UserAdd(username string) (*user.User, error) {
+func UserAdd(username string, groups ...string) (*user.User, error) {
 	log := Log.Named("UserAdd").With("user", username)
 
 	if userinfo, err := user.Lookup(username); err == nil {
@@ -28,6 +30,15 @@ func UserAdd(username string) (*user.User, error) {
 		return nil, fmt.Errorf("user: add: %s", err)
 	}
 	log.Debug("user added")
+
+	if len(groups) > 0 {
+		args := strings.Join(groups, ",")
+		cmd := exec.Command("usermod", "--append", "--groups", args, username)
+		if err := LogRun(log, cmd); err != nil {
+			return nil, fmt.Errorf("user: add to groups: %s", err)
+		}
+		log.Debug("user added to supplementary groups", "groups", groups)
+	}
 
 	userinfo, err := user.Lookup(username)
 	if err != nil {
