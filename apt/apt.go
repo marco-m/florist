@@ -24,7 +24,7 @@ func Update(cacheValidity time.Duration) error {
 	}
 	log.Debug("", "cache", "expired")
 
-	cmd := exec.Command("apt", "update")
+	cmd := exec.Command("apt-get", "update")
 	if err := florist.LogRun(log, cmd); err != nil {
 		return fmt.Errorf("apt.Update: %s", err)
 	}
@@ -37,7 +37,7 @@ func Install(pkg ...string) error {
 	log.Debug("installing", "packages", pkg)
 	args := []string{"install", "--no-install-recommends", "-y"}
 	args = append(args, pkg...)
-	cmd := exec.Command("apt", args...)
+	cmd := exec.Command("apt-get", args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
 
