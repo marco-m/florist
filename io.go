@@ -48,6 +48,11 @@ func CopyFromFs(srcFs fs.FS, srcPath string,
 func copy(src io.Reader, dstPath string,
 	mode os.FileMode, owner *user.User,
 ) error {
+	// if dstPath is an executable file and is running, then we will get back a
+	// TXTBSY (text file busy).
+	// The workaround is to unlink (or delete) the file before hand.
+	os.Remove(dstPath) // useless to check for errors now
+
 	dst, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
 		return fmt.Errorf("florist.copy: %s", err)
