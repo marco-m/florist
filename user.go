@@ -74,3 +74,14 @@ func UserSystemAdd(username string, homedir string) (*user.User, error) {
 
 	return userinfo, nil
 }
+
+func GroupSystemAdd(groupname string) error {
+	log := Log.Named("GroupAdd").With("group", groupname)
+
+	cmd := exec.Command("addgroup", "--system", groupname)
+	if err := LogRun(log, cmd); err != nil {
+		return fmt.Errorf("group: add: %s", err)
+	}
+	log.Debug("group added")
+	return nil
+}

@@ -9,6 +9,7 @@ import (
 
 func LogRun(log hclog.Logger, cmd *exec.Cmd) error {
 	log = log.Named("LogRun")
+	log.Debug("executing", "cmd", cmd.String())
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
