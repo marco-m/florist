@@ -91,9 +91,8 @@ func NomadClientRun(
 
 	log.Info("Install packages needed by Nomad client")
 	if err := apt.Install(
-		"apparmor",  // Needed by Nomad for the Docker driver
-		"docker.io", // Needed by Nomad for the Docker driver
-		"ethtool",   // Used by Nomad
+		"apparmor", // Needed by Nomad for the Docker driver
+		"ethtool",  // Used by Nomad
 	); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
