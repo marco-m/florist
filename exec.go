@@ -9,6 +9,9 @@ import (
 
 func LogRun(log hclog.Logger, cmd *exec.Cmd) error {
 	log = log.Named("LogRun")
+
+	const truncLen = 160
+
 	log.Debug("executing", "cmd", cmd.String())
 
 	stdout, err := cmd.StdoutPipe()
@@ -28,7 +31,7 @@ func LogRun(log hclog.Logger, cmd *exec.Cmd) error {
 	for scanOut.Scan() {
 		line := scanOut.Text()
 		if line != "" {
-			log.Debug("", "stdout", truncate(line, 80))
+			log.Debug("", "stdout", truncate(line, truncLen))
 		}
 	}
 	if err := scanOut.Err(); err != nil {
@@ -39,7 +42,7 @@ func LogRun(log hclog.Logger, cmd *exec.Cmd) error {
 	for scanErr.Scan() {
 		line := scanErr.Text()
 		if line != "" {
-			log.Debug("", "stderr", truncate(line, 80))
+			log.Debug("", "stderr", truncate(line, truncLen))
 		}
 	}
 	if err := scanErr.Err(); err != nil {
