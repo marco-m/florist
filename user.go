@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-// Add user and create home directory. Optionally also add the user to the
-// supplementary groups.
+// Add user and create home directory.
+// Do nothing if user already present.
+// If groups not empty, add the user to the supplementary groups.
 // Password login is disabled (use SSH public key or use passwd)
 func UserAdd(username string, groups ...string) (*user.User, error) {
 	log := Log.Named("UserAdd").With("user", username)
