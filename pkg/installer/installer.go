@@ -44,7 +44,7 @@ func (inst *Installer) AddFlower(name string, flower florist.Flower) error {
 }
 
 type cliArgs struct {
-	Install *InstallCmd `arg:"subcommand:install" help:"install a flower"`
+	Install *InstallCmd `arg:"subcommand:install" help:"install one or more flowers in sequence"`
 	List    *ListCmd    `arg:"subcommand:list" help:"list the available flowers"`
 }
 
@@ -53,7 +53,7 @@ func (cliArgs) Description() string {
 }
 
 type InstallCmd struct {
-	Flower string `arg:"required,positional" help:"the flower to install"`
+	Flower []string `arg:"required,positional" help:"list of flowers to install"`
 }
 
 type ListCmd struct { //
@@ -96,22 +96,29 @@ func (inst *Installer) cmdList() error {
 	return nil
 }
 
-func (inst *Installer) cmdInstall(name string) error {
-	var flower florist.Flower
-	var ok bool
-	if flower, ok = inst.flowers[name]; !ok {
-		return fmt.Errorf("install: unknown flower %s", name)
+func (inst *Installer) cmdInstall(names []string) error {
+	for _, name := range names {
+		if _, ok := inst.flowers[name]; !ok {
+			return fmt.Errorf("install: unknown flower %s", name)
+		}
 	}
+
 	inst.log.Info("Update package cache")
 	if err := apt.Update(inst.aptCacheValidity); err != nil {
 		return err
 	}
 
-	inst.log.Info("Install", "flower", name)
+	for _, name := range names {
+		flower := inst.flowers[name]
+		inst.log.Info("Install", "flower", name)
 
-	if err := flower.Install(); err != nil {
-		return err
+		if err := flower.Install(); err != nil {
+			return err
+		}
+
+		if err := florist.WriteRecord(name); err != nil {
+			inst.log.Warn("WriteRecord", "error", err)
+		}
 	}
-
-	return florist.WriteRecord(name)
+	return nil
 }
