@@ -14,9 +14,8 @@ import (
 )
 
 const (
-	ConsulServerHome = "/opt/consul/server"
-	ConsulClientHome = "/opt/consul/client"
-	ConsulBin        = "/usr/local/bin"
+	ConsulHome = "/opt/consul"
+	ConsulBin  = "/usr/local/bin"
 )
 
 func ConsulServerRun(
@@ -43,7 +42,7 @@ func ConsulServerRun(
 	// }
 
 	log.Info("Add system user 'consul-server'")
-	userConsulServer, err := florist.UserSystemAdd("consul-server", ConsulServerHome)
+	userConsulServer, err := florist.UserSystemAdd("consul-server", ConsulHome)
 	if err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
@@ -52,7 +51,7 @@ func ConsulServerRun(
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	consulCfg := path.Join(ConsulServerHome, "consul.server.hcl")
+	consulCfg := path.Join(ConsulHome, "consul.server.hcl")
 	log.Info("Install consul server configuration file", "dst", consulCfg)
 	if err := florist.CopyFromFs(filesFS, "consul/consul.server.hcl", consulCfg, 0640, userConsulServer); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
@@ -98,7 +97,7 @@ func ConsulClientRun(
 	// }
 
 	log.Info("Add system user 'consul-client'")
-	userConsulClient, err := florist.UserSystemAdd("consul-client", ConsulClientHome)
+	userConsulClient, err := florist.UserSystemAdd("consul-client", ConsulHome)
 	if err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
@@ -107,7 +106,7 @@ func ConsulClientRun(
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	consulCfg := path.Join(ConsulClientHome, "consul.client.hcl")
+	consulCfg := path.Join(ConsulHome, "consul.client.hcl")
 	log.Info("Install consul client configuration file", "dst", consulCfg)
 	if err := florist.CopyFromFs(filesFS, "consul/consul.client.hcl", consulCfg, 0640, userConsulClient); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
