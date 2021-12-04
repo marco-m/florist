@@ -41,8 +41,8 @@ func ConsulServerRun(
 	// 	return fmt.Errorf("%s: %s", log.Name(), err)
 	// }
 
-	log.Info("Add system user 'consul-server'")
-	userConsulServer, err := florist.UserSystemAdd("consul-server", ConsulHome)
+	log.Info("Add system user 'consul'")
+	userConsulServer, err := florist.UserSystemAdd("consul", ConsulHome)
 	if err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
@@ -96,8 +96,8 @@ func ConsulClientRun(
 	// 	return fmt.Errorf("%s: %s", log.Name(), err)
 	// }
 
-	log.Info("Add system user 'consul-client'")
-	userConsulClient, err := florist.UserSystemAdd("consul-client", ConsulHome)
+	log.Info("Add system user 'consul'")
+	userConsulClient, err := florist.UserSystemAdd("consul", ConsulHome)
 	if err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
