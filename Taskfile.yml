@@ -3,9 +3,6 @@
 version: '3'
 
 vars:
-  GOTESTSUM:
-    sh: if which gotestsum > /dev/null; then echo gotestsum; fi
-  TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}}{{else}}go test{{end}}"
 
 tasks:
   build:
@@ -16,4 +13,9 @@ tasks:
   test:
     desc: Run the tests
     cmds:
-      - "{{.TESTRUNNER}} ./..."
+      - set -o pipefail && go test -count=1 -cover ./... -json | tparse -all
+
+  deps:
+    desc: Install dependencies
+    cmds:
+      - go install github.com/mfridman/tparse@latest
