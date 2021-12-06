@@ -53,7 +53,8 @@ func (cliArgs) Description() string {
 }
 
 type InstallCmd struct {
-	Flower []string `arg:"required,positional" help:"list of flowers to install"`
+	Flower        []string `arg:"required,positional" help:"list of flowers to install"`
+	IgnoreUnknown bool     `arg:"--ignore-unknown" help:"ignore unknown flowers instead of failing"`
 }
 
 type ListCmd struct { //
@@ -70,7 +71,7 @@ func (inst *Installer) Run() error {
 
 	switch {
 	case cliArgs.Install != nil:
-		return inst.cmdInstall(cliArgs.Install.Flower)
+		return inst.cmdInstall(cliArgs.Install.Flower, cliArgs.Install.IgnoreUnknown)
 	case cliArgs.List != nil:
 		return inst.cmdList()
 	default:
@@ -93,11 +94,22 @@ func (inst *Installer) cmdList() error {
 	return nil
 }
 
-func (inst *Installer) cmdInstall(names []string) error {
+func (inst *Installer) cmdInstall(names []string, ignore bool) error {
+	existing := make([]string, 0, len(names))
 	for _, name := range names {
 		if _, ok := inst.flowers[name]; !ok {
+			if ignore {
+				inst.log.Warn("ignoring unknown", "flower", name)
+				continue
+			}
 			return fmt.Errorf("install: unknown flower %s", name)
 		}
+		existing = append(existing, name)
+	}
+
+	if len(existing) == 0 {
+		inst.log.Warn("all flowers are unknown, nothing to do")
+		return nil
 	}
 
 	if _, err := florist.Init(); err != nil {
@@ -109,7 +121,7 @@ func (inst *Installer) cmdInstall(names []string) error {
 		return err
 	}
 
-	for _, name := range names {
+	for _, name := range existing {
 		flower := inst.flowers[name]
 		inst.log.Info("Install", "flower", name)
 
