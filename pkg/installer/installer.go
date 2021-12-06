@@ -13,9 +13,14 @@ import (
 	"github.com/marco-m/florist/pkg/apt"
 )
 
+type bouquet struct {
+	flower     *florist.Flower
+	subFlowers []*florist.Flower
+}
+
 type Installer struct {
-	flowers map[string]florist.Flower
-	log     hclog.Logger
+	bouquets map[string]bouquet
+	log      hclog.Logger
 	// fixme this should be abstracted out somehow...
 	aptCacheValidity time.Duration
 }
@@ -28,18 +33,50 @@ func New(log hclog.Logger, cacheValidity time.Duration) *Installer {
 	stdlog.SetFlags(0)
 
 	return &Installer{
-		flowers:          map[string]florist.Flower{},
+		bouquets:         map[string]bouquet{},
 		log:              log.Named("installer"),
 		aptCacheValidity: cacheValidity,
 	}
 }
 
-func (inst *Installer) AddFlower(name string, flower florist.Flower) error {
-	if _, ok := inst.flowers[name]; ok {
+func (inst *Installer) newBouquet(
+	flower *florist.Flower,
+	subFlowers []string,
+) (bouquet, error) {
+	newBo := bouquet{
+		flower:     flower,
+		subFlowers: []*florist.Flower{},
+	}
+	for _, sb := range subFlowers {
+		if bo, ok := inst.bouquets[sb]; !ok {
+			return bouquet{}, fmt.Errorf(
+				"install: unknown subflower %s (you must add it before", sb)
+		} else {
+			newBo.subFlowers = append(newBo.subFlowers, bo.flower)
+		}
+	}
+	return newBo, nil
+}
+
+// AddFlower adds flower `flower` under name `name`.
+// If subFlowers is not empty, it will add them as part of this flower.
+// Note that subFlowers must have previously been added via AddFlower.
+// FIXME it should accept pointers to subflowers instead of strings...
+// FIXME actually I could pass the subflowers directly to the flower struct, seems simpler?
+func (inst *Installer) AddFlower(
+	flower florist.Flower,
+	subFlowers ...string,
+) error {
+	name := flower.Description().Name
+	if _, ok := inst.bouquets[name]; ok {
 		return fmt.Errorf("a flower with name %s exists already", name)
 	}
 	flower.SetLogger(florist.Log)
-	inst.flowers[name] = flower
+	bo, err := inst.newBouquet(&flower, subFlowers)
+	if err != nil {
+		return err
+	}
+	inst.bouquets[name] = bo
 	return nil
 }
 
@@ -79,17 +116,38 @@ func (inst *Installer) Run() error {
 	}
 }
 
-func (inst *Installer) cmdList() error {
-	// sort keys in lexical order
-	keys := make([]string, 0, len(inst.flowers))
-	for k := range inst.flowers {
-		keys = append(keys, k)
+// List returns a list of flowers, each flower with a list of subflowers.
+func (inst *Installer) List() [][]string {
+	// sort flowers in lexical order
+	sortedNames := make([]string, 0, len(inst.bouquets))
+	for k := range inst.bouquets {
+		sortedNames = append(sortedNames, k)
 	}
-	sort.Strings(keys)
+	sort.Strings(sortedNames)
 
+	var list [][]string
+	for _, name := range sortedNames {
+		var elem []string
+		bouquet := inst.bouquets[name]
+		elem = append(elem, (*bouquet.flower).Description().Name)
+		for _, subFl := range bouquet.subFlowers {
+			elem = append(elem, (*subFl).Description().Name)
+		}
+		list = append(list, elem)
+	}
+	return list
+}
+
+func (inst *Installer) cmdList() error {
 	fmt.Println("Available flowers:")
-	for _, name := range keys {
-		fmt.Printf("%-15s %s\n", name, inst.flowers[name])
+	for _, elem := range inst.List() {
+		bouquet := inst.bouquets[elem[0]]
+		flower := *bouquet.flower
+		fmt.Printf("%-20s %s\n", flower.Description().Name, flower.Description().Long)
+		for _, sb := range bouquet.subFlowers {
+			fmt.Println("  ", (*sb).Description().Name)
+		}
+		fmt.Println()
 	}
 	return nil
 }
@@ -97,7 +155,7 @@ func (inst *Installer) cmdList() error {
 func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 	existing := make([]string, 0, len(names))
 	for _, name := range names {
-		if _, ok := inst.flowers[name]; !ok {
+		if _, ok := inst.bouquets[name]; !ok {
 			if ignore {
 				inst.log.Warn("ignoring unknown", "flower", name)
 				continue
@@ -122,16 +180,30 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 	}
 
 	for _, name := range existing {
-		flower := inst.flowers[name]
-		inst.log.Info("Install", "flower", name)
-
-		if err := flower.Install(); err != nil {
+		bouquet := inst.bouquets[name]
+		flower := *bouquet.flower
+		inst.log.Info("Install", "main flower", name)
+		if err := install(inst.log, flower); err != nil {
 			return err
 		}
 
-		if err := florist.WriteRecord(name); err != nil {
-			inst.log.Warn("WriteRecord", "error", err)
+		for _, subFlower := range bouquet.subFlowers {
+			inst.log.Info("Install", "sub flower", (*subFlower).Description().Name)
+			if err := install(inst.log, *subFlower); err != nil {
+				return err
+			}
 		}
+
+	}
+	return nil
+}
+
+func install(log hclog.Logger, flower florist.Flower) error {
+	if err := flower.Install(); err != nil {
+		return err
+	}
+	if err := florist.WriteRecord(flower.Description().Name); err != nil {
+		log.Warn("WriteRecord", "error", err)
 	}
 	return nil
 }

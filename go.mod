@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/alexflint/go-arg v1.4.2
 	github.com/cakturk/go-netstat v0.0.0-20200220111822-e5b49efee7a5
+	github.com/google/go-cmp v0.5.6
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/scylladb/go-set v1.0.2
 )
