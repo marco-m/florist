@@ -70,9 +70,6 @@ func (inst *Installer) Run() error {
 
 	switch {
 	case cliArgs.Install != nil:
-		if _, err := florist.Init(); err != nil {
-			return err
-		}
 		return inst.cmdInstall(cliArgs.Install.Flower)
 	case cliArgs.List != nil:
 		return inst.cmdList()
@@ -101,6 +98,10 @@ func (inst *Installer) cmdInstall(names []string) error {
 		if _, ok := inst.flowers[name]; !ok {
 			return fmt.Errorf("install: unknown flower %s", name)
 		}
+	}
+
+	if _, err := florist.Init(); err != nil {
+		return err
 	}
 
 	inst.log.Info("Update package cache")
