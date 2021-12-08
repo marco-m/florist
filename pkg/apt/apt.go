@@ -18,7 +18,9 @@ func Update(cacheValidity time.Duration) error {
 		return fmt.Errorf("apt.Update: %s", err)
 	}
 
-	if mTime.Add(cacheValidity).After(time.Now()) {
+	now := time.Now()
+	log.Debug("cache info", "cacheValidity", cacheValidity, "lastTime", mTime, "now", now)
+	if mTime.Add(cacheValidity).After(now) {
 		log.Debug("", "cache", "valid")
 		return nil
 	}
