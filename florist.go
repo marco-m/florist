@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	WorkDir  = "/tmp/flower.work"
+	WorkDir  = "/tmp/florist.work"
 	DataPath = WorkDir + "/florist.json"
+
+	AptCacheValidityDefault = 24 * time.Hour
 )
 
 func Init() (*user.User, error) {

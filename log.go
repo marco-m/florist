@@ -11,7 +11,7 @@ var Log = hclog.NewNullLogger()
 
 func NewLogger() hclog.Logger {
 	return hclog.New(&hclog.LoggerOptions{
-		Name:       "flower",
+		Name:       "florist",
 		Level:      hclog.LevelFromString("DEBUG"),
 		TimeFormat: "15:04:05.000Z07:00",
 		// color output is unreadable on displays with a light theme :-(

@@ -49,7 +49,7 @@ type cliArgs struct {
 }
 
 func (cliArgs) Description() string {
-	return "🌼 flower 🌺 - a simple installer\n"
+	return "🌼 florist 🌺 - a simple installer\n"
 }
 
 type InstallCmd struct {
