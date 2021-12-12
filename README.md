@@ -85,8 +85,9 @@ See directory [examples/](examples) for example installers.
 ```text
 $ vagrant up
 $ vagrant ssh
+
 == following happens in the VM ==
-vagrant@florist-dev $ cd florist/examples
-vagrant@florist-dev $ ./minimal-florist/bin/minimal-florist -h
+
+vagrant@florist-dev $ ./florist/bin/example-florist -h
 ...
 ```

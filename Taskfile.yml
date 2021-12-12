@@ -6,16 +6,23 @@ vars:
 
 tasks:
   build:
-    desc: Build all packages
+    desc: Build all
     cmds:
       - go build ./...
+      - task: build:example
+
+  build:example:
+    desc: Build the example
+    cmds:
+      - go build -o bin/example-florist ./example
+      - GOOS=linux go build -o bin/linux/example-florist ./example
 
   test:
-    desc: Run the tests
+    desc: Run all the tests
     cmds:
-      - set -o pipefail && go test -count=1 -cover ./... -json | tparse -all
+      - go test -count=1 -cover ./...
 
-  deps:
-    desc: Install dependencies
+  clean:
+    desc: Remove the build artifacts
     cmds:
-      - go install github.com/mfridman/tparse@latest
+      - rm -rf bin
