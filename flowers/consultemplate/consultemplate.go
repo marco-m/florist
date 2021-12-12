@@ -20,13 +20,12 @@ const (
 	BinDir       = "/usr/local/bin"
 
 	// relative to the Go embed FS
-	SrcConfigDir    = "consul-template/config"
-	SrcTemplatesDir = "consul-template/templates"
+	SrcDir          = florist.EmbedDir + "/consul-template"
+	SrcConfigDir    = SrcDir + "/config"
+	SrcTemplatesDir = SrcDir + "/templates"
 )
 
 type Flower struct {
-	Desc           florist.Description
-	Log            hclog.Logger
 	FilesFS        fs.FS
 	Version        string
 	Hash           string
@@ -34,24 +33,25 @@ type Flower struct {
 	Templates      []string
 }
 
-func (fl *Flower) Description() florist.Description {
-	if fl.Desc.Name == "" {
-		return florist.Description{
-			Name: "consultemplate",
-			Long: "install the consul-template tool as a service",
-		}
-	}
-	return fl.Desc
+func (fl *Flower) Name() string {
+	return "consultemplate"
 }
 
-func (fl *Flower) SetLogger(log hclog.Logger) {
-	fl.Log = log
+func (fl *Flower) Description() string {
+	return "install the consul-template tool as a service"
 }
 
 func (fl *Flower) Install() error {
-	log := fl.Log.Named("flower.consultemplate")
+	log := florist.Log.ResetNamed("florist.flower.consultemplate")
 	log.Info("begin")
 	defer log.Info("end")
+
+	if fl.FilesFS == nil {
+		return fmt.Errorf("%s: %s", log.Name(), "nil FilesFS")
+	}
+	if fl.Version == "" {
+		return fmt.Errorf("%s: %s", log.Name(), "empty version")
+	}
 
 	root, err := user.Current()
 	if err != nil {
@@ -70,7 +70,8 @@ func (fl *Flower) Install() error {
 	}
 
 	log.Info("Create consul-template templates dir", "dir", TemplatesDir)
-	if err := florist.Mkdir(TemplatesDir, userConsulTemplate, 0755); err != nil {
+	if err := florist.Mkdir(TemplatesDir, userConsulTemplate,
+		0755); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
@@ -78,28 +79,23 @@ func (fl *Flower) Install() error {
 	//
 	// For the time being we run consul-template as root :-(
 	//
-	// We should add a dedicated user, consul-template, and then give it, via Linux CAP,
-	// "only" the capabilities to write files, doing chown and sending signals to other
-	// processes.
-	// Actually writing files is so powerful that probably this protection would be
-	// useless? :-(
-	//
+	// We should add a dedicated user, consul-template, and then give it, via
+	// Linux CAP, "only" the capabilities to write files, doing chown and
+	// sending signals to other processes.
+	// Actually writing files is so powerful that probably this protection would
+	// be useless? :-(
 	userConsulTemplate = root
 
-	if err := installConsulTemplateExe(log, fl.Version, fl.Hash, root); err != nil {
+	if err := installExe(log, fl.Version, fl.Hash, root); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	baseCfg := "aa-base-config.hcl"
-	configs := make([]string, 0, len(fl.Configurations)+1)
-	configs = append(configs, baseCfg)
-	configs = append(configs, fl.Configurations...)
-
-	for _, cfg := range configs {
+	for _, cfg := range fl.Configurations {
 		src := path.Join(SrcConfigDir, cfg)
 		dst := path.Join(ConfigDir, cfg)
 		log.Info("Install consul-template configuration file", "dst", dst)
-		if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0640, userConsulTemplate); err != nil {
+		if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0640,
+			userConsulTemplate); err != nil {
 			return fmt.Errorf("%s: %s", log.Name(), err)
 		}
 	}
@@ -108,13 +104,14 @@ func (fl *Flower) Install() error {
 		src := path.Join(SrcTemplatesDir, tmpl)
 		dst := path.Join(TemplatesDir, tmpl)
 		log.Info("Install consul-template template file", "dst", dst)
-		if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0640, userConsulTemplate); err != nil {
+		if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0640,
+			userConsulTemplate); err != nil {
 			return fmt.Errorf("%s: %s", log.Name(), err)
 		}
 	}
 
 	unit := "consul-template.service"
-	src := path.Join("consul-template/service", unit)
+	src := path.Join(SrcDir, "service", unit)
 	dst := path.Join("/etc/systemd/system/", unit)
 	log.Info("Install consul-template systemd unit file", "dst", dst)
 	if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0644, root); err != nil {
@@ -131,18 +128,25 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func installConsulTemplateExe(log hclog.Logger, version string, hash string, root *user.User) error {
+func installExe(
+	log hclog.Logger,
+	version string,
+	hash string,
+	root *user.User,
+) error {
 	log.Info("Download consul-template package")
 	url := fmt.Sprintf("https://releases.hashicorp.com/consul-template/%s/consul-template_%s_linux_amd64.zip", version, version)
 	client := &http.Client{Timeout: 30 * time.Second}
-	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash, florist.WorkDir)
+	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash,
+		florist.WorkDir)
 	if err != nil {
 		return err
 	}
 
 	extracted := path.Join(florist.WorkDir, "consul-template")
 	log.Info("Unzipping consul-template package", "dst", extracted)
-	if err := florist.UnzipOne(zipPath, "consul-template", extracted); err != nil {
+	if err := florist.UnzipOne(zipPath, "consul-template",
+		extracted); err != nil {
 		return err
 	}
 

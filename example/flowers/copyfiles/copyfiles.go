@@ -7,7 +7,6 @@ import (
 	"os/user"
 	"path"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/marco-m/florist"
 )
 
@@ -20,28 +19,21 @@ const (
 )
 
 type Flower struct {
-	Desc     florist.Description
-	Log      hclog.Logger
 	FilesFS  fs.FS
 	SrcFiles []string
 }
 
-func (fl *Flower) Description() florist.Description {
-	if fl.Desc.Name == "" {
-		return florist.Description{
-			Name: "copyfiles",
-			Long: "example flower that copies files from an embed.FS to the real filesystem",
-		}
-	}
-	return fl.Desc
+func (fl *Flower) Name() string {
+	return "copyfiles"
 }
 
-func (fl *Flower) SetLogger(log hclog.Logger) {
-	fl.Log = log
+func (fl *Flower) Description() string {
+	return "copy files from an embed.FS to the real filesystem"
 }
 
 func (fl *Flower) Install() error {
-	log := fl.Log.Named("flower.copyfiles")
+	// When writing your own flower, replace "example" with the name of your project.
+	log := florist.Log.ResetNamed("example.flower.copyfiles")
 	log.Info("begin")
 	defer log.Info("end")
 

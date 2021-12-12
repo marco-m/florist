@@ -28,18 +28,19 @@ A bare-bones and opinionated Go module to create **non idempotent**, one-file-co
 
 - **florist**: this module.
 - **\<project\>-florist**: the installer for **\<project\>**. You write this one.
-- **flower** an installable unit, as a Go package, that implements the `flower` interface. You can:
+- **flower** a composable unit, under the form of a Go package, that implements the `flower` interface. You can:
   - write it for your project.
   - use 3rd-party flowers (they are just Go packages).
   - use some of the ready-made flowers in this module.
+- **bouquet** a target for the `install` subcommand, made of one or more flowers. You can list the installable bouquets with the `list` subcommand.
 
 ## Files: embed at compile time or download at runtime
 
 Florist expects your code to use Go [embed](https://pkg.go.dev/embed) to recursively embed all files below directory `files/` (must be this name). You will then pass along the embed.FS to the various flowers.
 
-It is also possible to download files at runtime.
-
 To see all the embedded files, run `go list -f '{{.EmbedFiles}}'`.
+
+It is also possible to download files at runtime, using `florist.NetFetch()`.
 
 ## Templating
 
@@ -50,6 +51,22 @@ I would like to support Go templating in the configuration files, but it is not 
 I recommend to use another mechanism to inject secrets in your image and to inject them at deployment time: backing secrets in the image at Packer build time should be avoided. For example, use cloud-init driven from Terraform.
 
 As a last and insecure resort, you can embed secrets in the installer, using by convention the `files/secrets/` directory. Do not commit the secrets in git.
+
+## Usage
+
+```
+$ ./example-florist -h
+🌼 florist 🌺 - a simple installer
+
+Usage: example-florist <command> [<args>]
+
+Options:
+  --help, -h             display this help and exit
+
+Commands:
+  install                install one or more bouquets
+  list                   list the available bouquets
+```
 
 ## Usage with Packer
 
@@ -71,7 +88,7 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["sudo /tmp/<project>-florist install <FLOWER>"]
+    inline = ["sudo /tmp/<project>-florist install <BOUQUET>"]
   }
 }
 ```

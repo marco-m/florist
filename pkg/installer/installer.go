@@ -2,6 +2,7 @@
 package installer
 
 import (
+	"errors"
 	"fmt"
 	stdlog "log"
 	"sort"
@@ -13,76 +14,81 @@ import (
 	"github.com/marco-m/florist/pkg/apt"
 )
 
-type bouquet struct {
-	flower     *florist.Flower
-	subFlowers []*florist.Flower
-}
-
 type Installer struct {
-	bouquets map[string]bouquet
-	log      hclog.Logger
-	// fixme this should be abstracted out somehow...
-	aptCacheValidity time.Duration
+	log           hclog.Logger
+	cacheValidity time.Duration
+	bouquets      map[string]Bouquet
 }
 
-func New(log hclog.Logger, cacheValidity time.Duration) *Installer {
+type Bouquet struct {
+	Name        string
+	Description string
+	Flowers     []florist.Flower
+}
+
+func New(log hclog.Logger, cacheValidity time.Duration) Installer {
 	florist.SetLogger(log)
 
 	stdlog.SetOutput(log.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
 	stdlog.SetPrefix("")
 	stdlog.SetFlags(0)
 
-	return &Installer{
-		bouquets:         map[string]bouquet{},
-		log:              log.Named("installer"),
-		aptCacheValidity: cacheValidity,
+	return Installer{
+		log:           log.Named("installer"),
+		cacheValidity: cacheValidity,
+		bouquets:      map[string]Bouquet{},
 	}
 }
 
-func (inst *Installer) newBouquet(
-	flower *florist.Flower,
-	subFlowers []string,
-) (bouquet, error) {
-	newBo := bouquet{
-		flower:     flower,
-		subFlowers: []*florist.Flower{},
+// AddBouquet adds `flowers` with `name` and `description`.
+func (inst *Installer) AddBouquet(
+	name string,
+	description string,
+	flowers []florist.Flower,
+) error {
+	if flowers == nil {
+		return errors.New("AddBouquet: bouquet is empty")
 	}
-	for _, sb := range subFlowers {
-		if bo, ok := inst.bouquets[sb]; !ok {
-			return bouquet{}, fmt.Errorf(
-				"install: unknown subflower %s (you must add it before", sb)
-		} else {
-			newBo.subFlowers = append(newBo.subFlowers, bo.flower)
+	if len(flowers) > 1 {
+		if name == "" {
+			return errors.New("AddBouquet: more that one flower and name is empty")
+		}
+		if description == "" {
+			return errors.New("AddBouquet: more that one flower and description is empty")
 		}
 	}
-	return newBo, nil
-}
+	for i, fl := range flowers {
+		if fl.Name() == "" {
+			return fmt.Errorf("AddBouquet: flower %d has empty name", i)
+		}
+		if fl.Description() == "" {
+			return fmt.Errorf("AddBouquet: flower %d has empty description", i)
+		}
+	}
 
-// AddFlower adds flower `flower` under name `name`.
-// If subFlowers is not empty, it will add them as part of this flower.
-// Note that subFlowers must have previously been added via AddFlower.
-// FIXME it should accept pointers to subflowers instead of strings...
-// FIXME actually I could pass the subflowers directly to the flower struct, seems simpler?
-func (inst *Installer) AddFlower(
-	flower florist.Flower,
-	subFlowers ...string,
-) error {
-	name := flower.Description().Name
+	if name == "" {
+		name = flowers[0].Name()
+	}
+	if description == "" {
+		description = flowers[0].Description()
+	}
+
 	if _, ok := inst.bouquets[name]; ok {
-		return fmt.Errorf("a flower with name %s exists already", name)
+		return fmt.Errorf("AddBouquet: there is already a bouquet with name %s", name)
 	}
-	flower.SetLogger(florist.Log)
-	bo, err := inst.newBouquet(&flower, subFlowers)
-	if err != nil {
-		return err
+
+	inst.bouquets[name] = Bouquet{
+		Name:        name,
+		Description: description,
+		Flowers:     flowers,
 	}
-	inst.bouquets[name] = bo
+
 	return nil
 }
 
 type cliArgs struct {
-	Install *InstallCmd `arg:"subcommand:install" help:"install one or more flowers in sequence"`
-	List    *ListCmd    `arg:"subcommand:list" help:"list the available flowers"`
+	Install *InstallCmd `arg:"subcommand:install" help:"install one or more bouquets"`
+	List    *ListCmd    `arg:"subcommand:list" help:"list the available bouquets"`
 }
 
 func (cliArgs) Description() string {
@@ -90,8 +96,8 @@ func (cliArgs) Description() string {
 }
 
 type InstallCmd struct {
-	Flower        []string `arg:"required,positional" help:"list of flowers to install"`
-	IgnoreUnknown bool     `arg:"--ignore-unknown" help:"ignore unknown flowers instead of failing"`
+	Flower        []string `arg:"required,positional" help:"list of bouquets to install"`
+	IgnoreUnknown bool     `arg:"--ignore-unknown" help:"ignore unknown bouquets instead of failing"`
 }
 
 type ListCmd struct { //
@@ -116,36 +122,28 @@ func (inst *Installer) Run() error {
 	}
 }
 
-// List returns a list of flowers, each flower with a list of subflowers.
-func (inst *Installer) List() [][]string {
+// Bouquets returns a list of the added bouquets sorted by name.
+func (inst *Installer) Bouquets() []Bouquet {
 	// sort flowers in lexical order
 	sortedNames := make([]string, 0, len(inst.bouquets))
-	for k := range inst.bouquets {
-		sortedNames = append(sortedNames, k)
+	for name := range inst.bouquets {
+		sortedNames = append(sortedNames, name)
 	}
 	sort.Strings(sortedNames)
 
-	var list [][]string
+	bouquets := make([]Bouquet, 0, len(inst.bouquets))
 	for _, name := range sortedNames {
-		var elem []string
-		bouquet := inst.bouquets[name]
-		elem = append(elem, (*bouquet.flower).Description().Name)
-		for _, subFl := range bouquet.subFlowers {
-			elem = append(elem, (*subFl).Description().Name)
-		}
-		list = append(list, elem)
+		bouquets = append(bouquets, inst.bouquets[name])
 	}
-	return list
+	return bouquets
 }
 
 func (inst *Installer) cmdList() error {
-	fmt.Println("Available flowers:")
-	for _, elem := range inst.List() {
-		bouquet := inst.bouquets[elem[0]]
-		flower := *bouquet.flower
-		fmt.Printf("%-20s %s\n", flower.Description().Name, flower.Description().Long)
-		for _, sb := range bouquet.subFlowers {
-			fmt.Println("  ", (*sb).Description().Name)
+	fmt.Println("Available bouquets:")
+	for _, bouquet := range inst.Bouquets() {
+		fmt.Printf("%-20s %s\n", bouquet.Name, bouquet.Description)
+		for _, fl := range bouquet.Flowers {
+			fmt.Printf("    %-20s (%s)\n", fl.Name(), fl.Description())
 		}
 		fmt.Println()
 	}
@@ -153,20 +151,20 @@ func (inst *Installer) cmdList() error {
 }
 
 func (inst *Installer) cmdInstall(names []string, ignore bool) error {
-	existing := make([]string, 0, len(names))
+	found := make([]string, 0, len(names))
 	for _, name := range names {
 		if _, ok := inst.bouquets[name]; !ok {
 			if ignore {
-				inst.log.Warn("ignoring unknown", "flower", name)
+				inst.log.Warn("ignoring unknown", "bouquet", name)
 				continue
 			}
-			return fmt.Errorf("install: unknown flower %s", name)
+			return fmt.Errorf("install: unknown bouquet %s", name)
 		}
-		existing = append(existing, name)
+		found = append(found, name)
 	}
 
-	if len(existing) == 0 {
-		inst.log.Warn("all flowers are unknown, nothing to do")
+	if len(found) == 0 {
+		inst.log.Warn("all bouquets are unknown, nothing to do")
 		return nil
 	}
 
@@ -175,35 +173,22 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 	}
 
 	inst.log.Info("Update package cache")
-	if err := apt.Update(inst.aptCacheValidity); err != nil {
+	if err := apt.Update(inst.cacheValidity); err != nil {
 		return err
 	}
 
-	for _, name := range existing {
+	for _, name := range found {
 		bouquet := inst.bouquets[name]
-		flower := *bouquet.flower
-		inst.log.Info("Install", "main flower", name)
-		if err := install(inst.log, flower); err != nil {
-			return err
-		}
-
-		for _, subFlower := range bouquet.subFlowers {
-			inst.log.Info("Install", "sub flower", (*subFlower).Description().Name)
-			if err := install(inst.log, *subFlower); err != nil {
+		inst.log.Info("installing", "bouquet", name, "flowers", len(bouquet.Flowers))
+		for _, flower := range bouquet.Flowers {
+			inst.log.Info("Installing", "flower", flower.Name())
+			if err := flower.Install(); err != nil {
 				return err
 			}
+			if err := florist.WriteRecord(flower.Name()); err != nil {
+				inst.log.Warn("WriteRecord", "error", err)
+			}
 		}
-
-	}
-	return nil
-}
-
-func install(log hclog.Logger, flower florist.Flower) error {
-	if err := flower.Install(); err != nil {
-		return err
-	}
-	if err := florist.WriteRecord(flower.Description().Name); err != nil {
-		log.Warn("WriteRecord", "error", err)
 	}
 	return nil
 }
