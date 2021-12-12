@@ -14,7 +14,8 @@ const (
 	WorkDir  = "/tmp/florist.work"
 	DataPath = WorkDir + "/florist.json"
 
-	AptCacheValidityDefault = 24 * time.Hour
+	CacheValidityDefault = 24 * time.Hour
+	EmbedDir             = "files"
 )
 
 func Init() (*user.User, error) {
