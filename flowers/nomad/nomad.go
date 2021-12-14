@@ -1,3 +1,5 @@
+// Package nomad contains a flower to install a Nomad client and a flower to
+// install a Nomad server.
 package nomad
 
 import (
@@ -20,15 +22,32 @@ const (
 	NomadBin        = "/usr/local/bin"
 )
 
-func NomadServerRun(
-	log hclog.Logger,
-	filesFS fs.FS,
-	version string,
-	hash string,
-) error {
-	log = log.Named("petal.nomadserver")
+// WARNING: Do NOT install alongside a Nomad client.
+type ServerFlower struct {
+	FilesFS fs.FS
+	Version string
+	Hash    string
+}
+
+func (fl *ServerFlower) Name() string {
+	return "nomadserver"
+}
+
+func (fl *ServerFlower) Description() string {
+	return "install a nomad server (incompatible with a nomad client)"
+}
+
+func (fl *ServerFlower) Install() error {
+	log := florist.Log.ResetNamed("florist.flower.nomadserver")
 	log.Info("begin")
 	defer log.Info("end")
+
+	if fl.FilesFS == nil {
+		return fmt.Errorf("%s: %s", log.Name(), "nil FilesFS")
+	}
+	if fl.Version == "" {
+		return fmt.Errorf("%s: %s", log.Name(), "empty version")
+	}
 
 	root, err := user.Current()
 	if err != nil {
@@ -43,24 +62,26 @@ func NomadServerRun(
 	}
 
 	log.Info("Add system user 'nomad-server'")
-	userNomadServer, err := florist.UserSystemAdd("nomad-server", NomadServerHome)
+	userNomad, err := florist.UserSystemAdd("nomad-server", NomadServerHome)
 	if err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	if err := installNomadExe(log, version, hash, root); err != nil {
+	if err := installNomadExe(log, fl.Version, fl.Hash, root); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
 	nomadCfg := path.Join(NomadServerHome, "nomad.server.hcl")
 	log.Info("Install nomad server configuration file", "dst", nomadCfg)
-	if err := florist.CopyFromFs(filesFS, "nomad/nomad.server.hcl", nomadCfg, 0640, userNomadServer); err != nil {
+	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad.server.hcl",
+		nomadCfg, 0640, userNomad); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-server.service")
 	log.Info("Install nomad server systemd unit file", "dst", nomadUnit)
-	if err := florist.CopyFromFs(filesFS, "nomad/nomad-server.service", nomadUnit, 0644, root); err != nil {
+	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad-server.service",
+		nomadUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
@@ -69,20 +90,39 @@ func NomadServerRun(
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	// We do not start the service at Packer time because it is not needed and because it saves state that makes reaching consensus more complicated if more than one agent.
+	// We do not start the service at Packer time because it is not needed and
+	// because it saves state that makes reaching consensus more complicated if
+	// more than one agent.
 
 	return nil
 }
 
-func NomadClientRun(
-	log hclog.Logger,
-	filesFS fs.FS,
-	version string,
-	hash string,
-) error {
-	log = log.Named("petal.nomadclient")
+// WARNING: Do NOT install alongside a Nomad server.
+type ClientFlower struct {
+	FilesFS fs.FS
+	Version string
+	Hash    string
+}
+
+func (fl *ClientFlower) Name() string {
+	return "nomadclient"
+}
+
+func (fl *ClientFlower) Description() string {
+	return "install a nomad client (incompatible with a nomad server)"
+}
+
+func (fl *ClientFlower) Install() error {
+	log := florist.Log.ResetNamed("florist.flower.nomadclient")
 	log.Info("begin")
 	defer log.Info("end")
+
+	if fl.FilesFS == nil {
+		return fmt.Errorf("%s: %s", log.Name(), "nil FilesFS")
+	}
+	if fl.Version == "" {
+		return fmt.Errorf("%s: %s", log.Name(), "empty version")
+	}
 
 	root, err := user.Current()
 	if err != nil {
@@ -97,26 +137,29 @@ func NomadClientRun(
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	// FIXME we add the user but we don't use it, because we need to run the nomad client as root
+	// FIXME we add the user but we don't use it, because we need to run the
+	// nomad client as root
 	log.Info("Add system user 'nomad-client'")
 	_, err = florist.UserSystemAdd("nomad-client", NomadClientHome)
 	if err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	if err := installNomadExe(log, version, hash, root); err != nil {
+	if err := installNomadExe(log, fl.Version, fl.Hash, root); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
 	nomadCfg := path.Join(NomadClientHome, "nomad.client.hcl")
 	log.Info("Install nomad client configuration file", "dst", nomadCfg)
-	if err := florist.CopyFromFs(filesFS, "nomad/nomad.client.hcl", nomadCfg, 0640, root); err != nil {
+	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad.client.hcl",
+		nomadCfg, 0640, root); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-client.service")
 	log.Info("Install nomad client systemd unit file", "dst", nomadUnit)
-	if err := florist.CopyFromFs(filesFS, "nomad/nomad-client.service", nomadUnit, 0644, root); err != nil {
+	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad-client.service",
+		nomadUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
@@ -125,16 +168,28 @@ func NomadClientRun(
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	// We do not start the service at Packer time because it is not needed and because it saves state that makes reaching consensus more complicated if more than one agent.
+	// We do not start the service at Packer time because it is not needed and
+	// because it saves state that makes reaching consensus more complicated if
+	// more than one agent.
 
 	return nil
 }
 
-func installNomadExe(log hclog.Logger, version string, hash string, root *user.User) error {
+func installNomadExe(
+	log hclog.Logger,
+	version string,
+	hash string,
+	root *user.User,
+) error {
 	log.Info("Download Nomad package")
-	url := fmt.Sprintf("https://releases.hashicorp.com/nomad/%s/nomad_%s_linux_amd64.zip", version, version)
+	url := fmt.Sprintf(
+		"https://releases.hashicorp.com/nomad/%s/nomad_%s_linux_amd64.zip",
+		version,
+		version,
+	)
 	client := &http.Client{Timeout: 30 * time.Second}
-	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash, florist.WorkDir)
+	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash,
+		florist.WorkDir)
 	if err != nil {
 		return err
 	}

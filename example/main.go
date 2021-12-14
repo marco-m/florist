@@ -10,6 +10,7 @@ import (
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/example/flowers/copyfiles"
 	"github.com/marco-m/florist/flowers/consultemplate"
+	"github.com/marco-m/florist/flowers/nomad"
 	"github.com/marco-m/florist/pkg/installer"
 )
 
@@ -46,17 +47,17 @@ func run(log hclog.Logger) error {
 		},
 	}
 
-	// To keep the original name and description of the flower, just pass empty strings
-	// for the first two parameters (this makes sense only when there is only one flower
-	// in the bouquet).
-	// `example-florist list` will print:
+	// To keep the original name and description of the flower, just pass empty
+	// strings for the first two parameters (this makes sense only when there
+	// is a single flower in the bouquet).
+	// Running `example-florist list` will print:
 	// copyfiles            copy files from an embed.FS to the real filesystem
 	if err := inst.AddBouquet("", "", bouquet1); err != nil {
 		return err
 	}
 
 	// To customize the name and description, set the first two parameters.
-	// `example-florist list` will print:
+	// Running `example-florist list` will print:
 	// files                install the files for projectX
 	if err := inst.AddBouquet("files", "install the files for projectX",
 		bouquet1); err != nil {
@@ -73,6 +74,22 @@ func run(log hclog.Logger) error {
 	bouquet2 = append(bouquet2, bouquet1...)
 	if err := inst.AddBouquet("all-you-need", "install everything",
 		bouquet2); err != nil {
+		return err
+	}
+
+	//
+	// Some other bouquets, to show the available flowers in florist.
+	//
+
+	if err := inst.AddBouquet("", "", []florist.Flower{
+		&nomad.ClientFlower{}},
+	); err != nil {
+		return err
+	}
+
+	if err := inst.AddBouquet("", "", []florist.Flower{
+		&nomad.ServerFlower{}},
+	); err != nil {
 		return err
 	}
 

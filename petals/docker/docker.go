@@ -42,7 +42,7 @@ func DockerRun(
 	}
 
 	for _, username := range users {
-		log.Info("adding user to docker supplementary group")
+		log.Info("adding user to 'docker' supplementary group", "user", username)
 		florist.SupplementaryGroups(username, "docker")
 	}
 
