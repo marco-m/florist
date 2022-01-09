@@ -1,19 +1,29 @@
+// packge docker contains a flower to install Docker.
 package docker
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
 )
 
-func DockerRun(
-	log hclog.Logger,
-	users []string,
-) error {
-	log = log.Named("petal.docker")
+type Flower struct {
+	// Users to add to the docker supplementary group.
+	Users []string
+}
+
+func (fl *Flower) Name() string {
+	return "docker"
+}
+
+func (fl *Flower) Description() string {
+	return "install Docker"
+}
+
+func (fl *Flower) Install() error {
+	log := florist.Log.ResetNamed("florist.flower.docker")
 	log.Info("begin")
 	defer log.Info("end")
 
@@ -41,7 +51,7 @@ func DockerRun(
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	for _, username := range users {
+	for _, username := range fl.Users {
 		log.Info("adding user to 'docker' supplementary group", "user", username)
 		florist.SupplementaryGroups(username, "docker")
 	}
