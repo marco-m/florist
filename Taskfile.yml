@@ -17,8 +17,18 @@ tasks:
       - go build -o bin/example-florist ./example
       - GOOS=linux go build -o bin/linux/example-florist ./example
 
-  test:
-    desc: Run all the tests
+  test:unit:
+    desc: Run the unit tests
+    cmds:
+      - go test -count=1 -short -cover ./...
+
+  test:vm:
+    desc: Run the VM-based tests
+    cmds:
+      - go test -count=1 -run 'Test.*VM$' -cover ./...
+
+  test:all:
+    desc: Run all the tests (get all coverage)
     cmds:
       - go test -count=1 -cover ./...
 

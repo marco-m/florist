@@ -1,2 +1,4 @@
 .vagrant/
 bin/
+ssh_config.vagrant
+TODO.md

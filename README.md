@@ -11,7 +11,7 @@ A bare-bones and opinionated Go module to create **non idempotent**, one-file-co
 ## Goals
 
 - Stay small and as simple as possible.
-- Zero-dependencies (no interpreters, the installer is all you need).
+- Zero-dependencies (no interpreters, no additional files, the installer is all you need).
 - Configuration-is-code, static typing (no YAML, less runtime errors).
 
 ## Use cases
@@ -29,9 +29,9 @@ A bare-bones and opinionated Go module to create **non idempotent**, one-file-co
 - **florist**: this module.
 - **\<project\>-florist**: the installer for **\<project\>**. You write this one.
 - **flower** a composable unit, under the form of a Go package, that implements the `flower` interface. You can:
-  - write it for your project.
-  - use 3rd-party flowers (they are just Go packages).
-  - use some of the ready-made flowers in this module.
+    - write it for your project.
+    - use 3rd-party flowers (they are just Go packages).
+    - use some of the ready-made flowers in this module.
 - **bouquet** a target for the `install` subcommand, made of one or more flowers. You can list the installable bouquets with the `list` subcommand.
 
 ## Files: embed at compile time or download at runtime
@@ -93,18 +93,71 @@ build {
 }
 ```
 
+## Prepare for development
+
+We use VM snapshots, so that we can quickly restore a pristine environment:
+
+    # Ensure we start from scratch
+    $ vagrant destroy
+    $ vagrant up
+
+    # Take snapshot, name `pristine`
+    $ vagrant snapshot save pristine
+
+    # Generate a SSH configuration file
+    $ vagrant ssh-config > ssh_config.vagrant
+
+    # Edit ssh_config.vagrant and remove line `LogLevel FATAL`
+
+## Developing your installer/flowers
+
+You can do all development on the VM, or use the VM only to run the installer and the tests and do the development and build on the host.
+It is up to your convenience.
+
+This is the normal sequence to perform when developing.
+
+    # Restore snapshot and restart VM
+    $ vagrant snapshot restore pristine
+
+    # Connect to the VM directly (bypass vagrant, way faster)
+    $ ssh -F ssh_config.vagrant florist-dev
+
+    == following happens in the VM ==
+
+    # The florist/ directory is a shared mount with the host
+    vagrant@florist-dev:~$ ls -F
+    florist/
+
+    # Check out the example installer
+    vagrant@florist-dev $ ./florist/bin/example-florist -h
+
+Then:
+
+1. Develop and build on the host
+2. Run the installer on the VM, check around
+3. When the VM environment is dirty, restore the snapshot and go back to 1.
+   The code is safe on the host (and editable also on the VM via the shared directory)
+
+## Testing your installer/flowers
+
+There are two ways to run the tests on the VM:
+
+1. ssh to the VM and run the tests from a shell there as you would expect.
+2. run the tests from the host using [xprog], a test runner for `go test -exec`.
+
+Using `xprog` (see the [xprog] README for more information):
+
+Assuming that the installer and its tests are in directory `\<project>-florist`:
+
+From your host, cross-compile the tests and run them on the target VM 😀:
+
+    $ GOOS=linux go test -exec="xprog ssh --cfg $PWD/ssh_config.vagrant --" ./<project>-florist
+
 ## Examples
 
 See directory [examples/](examples) for example installers.
 
-### Running the examples in a VM
+See section [Development](#development) for how to run the example installer in the VM.
 
-```text
-$ vagrant up
-$ vagrant ssh
 
-== following happens in the VM ==
-
-vagrant@florist-dev $ ./florist/bin/example-florist -h
-...
-```
+[xprog]: https://github.com/marco-m/xprog
