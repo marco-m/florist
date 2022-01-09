@@ -14,7 +14,7 @@ type Flower struct {
 	Users []string
 }
 
-func (fl *Flower) Name() string {
+func (fl *Flower) String() string {
 	return "docker"
 }
 

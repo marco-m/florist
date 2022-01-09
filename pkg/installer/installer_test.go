@@ -11,21 +11,19 @@ import (
 )
 
 type mockFlower struct {
-	Nam string
+	Name string
 }
 
-func (fl *mockFlower) Install() error {
-	return nil
-}
-
-func (fl *mockFlower) SetLogger(log hclog.Logger) {}
-
-func (fl *mockFlower) Name() string {
-	return fl.Nam
+func (fl *mockFlower) String() string {
+	return fl.Name
 }
 
 func (fl *mockFlower) Description() string {
 	return "I am a mock flower"
+}
+
+func (fl *mockFlower) Install() error {
+	return nil
 }
 
 func TestInstallerAddOneFlower(t *testing.T) {
@@ -43,7 +41,7 @@ func TestInstallerAddOneFlower(t *testing.T) {
 		{
 			Name:        "foo",
 			Description: "I am a mock flower",
-			Flowers:     []florist.Flower{&mockFlower{Nam: "foo"}},
+			Flowers:     []florist.Flower{&mockFlower{Name: "foo"}},
 		},
 	}
 
@@ -72,9 +70,9 @@ func TestInstallerAddMultipleFlowersSuccess(t *testing.T) {
 			Name:        "pippo",
 			Description: "topolino",
 			Flowers: []florist.Flower{
-				&mockFlower{Nam: "a"},
-				&mockFlower{Nam: "b"},
-				&mockFlower{Nam: "c"},
+				&mockFlower{Name: "a"},
+				&mockFlower{Name: "b"},
+				&mockFlower{Name: "c"},
 			},
 		},
 	}
@@ -99,7 +97,9 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 	if err == nil {
 		t.Fatal("have: no error; want: error")
 	}
-	if have, want := err.Error(), "AddBouquet: more that one flower and name is empty"; have != want {
+	have := err.Error()
+	want := "AddBouquet: more that one flower and name is empty: [a b c]"
+	if have != want {
 		t.Fatalf("have: %s; want: %s", have, want)
 	}
 }

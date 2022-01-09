@@ -9,7 +9,9 @@ import (
 
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/example/flowers/copyfiles"
+	"github.com/marco-m/florist/flowers/consul"
 	"github.com/marco-m/florist/flowers/consultemplate"
+	"github.com/marco-m/florist/flowers/docker"
 	"github.com/marco-m/florist/flowers/nomad"
 	"github.com/marco-m/florist/pkg/installer"
 )
@@ -81,15 +83,20 @@ func run(log hclog.Logger) error {
 	// Some other bouquets, to show the available flowers in florist.
 	//
 
-	if err := inst.AddBouquet("", "", []florist.Flower{
-		&nomad.ClientFlower{}},
-	); err != nil {
+	if err := inst.AddBouquet("nomadconsulclients", "install Nomad and Consul clients",
+		[]florist.Flower{
+			&nomad.ClientFlower{},
+			&consul.ClientFlower{},
+			&docker.Flower{},
+		}); err != nil {
 		return err
 	}
 
-	if err := inst.AddBouquet("", "", []florist.Flower{
-		&nomad.ServerFlower{}},
-	); err != nil {
+	if err := inst.AddBouquet("nomadconsulservers", "install Nomad and Consul servers",
+		[]florist.Flower{
+			&nomad.ServerFlower{},
+			&consul.ServerFlower{},
+		}); err != nil {
 		return err
 	}
 

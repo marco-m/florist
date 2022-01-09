@@ -23,7 +23,7 @@ type Flower struct {
 	SrcFiles []string
 }
 
-func (fl *Flower) Name() string {
+func (fl *Flower) String() string {
 	return "copyfiles"
 }
 

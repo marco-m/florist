@@ -51,14 +51,16 @@ func (inst *Installer) AddBouquet(
 	}
 	if len(flowers) > 1 {
 		if name == "" {
-			return errors.New("AddBouquet: more that one flower and name is empty")
+			return fmt.Errorf(
+				"AddBouquet: more that one flower and name is empty: %s", flowers)
 		}
 		if description == "" {
-			return errors.New("AddBouquet: more that one flower and description is empty")
+			return fmt.Errorf(
+				"AddBouquet: more that one flower and description is empty: %s", flowers)
 		}
 	}
 	for i, fl := range flowers {
-		if fl.Name() == "" {
+		if fl.String() == "" {
 			return fmt.Errorf("AddBouquet: flower %d has empty name", i)
 		}
 		if fl.Description() == "" {
@@ -67,7 +69,7 @@ func (inst *Installer) AddBouquet(
 	}
 
 	if name == "" {
-		name = flowers[0].Name()
+		name = flowers[0].String()
 	}
 	if description == "" {
 		description = flowers[0].Description()
@@ -143,7 +145,7 @@ func (inst *Installer) cmdList() error {
 	for _, bouquet := range inst.Bouquets() {
 		fmt.Printf("%-20s %s\n", bouquet.Name, bouquet.Description)
 		for _, fl := range bouquet.Flowers {
-			fmt.Printf("    %-20s (%s)\n", fl.Name(), fl.Description())
+			fmt.Printf("    %-20s (%s)\n", fl.String(), fl.Description())
 		}
 		fmt.Println()
 	}
@@ -181,11 +183,11 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 		bouquet := inst.bouquets[name]
 		inst.log.Info("installing", "bouquet", name, "flowers", len(bouquet.Flowers))
 		for _, flower := range bouquet.Flowers {
-			inst.log.Info("Installing", "flower", flower.Name())
+			inst.log.Info("Installing", "flower", flower.String())
 			if err := flower.Install(); err != nil {
 				return err
 			}
-			if err := florist.WriteRecord(flower.Name()); err != nil {
+			if err := florist.WriteRecord(flower.String()); err != nil {
 				inst.log.Warn("WriteRecord", "error", err)
 			}
 		}

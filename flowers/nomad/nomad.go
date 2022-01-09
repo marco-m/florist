@@ -29,7 +29,7 @@ type ServerFlower struct {
 	Hash    string
 }
 
-func (fl *ServerFlower) Name() string {
+func (fl *ServerFlower) String() string {
 	return "nomadserver"
 }
 
@@ -104,7 +104,7 @@ type ClientFlower struct {
 	Hash    string
 }
 
-func (fl *ClientFlower) Name() string {
+func (fl *ClientFlower) String() string {
 	return "nomadclient"
 }
 
