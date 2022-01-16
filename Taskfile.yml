@@ -26,6 +26,7 @@ tasks:
   test:unit:
     desc: Run the unit tests on the host
     cmds:
+      - rm -f coverage.out
       - '{{.GOTEST}} -count=1 -short -coverprofile=coverage.out ./...'
 
   test:all:vm:clean:
@@ -37,6 +38,7 @@ tasks:
   test:all:vm:dirty:
     desc: Run all the tests on a VM on the current snapshot (thus dirty) (faster but inaccurate and flaky)
     cmds:
+      - rm -f coverage.out
       # -coverpkg=./...
       - '{{.GOTEST}} -count=1 -coverprofile=coverage.out
         -exec="xprog -v ssh --sudo --cfg $PWD/ssh_config --" ./...'

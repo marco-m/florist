@@ -2,6 +2,7 @@ package florist
 
 import (
 	"bufio"
+	"fmt"
 	"os/exec"
 
 	"github.com/hashicorp/go-hclog"
@@ -27,30 +28,33 @@ func LogRun(log hclog.Logger, cmd *exec.Cmd) error {
 		return err
 	}
 
-	scanOut := bufio.NewScanner(stdout)
-	for scanOut.Scan() {
-		line := scanOut.Text()
+	outScanner := bufio.NewScanner(stdout)
+	for outScanner.Scan() {
+		line := outScanner.Text()
 		if line != "" {
 			log.Debug("", "stdout", truncate(line, truncLen))
 		}
 	}
-	if err := scanOut.Err(); err != nil {
+	if err := outScanner.Err(); err != nil {
 		return err
 	}
 
-	scanErr := bufio.NewScanner(stderr)
-	for scanErr.Scan() {
-		line := scanErr.Text()
+	var errLines []string
+	errScanner := bufio.NewScanner(stderr)
+	for errScanner.Scan() {
+		line := errScanner.Text()
 		if line != "" {
-			log.Debug("", "stderr", truncate(line, truncLen))
+			line = truncate(line, truncLen)
+			errLines = append(errLines, line)
+			log.Debug("", "stderr", line)
 		}
 	}
-	if err := scanErr.Err(); err != nil {
+	if err := errScanner.Err(); err != nil {
 		return err
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return err
+		return fmt.Errorf("%s: %s", err, errLines)
 	}
 
 	return nil
