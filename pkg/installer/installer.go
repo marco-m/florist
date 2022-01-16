@@ -46,7 +46,7 @@ func (inst *Installer) AddBouquet(
 	description string,
 	flowers []florist.Flower,
 ) error {
-	if flowers == nil {
+	if len(flowers) == 0 {
 		return errors.New("AddBouquet: bouquet is empty")
 	}
 	if len(flowers) > 1 {

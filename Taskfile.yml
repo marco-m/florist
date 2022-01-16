@@ -3,6 +3,12 @@
 version: '3'
 
 vars:
+  GOLANGCI_VERSION: v1.43.0
+  GOTESTSUM_VERSION: v1.7.0
+  GOTESTSUM:
+    sh: if which gotestsum > /dev/null; then echo gotestsum; fi
+  GOTEST: "{{if .GOTESTSUM}}{{.GOTESTSUM}} --{{else}}go test{{end}}"
+  #GOTEST: go test -v
 
 tasks:
   build:
@@ -18,9 +24,9 @@ tasks:
       - GOOS=linux go build -o bin/linux/example-florist ./example
 
   test:unit:
-    desc: Run the unit tests
+    desc: Run the unit tests on the host
     cmds:
-      - go test -count=1 -short -cover ./...
+      - '{{.GOTEST}} -count=1 -short -coverprofile=coverage.out ./...'
 
   test:vm:
     desc: Run the VM-based tests
