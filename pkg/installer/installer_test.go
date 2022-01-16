@@ -1,13 +1,17 @@
 package installer_test
 
 import (
+	"os"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/flowers/test"
 	"github.com/marco-m/florist/pkg/installer"
+
+	"github.com/marco-m/xprog"
 )
 
 type mockFlower struct {
@@ -176,5 +180,39 @@ func TestInstallerDuplicateBouquetName(t *testing.T) {
 		t.Fatalf("\nhave: %s\nwant: %s", have, wantErr)
 	}
 }
+
+func TestInstallerRunVM(t *testing.T) {
+	if xprog.Absent() {
+		t.Skip("skip: test requires xprog")
 	}
+
+	flower := &test.Flower{
+		Contents: "I am a little flower",
+		Dst:      "/flowers/banana",
+	}
+
+	t.Run("installer runs successfully", func(t *testing.T) {
+		log := hclog.NewNullLogger()
+		inst := installer.New(log, florist.CacheValidityDefault)
+		if err := inst.AddBouquet("", "", []florist.Flower{flower}); err != nil {
+			t.Fatal(err)
+		}
+
+		os.Args = []string{"sut", "install", "test"}
+		err := inst.Run()
+
+		if err != nil {
+			t.Fatalf("\nhave: %s\nwant: <no error>", err)
+		}
+	})
+
+	t.Run("can read what the flower wrote", func(t *testing.T) {
+		buf, err := os.ReadFile(flower.Dst)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(flower.Contents, string(buf)); diff != "" {
+			t.Errorf("contents: mismatch (-want +have):\n%s", diff)
+		}
+	})
 }

@@ -28,17 +28,43 @@ tasks:
     cmds:
       - '{{.GOTEST}} -count=1 -short -coverprofile=coverage.out ./...'
 
-  test:vm:
-    desc: Run the VM-based tests
+  test:all:vm:clean:
+    desc: Run all the tests on a VM from a clean snapshot
     cmds:
-      - go test -count=1 -run 'Test.*VM$' -cover ./...
+      - vagrant snapshot restore pristine
+      - task: test:all:vm:dirty
 
-  test:all:
-    desc: Run all the tests (get all coverage)
+  test:all:vm:dirty:
+    desc: Run all the tests on a VM on the current snapshot (thus dirty) (faster but inaccurate and flaky)
     cmds:
-      - go test -count=1 -cover ./...
+      # -coverpkg=./...
+      - '{{.GOTEST}} -count=1 -coverprofile=coverage.out
+        -exec="xprog -v ssh --sudo --cfg $PWD/ssh_config --" ./...'
+    env:
+      GOOS: linux
+
+  browser:
+    desc: "Show code coverage in browser (usage: task test:<subtarget> browser)"
+    cmds:
+      - go tool cover -html=coverage.out
 
   clean:
     desc: Remove the build artifacts
     cmds:
-      - rm -rf bin
+      - rm -rf bin coverage.out
+
+  prepare-vm:
+    cmds:
+    - vagrant destroy --force
+    - vagrant up
+    # Take snapshot, name `pristine`
+    - vagrant snapshot save pristine
+    # Generate a SSH configuration file
+    - vagrant ssh-config > ssh_config
+    - vagrant halt
+
+  install-deps:
+    desc: Install tool dependencies.
+    cmds:
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@{{.GOLANGCI_VERSION}}
+      - go install gotest.tools/gotestsum@{{.GOTESTSUM_VERSION}}
