@@ -29,7 +29,7 @@ func AddRepo(
 	}
 
 	log.Info("Download PGP key", "url", keyURL)
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 15 * time.Second}
 	keyPath, err := florist.NetFetch(client, keyURL, florist.SHA256, keyHash, florist.WorkDir)
 	if err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
