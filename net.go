@@ -17,7 +17,8 @@ const (
 	SHA256 Hash = iota + 1
 )
 
-// NetFetch uses client to download url to dstDir, returning the path of the downloaded file.
+// NetFetch uses client to download url to dstDir, returning the path of the downloaded
+// file.
 // Directory dstDir must exist.
 // If after the download the hash doesn't match, it will return an error.
 // If the file in dstDir exists and the hash matches, it will not be
@@ -39,7 +40,7 @@ func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDi
 		}
 		have := hex.EncodeToString(hasher.Sum(nil))
 		if have == hash {
-			log.Debug("file exist, hash matches", "file", dstPath)
+			log.Debug("file exist locally, hash matches, skipping download", "file", dstPath)
 			return dstPath, nil
 		}
 	}
@@ -61,6 +62,11 @@ func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDi
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("NetFetch: received %d %s (GET %s)",
+			resp.StatusCode, http.StatusText(resp.StatusCode), url)
+	}
 
 	hasher.Reset()
 	mw := io.MultiWriter(dst, hasher)
