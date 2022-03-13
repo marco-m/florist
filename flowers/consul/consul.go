@@ -20,132 +20,170 @@ const (
 	ConsulBin  = "/usr/local/bin"
 )
 
-// WARNING: Do NOT install alongside a Consul client.
-type ServerFlower struct {
+type ServerOptions struct {
 	FilesFS fs.FS
 	Version string
 	Hash    string
 }
 
-func (fl *ServerFlower) String() string {
+type ServerFlower struct {
+	ServerOptions
+	log hclog.Logger
+}
+
+// WARNING: Do NOT install alongside a Consul client.
+func NewServer(opts ServerOptions) (*ServerFlower, error) {
+	fl := ServerFlower{ServerOptions: opts}
+	name := fmt.Sprintf("florist.flower.%s", fl)
+	fl.log = florist.Log.ResetNamed(name)
+
+	if fl.Version == "" {
+		return nil, fmt.Errorf("%s.new: missing version", name)
+	}
+	if fl.Hash == "" {
+		return nil, fmt.Errorf("%s.new: missing hash", name)
+	}
+	if fl.FilesFS == nil {
+		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+	}
+
+	return &fl, nil
+}
+
+func (fl ServerFlower) String() string {
 	return "consulserver"
 }
 
-func (fl *ServerFlower) Description() string {
-	return "install a consul server (incompatible with a consul client)"
+func (fl ServerFlower) Description() string {
+	return "install a Consul server (incompatible with a Consul client)"
 }
 
 func (fl *ServerFlower) Install() error {
-	log := florist.Log.ResetNamed("florist.flower.consulserver")
-	log.Info("begin")
-	defer log.Info("end")
+	fl.log.Info("begin")
+	defer fl.log.Info("end")
 
 	root, err := user.Current()
 	if err != nil {
 		return err
 	}
 
-	// FIXME do we need any?
-	// log.Info("Install packages needed by Consul server")
-	// if err := apt.Install(
-	// 	"ethtool",
-	// ); err != nil {
-	// 	return fmt.Errorf("%s: %s", log.Name(), err)
-	// }
-
-	log.Info("Add system user 'consul'")
+	fl.log.Info("Add system user 'consul'")
 	userConsulServer, err := florist.UserSystemAdd("consul", ConsulHome)
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	if err := installConsulExe(log, fl.Version, fl.Hash, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+	if err := installConsulExe(fl.log, fl.Version, fl.Hash, root); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulCfg := path.Join(ConsulHome, "consul.server.hcl")
-	log.Info("Install consul server configuration file", "dst", consulCfg)
+	fl.log.Info("Install consul server configuration file", "dst", consulCfg)
 	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul.server.hcl", consulCfg, 0640, userConsulServer); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-server.service")
-	log.Info("Install consul server systemd unit file", "dst", consulUnit)
+	fl.log.Info("Install consul server systemd unit file", "dst", consulUnit)
 	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul-server.service", consulUnit, 0644, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	log.Info("Enable consul server service to start at boot")
+	fl.log.Info("Enable consul server service to start at boot")
 	if err := systemd.Enable("consul-server.service"); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	// We do not start the service at Packer time because it is not needed and because it saves state that makes reaching consensus more complicated if more than one agent.
+	// We do not start the service at Packer time because it is not needed and because it
+	// saves state that makes reaching consensus more complicated if more than one agent.
 
 	return nil
 }
 
-// WARNING: Do NOT install alongside a Consul server.
-type ClientFlower struct {
+type ClientOptions struct {
 	FilesFS fs.FS
 	Version string
 	Hash    string
 }
 
-func (fl *ClientFlower) String() string {
+// WARNING: Do NOT install alongside a Consul server.
+func NewClient(opts ClientOptions) (*ClientFlower, error) {
+	fl := ClientFlower{ClientOptions: opts}
+	name := fmt.Sprintf("florist.flower.%s", fl)
+	fl.log = florist.Log.ResetNamed(name)
+
+	if fl.Version == "" {
+		return nil, fmt.Errorf("%s.new: missing version", name)
+	}
+	if fl.Hash == "" {
+		return nil, fmt.Errorf("%s.new: missing hash", name)
+	}
+	if fl.FilesFS == nil {
+		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+	}
+
+	return &fl, nil
+}
+
+type ClientFlower struct {
+	ClientOptions
+	log hclog.Logger
+}
+
+func (fl ClientFlower) String() string {
 	return "consulclient"
 }
 
-func (fl *ClientFlower) Description() string {
+func (fl ClientFlower) Description() string {
 	return "install a Consul client (incompatible with a Consul server)"
 }
 
 func (fl *ClientFlower) Install() error {
-	log := florist.Log.ResetNamed("florist.flower.consulclient")
-	log.Info("begin")
-	defer log.Info("end")
+	fl.log.Info("begin")
+	defer fl.log.Info("end")
 
 	root, err := user.Current()
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	// FIXME do we need any?
-	// log.Info("Install packages needed by Consul server")
+	// fl.log.Info("Install packages needed by Consul client")
 	// if err := apt.Install(
 	// 	"ethtool",
 	// ); err != nil {
-	// 	return fmt.Errorf("%s: %s", log.Name(), err)
+	// 	return fmt.Errorf("%s: %s", fl, err)
 	// }
 
-	log.Info("Add system user 'consul'")
+	fl.log.Info("Add system user 'consul'")
 	userConsulClient, err := florist.UserSystemAdd("consul", ConsulHome)
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	if err := installConsulExe(log, fl.Version, fl.Hash, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+	if err := installConsulExe(fl.log, fl.Version, fl.Hash, root); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulCfg := path.Join(ConsulHome, "consul.client.hcl")
-	log.Info("Install consul client configuration file", "dst", consulCfg)
+	fl.log.Info("Install consul client configuration file", "dst", consulCfg)
 	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul.client.hcl", consulCfg, 0640, userConsulClient); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-client.service")
-	log.Info("Install consul client systemd unit file", "dst", consulUnit)
+	fl.log.Info("Install consul client systemd unit file", "dst", consulUnit)
 	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul-client.service", consulUnit, 0644, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	log.Info("Enable consul client service to start at boot")
+	fl.log.Info("Enable consul client service to start at boot")
 	if err := systemd.Enable("consul-client.service"); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	// We do not start the service at Packer time because it is not needed and because it saves state that makes reaching consensus more complicated if more than one agent.
+	// We do not start the service at Packer time because it is not needed and because it
+	// saves state that makes reaching consensus more complicated if more than one agent.
 
 	return nil
 }

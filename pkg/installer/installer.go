@@ -44,7 +44,7 @@ func New(log hclog.Logger, cacheValidity time.Duration) Installer {
 func (inst *Installer) AddBouquet(
 	name string,
 	description string,
-	flowers []florist.Flower,
+	flowers ...florist.Flower,
 ) error {
 	if len(flowers) == 0 {
 		return errors.New("AddBouquet: bouquet is empty")

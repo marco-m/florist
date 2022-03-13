@@ -9,11 +9,12 @@ import (
 // Module-global default logger.
 var Log = hclog.NewNullLogger()
 
-func NewLogger() hclog.Logger {
+// name should be <project>-florist
+func NewLogger(name string) hclog.Logger {
 	return hclog.New(&hclog.LoggerOptions{
-		Name:       "florist",
+		Name:       name,
 		Level:      hclog.LevelFromString("DEBUG"),
-		TimeFormat: "15:04:05.000Z07:00",
+		TimeFormat: "15:04:05Z07:00",
 		// color output is unreadable on displays with a light theme :-(
 		Color: hclog.ColorOff,
 		// the default output is os.Stderr, which is rendered by Packer in red,

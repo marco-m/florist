@@ -1,17 +1,31 @@
-// packge docker contains a flower to install Docker.
+// package docker contains a flower to install Docker.
 package docker
 
 import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
 )
 
-type Flower struct {
+type Options struct {
 	// Users to add to the docker supplementary group.
 	Users []string
+}
+
+type Flower struct {
+	Options
+	log hclog.Logger
+}
+
+func New(opts Options) (*Flower, error) {
+	fl := Flower{Options: opts}
+	name := fmt.Sprintf("florist.flower.%s", fl)
+	fl.log = florist.Log.ResetNamed(name)
+
+	return &fl, nil
 }
 
 func (fl *Flower) String() string {
@@ -23,11 +37,10 @@ func (fl *Flower) Description() string {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.ResetNamed("florist.flower.docker")
-	log.Info("begin")
-	defer log.Info("end")
+	fl.log.Info("begin")
+	defer fl.log.Info("end")
 
-	log.Info("Add Docker upstream APT repository")
+	fl.log.Info("Add Docker upstream APT repository")
 	// https://docs.docker.com/engine/install/debian/
 	if err := apt.AddRepo(
 		"docker",
@@ -37,23 +50,25 @@ func (fl *Flower) Install() error {
 	); err != nil {
 		return err
 	}
-	log.Info("Update APT repos (needed since we just added one)")
+	fl.log.Info("Update APT repos (needed since we just added one)")
 	if err := apt.Update(0 * time.Second); err != nil {
 		return err
 	}
 
-	log.Info("Install packages needed by Docker upstream")
+	fl.log.Info("Install packages needed by Docker upstream")
 	if err := apt.Install(
 		"docker-ce",
 		"docker-ce-cli",
 		"containerd.io",
 	); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	for _, username := range fl.Users {
-		log.Info("adding user to 'docker' supplementary group", "user", username)
-		florist.SupplementaryGroups(username, "docker")
+		fl.log.Info("adding user to 'docker' supplementary group", "user", username)
+		if err := florist.SupplementaryGroups(username, "docker"); err != nil {
+			return fmt.Errorf("%s: %s", fl, err)
+		}
 	}
 
 	return nil

@@ -22,72 +22,94 @@ const (
 	NomadBin        = "/usr/local/bin"
 )
 
-// WARNING: Do NOT install alongside a Nomad client.
-type ServerFlower struct {
+type ServerOptions struct {
 	FilesFS fs.FS
 	Version string
 	Hash    string
 }
 
-func (fl *ServerFlower) String() string {
+// WARNING: Do NOT install alongside a Nomad client.
+func NewServer(opts ServerOptions) (*ServerFlower, error) {
+	fl := ServerFlower{ServerOptions: opts}
+	name := fmt.Sprintf("florist.flower.%s", fl)
+	fl.log = florist.Log.ResetNamed(name)
+
+	if fl.Version == "" {
+		return nil, fmt.Errorf("%s.new: missing version", name)
+	}
+	if fl.Hash == "" {
+		return nil, fmt.Errorf("%s.new: missing hash", name)
+	}
+	if fl.FilesFS == nil {
+		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+	}
+
+	return &fl, nil
+}
+
+type ServerFlower struct {
+	ServerOptions
+	log hclog.Logger
+}
+
+func (fl ServerFlower) String() string {
 	return "nomadserver"
 }
 
-func (fl *ServerFlower) Description() string {
-	return "install a nomad server (incompatible with a nomad client)"
+func (fl ServerFlower) Description() string {
+	return "install a Nomad server (incompatible with a Nomad client)"
 }
 
 func (fl *ServerFlower) Install() error {
-	log := florist.Log.ResetNamed("florist.flower.nomadserver")
-	log.Info("begin")
-	defer log.Info("end")
+	fl.log.Info("begin")
+	defer fl.log.Info("end")
 
 	if fl.FilesFS == nil {
-		return fmt.Errorf("%s: %s", log.Name(), "nil FilesFS")
+		return fmt.Errorf("%s: %s", fl, "nil FilesFS")
 	}
 	if fl.Version == "" {
-		return fmt.Errorf("%s: %s", log.Name(), "empty version")
+		return fmt.Errorf("%s: %s", fl, "empty version")
 	}
 
 	root, err := user.Current()
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	log.Info("Install packages needed by Nomad server")
+	fl.log.Info("Install packages needed by Nomad server")
 	if err := apt.Install(
 		"ethtool", // Used by Nomad
 	); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	log.Info("Add system user 'nomad-server'")
+	fl.log.Info("Add system user 'nomad-server'")
 	userNomad, err := florist.UserSystemAdd("nomad-server", NomadServerHome)
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	if err := installNomadExe(log, fl.Version, fl.Hash, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+	if err := installNomadExe(fl.log, fl.Version, fl.Hash, root); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadCfg := path.Join(NomadServerHome, "nomad.server.hcl")
-	log.Info("Install nomad server configuration file", "dst", nomadCfg)
+	fl.log.Info("Install nomad server configuration file", "dst", nomadCfg)
 	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad.server.hcl",
 		nomadCfg, 0640, userNomad); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-server.service")
-	log.Info("Install nomad server systemd unit file", "dst", nomadUnit)
+	fl.log.Info("Install nomad server systemd unit file", "dst", nomadUnit)
 	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad-server.service",
 		nomadUnit, 0644, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	log.Info("Enable nomad server service to start at boot")
+	fl.log.Info("Enable nomad server service to start at boot")
 	if err := systemd.Enable("nomad-server.service"); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	// We do not start the service at Packer time because it is not needed and
@@ -97,11 +119,34 @@ func (fl *ServerFlower) Install() error {
 	return nil
 }
 
-// WARNING: Do NOT install alongside a Nomad server.
-type ClientFlower struct {
+type ClientOptions struct {
 	FilesFS fs.FS
 	Version string
 	Hash    string
+}
+
+func NewClient(opts ClientOptions) (*ClientFlower, error) {
+	fl := ClientFlower{ClientOptions: opts}
+	name := fmt.Sprintf("florist.flower.%s", fl)
+	fl.log = florist.Log.ResetNamed(name)
+
+	if fl.Version == "" {
+		return nil, fmt.Errorf("%s.new: missing version", name)
+	}
+	if fl.Hash == "" {
+		return nil, fmt.Errorf("%s.new: missing hash", name)
+	}
+	if fl.FilesFS == nil {
+		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+	}
+
+	return &fl, nil
+}
+
+// WARNING: Do NOT install alongside a Nomad server.
+type ClientFlower struct {
+	ClientOptions
+	log hclog.Logger
 }
 
 func (fl *ClientFlower) String() string {
@@ -109,63 +154,62 @@ func (fl *ClientFlower) String() string {
 }
 
 func (fl *ClientFlower) Description() string {
-	return "install a nomad client (incompatible with a nomad server)"
+	return "install a Nomad client (incompatible with a Nomad server)"
 }
 
 func (fl *ClientFlower) Install() error {
-	log := florist.Log.ResetNamed("florist.flower.nomadclient")
-	log.Info("begin")
-	defer log.Info("end")
+	fl.log.Info("begin")
+	defer fl.log.Info("end")
 
 	if fl.FilesFS == nil {
-		return fmt.Errorf("%s: %s", log.Name(), "nil FilesFS")
+		return fmt.Errorf("%s: %s", fl, "nil FilesFS")
 	}
 	if fl.Version == "" {
-		return fmt.Errorf("%s: %s", log.Name(), "empty version")
+		return fmt.Errorf("%s: %s", fl, "empty version")
 	}
 
 	root, err := user.Current()
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	log.Info("Install packages needed by Nomad client")
+	fl.log.Info("Install packages needed by Nomad client")
 	if err := apt.Install(
 		"apparmor", // Needed by Nomad for the Docker driver
 		"ethtool",  // Used by Nomad
 	); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	// FIXME we add the user but we don't use it, because we need to run the
 	// nomad client as root
-	log.Info("Add system user 'nomad-client'")
+	fl.log.Info("Add system user 'nomad-client'")
 	_, err = florist.UserSystemAdd("nomad-client", NomadClientHome)
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	if err := installNomadExe(log, fl.Version, fl.Hash, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+	if err := installNomadExe(fl.log, fl.Version, fl.Hash, root); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadCfg := path.Join(NomadClientHome, "nomad.client.hcl")
-	log.Info("Install nomad client configuration file", "dst", nomadCfg)
+	fl.log.Info("Install nomad client configuration file", "dst", nomadCfg)
 	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad.client.hcl",
 		nomadCfg, 0640, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-client.service")
-	log.Info("Install nomad client systemd unit file", "dst", nomadUnit)
+	fl.log.Info("Install nomad client systemd unit file", "dst", nomadUnit)
 	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad-client.service",
 		nomadUnit, 0644, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	log.Info("Enable nomad client service to start at boot")
+	fl.log.Info("Enable nomad client service to start at boot")
 	if err := systemd.Enable("nomad-client.service"); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	// We do not start the service at Packer time because it is not needed and

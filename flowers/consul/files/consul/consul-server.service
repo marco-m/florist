@@ -1,0 +1,26 @@
+[Unit]
+Description=Consul server
+Documentation=https://www.consul.io/
+Wants=network-online.target
+After=network-online.target
+StartLimitBurst=15
+StartLimitInterval=30
+
+[Service]
+# Notify requires more thinking, see
+# auto_join at
+# https://learn.hashicorp.com/tutorials/consul/deployment-guide#datacenter-auto-join
+#Type=notify
+User=consul
+Group=consul
+ExecStart=/usr/local/bin/consul agent -config-dir=/opt/consul
+ExecReload=/usr/local/bin/consul reload
+ExecStop=/usr/local/bin/consul leave
+KillMode=process
+Restart=on-failure
+# time to sleep before restarting the service
+RestartSec=2
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -14,8 +14,20 @@ import (
 	"github.com/marco-m/xprog"
 )
 
-type mockFlower struct {
+type MockOptions struct {
 	Name string
+}
+
+type mockFlower struct {
+	MockOptions
+	Log hclog.Logger
+}
+
+func newMockFlower(opts MockOptions) (*mockFlower, error) {
+	return &mockFlower{
+		MockOptions: opts,
+		Log:         hclog.NewNullLogger(),
+	}, nil
 }
 
 func (fl *mockFlower) String() string {
@@ -34,9 +46,9 @@ func TestInstallerAddOneFlowerSuccess(t *testing.T) {
 	log := hclog.NewNullLogger()
 	cacheValidity := 365 * 24 * time.Hour
 	inst := installer.New(log, cacheValidity)
-	bouquet := []florist.Flower{&mockFlower{"foo"}}
+	flowers := []florist.Flower{&mockFlower{MockOptions: MockOptions{Name: "foo"}}}
 
-	if err := inst.AddBouquet("", "", bouquet); err != nil {
+	if err := inst.AddBouquet("", "", flowers...); err != nil {
 		t.Fatal(err)
 	}
 
@@ -44,7 +56,7 @@ func TestInstallerAddOneFlowerSuccess(t *testing.T) {
 		{
 			Name:        "foo",
 			Description: "I am a mock flower",
-			Flowers:     []florist.Flower{&mockFlower{Name: "foo"}},
+			Flowers:     flowers,
 		},
 	}
 
@@ -60,7 +72,7 @@ func TestInstallerAddOneFlowerFailure(t *testing.T) {
 	bouquet := []florist.Flower{}
 	wantErr := "AddBouquet: bouquet is empty"
 
-	err := inst.AddBouquet("", "", bouquet)
+	err := inst.AddBouquet("", "", bouquet...)
 
 	if err == nil {
 		t.Fatalf("have: <no error>; want: %s", wantErr)
@@ -75,13 +87,13 @@ func TestInstallerAddMultipleFlowersSuccess(t *testing.T) {
 	cacheValidity := 365 * 24 * time.Hour
 	inst := installer.New(log, cacheValidity)
 
-	bouquet := []florist.Flower{
-		&mockFlower{"a"},
-		&mockFlower{"b"},
-		&mockFlower{"c"},
+	flowers := []florist.Flower{
+		&mockFlower{MockOptions: MockOptions{Name: "a"}},
+		&mockFlower{MockOptions: MockOptions{Name: "b"}},
+		&mockFlower{MockOptions: MockOptions{Name: "c"}},
 	}
 
-	if err := inst.AddBouquet("pippo", "topolino", bouquet); err != nil {
+	if err := inst.AddBouquet("pippo", "topolino", flowers...); err != nil {
 		t.Fatal(err)
 	}
 
@@ -89,11 +101,7 @@ func TestInstallerAddMultipleFlowersSuccess(t *testing.T) {
 		{
 			Name:        "pippo",
 			Description: "topolino",
-			Flowers: []florist.Flower{
-				&mockFlower{Name: "a"},
-				&mockFlower{Name: "b"},
-				&mockFlower{Name: "c"},
-			},
+			Flowers:     flowers,
 		},
 	}
 
@@ -106,6 +114,12 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 	log := hclog.NewNullLogger()
 	cacheValidity := 365 * 24 * time.Hour
 
+	flowers := []florist.Flower{
+		&mockFlower{MockOptions: MockOptions{Name: "a"}},
+		&mockFlower{MockOptions: MockOptions{Name: "b"}},
+		&mockFlower{MockOptions: MockOptions{Name: "c"}},
+	}
+
 	testCases := []struct {
 		name         string
 		bouquet      []florist.Flower
@@ -114,24 +128,21 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 		wantErr      string
 	}{
 		{
-			name: "more that one flower and name is empty",
-			bouquet: []florist.Flower{
-				&mockFlower{"a"}, &mockFlower{"b"}, &mockFlower{"c"},
-			},
+			name:    "more that one flower and name is empty",
+			bouquet: flowers,
 			wantErr: "AddBouquet: more that one flower and name is empty: [a b c]",
 		},
 		{
-			name: "more that one flower and desc is empty",
-			bouquet: []florist.Flower{
-				&mockFlower{"a"}, &mockFlower{"b"}, &mockFlower{"c"},
-			},
+			name:    "more that one flower and desc is empty",
+			bouquet: flowers,
 			bname:   "foo",
 			wantErr: "AddBouquet: more that one flower and description is empty: [a b c]",
 		},
 		{
 			name: "xxx",
 			bouquet: []florist.Flower{
-				&mockFlower{"a"}, &mockFlower{""}, &mockFlower{"c"},
+				&mockFlower{MockOptions: MockOptions{Name: "a"}},
+				&mockFlower{MockOptions: MockOptions{}},
 			},
 			bname:        "foo",
 			bdescription: "bar",
@@ -143,7 +154,7 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			inst := installer.New(log, cacheValidity)
 
-			err := inst.AddBouquet(tc.bname, tc.bdescription, tc.bouquet)
+			err := inst.AddBouquet(tc.bname, tc.bdescription, tc.bouquet...)
 
 			if err == nil {
 				t.Fatalf("have: no error; want: %s", tc.wantErr)
@@ -162,15 +173,15 @@ func TestInstallerDuplicateBouquetName(t *testing.T) {
 	inst := installer.New(log, cacheValidity)
 
 	bname := "pippo"
-	bouquet1 := []florist.Flower{&mockFlower{"1"}}
-	bouquet2 := []florist.Flower{&mockFlower{"2"}}
+	bouquet1 := []florist.Flower{&mockFlower{MockOptions: MockOptions{Name: "1"}}}
+	bouquet2 := []florist.Flower{&mockFlower{MockOptions: MockOptions{Name: "2"}}}
 	wantErr := "AddBouquet: there is already a bouquet with name pippo"
 
-	if err := inst.AddBouquet(bname, "topolino", bouquet1); err != nil {
+	if err := inst.AddBouquet(bname, "topolino", bouquet1...); err != nil {
 		t.Fatalf("have: %s; want: <no error>", err)
 	}
 
-	err := inst.AddBouquet(bname, "clarabella", bouquet2)
+	err := inst.AddBouquet(bname, "clarabella", bouquet2...)
 
 	have := "<no error>"
 	if err != nil {
@@ -194,7 +205,7 @@ func TestInstallerRunVM(t *testing.T) {
 	t.Run("installer runs successfully", func(t *testing.T) {
 		log := hclog.NewNullLogger()
 		inst := installer.New(log, florist.CacheValidityDefault)
-		if err := inst.AddBouquet("", "", []florist.Flower{flower}); err != nil {
+		if err := inst.AddBouquet("", "", flower); err != nil {
 			t.Fatal(err)
 		}
 

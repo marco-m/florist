@@ -1,4 +1,4 @@
-// Module florist helps creating non idempotent, one-file-contains-everything
+// Florist helps creating non idempotent, one-file-contains-everything
 // installers/provisioners.
 package florist
 
