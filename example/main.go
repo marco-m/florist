@@ -41,11 +41,14 @@ func run(log hclog.Logger) error {
 	// Add bouquets (bunches of flowers).
 	//
 
+	// We instantiate this flower (instead of adding it directly to a bouquet as the
+	// other flowers in this example) because we want to add it to multiple bouquets.
 	copyfilesFlower := &copyfiles.Flower{
 		FilesFS:  filesFS,
 		SrcFiles: []string{"hello.txt"},
 	}
 
+	// A bouquet with a single flower (copyfilesFlower).
 	// Running `example-florist list` will print:
 	// files                install the files for projectX
 	if err := inst.AddBouquet("files", "install the files for projectX",
@@ -53,17 +56,16 @@ func run(log hclog.Logger) error {
 		return err
 	}
 
-	// A bouquet that bundles other bouquets
-	//
-	consulTemplateFlower := &consultemplate.Flower{
-		FilesFS: filesFS,
-		Version: "0.27.2",
-		Hash:    "d3d428ede8cb6e486d74b74deb9a7cdba6a6de293f3311f178cc147f1d1837e8",
-	}
-
+	// A bouquet with multiple flowers:
+	// the first flower (copyfilesFlower) belongs to more than one bouquet,
+	// the second flower (consultemplate.Flower) is instantiated inline.
 	if err := inst.AddBouquet("all-you-need", "install everything",
 		copyfilesFlower,
-		consulTemplateFlower); err != nil {
+		&consultemplate.Flower{
+			FilesFS: filesFS,
+			Version: "0.27.2",
+			Hash:    "d3d428ede8cb6e486d74b74deb9a7cdba6a6de293f3311f178cc147f1d1837e8",
+		}); err != nil {
 		return err
 	}
 

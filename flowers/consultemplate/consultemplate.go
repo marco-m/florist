@@ -38,7 +38,7 @@ func (fl *Flower) String() string {
 }
 
 func (fl *Flower) Description() string {
-	return "install the consul-template tool as a service"
+	return "install consul-template"
 }
 
 func (fl *Flower) Install() error {

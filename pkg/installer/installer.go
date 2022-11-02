@@ -40,7 +40,9 @@ func New(log hclog.Logger, cacheValidity time.Duration) Installer {
 	}
 }
 
-// AddBouquet adds `flowers` with `name` and `description`.
+// AddBouquet creates a bouquet with `name` and `description` and adds `flowers` to it.
+// If adding only one flower, then parameters `name` and `description` can be empty; in
+// this case, they will be taken from the String and Description methods of the flower.
 func (inst *Installer) AddBouquet(
 	name string,
 	description string,
