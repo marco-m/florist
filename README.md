@@ -12,7 +12,7 @@ A bare-bones and opinionated Go module to create **non idempotent**, one-file-co
 
 - Stay small and as simple as possible.
 - Zero-dependencies (no interpreters, no additional files, the installer is all you need).
-- Configuration-is-code, static typing (no YAML, less runtime errors).
+- Configuration-is-code, static typing (no YAML, less runtime errors, full programming language power).
 
 ## Use cases
 
