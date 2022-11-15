@@ -20,7 +20,7 @@ const (
 	BinDir       = "/usr/local/bin"
 
 	// relative to the Go embed FS
-	SrcDir          = florist.EmbedDir + "/consul-template"
+	SrcDir          = "consul-template"
 	SrcConfigDir    = SrcDir + "/config"
 	SrcTemplatesDir = SrcDir + "/templates"
 )
@@ -31,6 +31,7 @@ type Flower struct {
 	Hash           string
 	Configurations []string
 	Templates      []string
+	log            hclog.Logger
 }
 
 func (fl *Flower) String() string {
@@ -41,38 +42,45 @@ func (fl *Flower) Description() string {
 	return "install consul-template"
 }
 
-func (fl *Flower) Install() error {
-	log := florist.Log.ResetNamed("florist.flower.consultemplate")
-	log.Info("begin")
-	defer log.Info("end")
+func (fl *Flower) Init() error {
+	fl.log = florist.Log.ResetNamed("florist.flower.consultemplate")
 
 	if fl.FilesFS == nil {
-		return fmt.Errorf("%s: %s", log.Name(), "nil FilesFS")
+		return fmt.Errorf("%s: %s", fl.log.Name(), "FilesFS cannot be nil")
 	}
 	if fl.Version == "" {
-		return fmt.Errorf("%s: %s", log.Name(), "empty version")
+		return fmt.Errorf("%s: %s", fl.log.Name(), "Version cannot be empty")
 	}
+	if fl.Hash == "" {
+		return fmt.Errorf("%s: %s", fl.log.Name(), "Hash cannot be empty")
+	}
+	return nil
+}
+
+func (fl *Flower) Install() error {
+	fl.log.Info("begin")
+	defer fl.log.Info("end")
 
 	root, err := user.Current()
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
-	log.Info("Add system user 'consul-template'")
+	fl.log.Info("Add system user 'consul-template'")
 	userConsulTemplate, err := florist.UserSystemAdd("consul-template", HomeDir)
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
-	log.Info("Create consul-template configuration dir", "dir", ConfigDir)
+	fl.log.Info("Create consul-template configuration dir", "dir", ConfigDir)
 	if err := florist.Mkdir(ConfigDir, userConsulTemplate, 0755); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
-	log.Info("Create consul-template templates dir", "dir", TemplatesDir)
+	fl.log.Info("Create consul-template templates dir", "dir", TemplatesDir)
 	if err := florist.Mkdir(TemplatesDir, userConsulTemplate,
 		0755); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
 	// FIXME SECURITY TODO
@@ -86,41 +94,42 @@ func (fl *Flower) Install() error {
 	// be useless? :-(
 	userConsulTemplate = root
 
-	if err := installExe(log, fl.Version, fl.Hash, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+	if err := installExe(fl.log, fl.Version, fl.Hash, root); err != nil {
+		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
 	for _, cfg := range fl.Configurations {
 		src := path.Join(SrcConfigDir, cfg)
 		dst := path.Join(ConfigDir, cfg)
-		log.Info("Install consul-template configuration file", "dst", dst)
+		fl.log.Info("Install consul-template configuration file", "dst", dst)
 		if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0640,
 			userConsulTemplate); err != nil {
-			return fmt.Errorf("%s: %s", log.Name(), err)
+			return fmt.Errorf("%s: %s", fl.log.Name(), err)
 		}
 	}
 
 	for _, tmpl := range fl.Templates {
 		src := path.Join(SrcTemplatesDir, tmpl)
 		dst := path.Join(TemplatesDir, tmpl)
-		log.Info("Install consul-template template file", "dst", dst)
+		fl.log.Info("Install consul-template template file", "dst", dst)
 		if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0640,
 			userConsulTemplate); err != nil {
-			return fmt.Errorf("%s: %s", log.Name(), err)
+			return fmt.Errorf("%s: %s", fl.log.Name(), err)
 		}
 	}
 
+	// files/consul-template/files/consul-template.service
 	unit := "consul-template.service"
-	src := path.Join(SrcDir, "service", unit)
+	src := path.Join(SrcDir, unit)
 	dst := path.Join("/etc/systemd/system/", unit)
-	log.Info("Install consul-template systemd unit file", "dst", dst)
+	fl.log.Info("Install consul-template systemd unit file", "dst", dst)
 	if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0644, root); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
-	log.Info("Enable service to start at boot", "unit", unit)
+	fl.log.Info("Enable service to start at boot", "unit", unit)
 	if err := systemd.Enable(unit); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
 	// We do not start the service at Packer time because it is not needed.

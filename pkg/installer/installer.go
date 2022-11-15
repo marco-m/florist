@@ -2,9 +2,10 @@
 package installer
 
 import (
-	"errors"
 	"fmt"
+	"io/fs"
 	stdlog "log"
+	"os"
 	"sort"
 	"time"
 
@@ -18,6 +19,7 @@ type Installer struct {
 	log           hclog.Logger
 	cacheValidity time.Duration
 	bouquets      map[string]Bouquet
+	fs            fs.FS
 }
 
 type Bouquet struct {
@@ -26,7 +28,7 @@ type Bouquet struct {
 	Flowers     []florist.Flower
 }
 
-func New(log hclog.Logger, cacheValidity time.Duration) Installer {
+func New(log hclog.Logger, cacheValidity time.Duration, fs fs.FS) Installer {
 	florist.SetLogger(log)
 
 	stdlog.SetOutput(log.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
@@ -37,44 +39,41 @@ func New(log hclog.Logger, cacheValidity time.Duration) Installer {
 		log:           log.Named("installer"),
 		cacheValidity: cacheValidity,
 		bouquets:      map[string]Bouquet{},
+		fs:            fs,
 	}
 }
 
+// AddFlower adds a bouquet made of a single `flower`. See [AddBouquet].
+func (inst *Installer) AddFlower(flower florist.Flower) error {
+	return inst.AddBouquet(flower.String(), flower.Description(), flower)
+}
+
 // AddBouquet creates a bouquet with `name` and `description` and adds `flowers` to it.
-// If adding only one flower, then parameters `name` and `description` can be empty; in
-// this case, they will be taken from the String and Description methods of the flower.
 func (inst *Installer) AddBouquet(
 	name string,
 	description string,
 	flowers ...florist.Flower,
 ) error {
-	if len(flowers) == 0 {
-		return errors.New("AddBouquet: bouquet is empty")
+	if name == "" {
+		return fmt.Errorf("AddBouquet: name cannot be empty")
 	}
-	if len(flowers) > 1 {
-		if name == "" {
-			return fmt.Errorf(
-				"AddBouquet: more that one flower and name is empty: %s", flowers)
-		}
-		if description == "" {
-			return fmt.Errorf(
-				"AddBouquet: more that one flower and description is empty: %s", flowers)
-		}
+	if description == "" {
+		return fmt.Errorf("AddBouquet %s: description cannot be empty", name)
+	}
+	if len(flowers) == 0 {
+		return fmt.Errorf("AddBouquet %s: bouquet cannot be empty", name)
 	}
 	for i, fl := range flowers {
 		if fl.String() == "" {
-			return fmt.Errorf("AddBouquet: flower %d has empty name", i)
+			return fmt.Errorf("AddBouquet %s: flower at position %d has empty name",
+				name, i)
 		}
 		if fl.Description() == "" {
-			return fmt.Errorf("AddBouquet: flower %d has empty description", i)
+			return fmt.Errorf("AddBouquet %s: flower %s has empty description", name, fl)
 		}
-	}
-
-	if name == "" {
-		name = flowers[0].String()
-	}
-	if description == "" {
-		description = flowers[0].Description()
+		if err := fl.Init(); err != nil {
+			return fmt.Errorf("AddBouquet %s: flower %s: %s", name, fl, err)
+		}
 	}
 
 	if _, ok := inst.bouquets[name]; ok {
@@ -91,8 +90,9 @@ func (inst *Installer) AddBouquet(
 }
 
 type cliArgs struct {
-	Install *InstallCmd `arg:"subcommand:install" help:"install one or more bouquets"`
-	List    *ListCmd    `arg:"subcommand:list" help:"list the available bouquets"`
+	Install   *InstallCmd   `arg:"subcommand:install" help:"install one or more bouquets"`
+	List      *ListCmd      `arg:"subcommand:list" help:"list the available bouquets"`
+	EmbedList *EmbedListCmd `arg:"subcommand:embed-list" help:"list the embedded FS"`
 }
 
 func (cliArgs) Description() string {
@@ -104,9 +104,11 @@ type InstallCmd struct {
 	IgnoreUnknown bool     `arg:"--ignore-unknown" help:"ignore unknown bouquets instead of failing"`
 }
 
-type ListCmd struct { //
+type ListCmd struct {
 	// TODO Petals bool `help:"List also details (each petal)"`
 }
+
+type EmbedListCmd struct{}
 
 func (inst *Installer) Run() error {
 	var cliArgs cliArgs
@@ -121,6 +123,8 @@ func (inst *Installer) Run() error {
 		return inst.cmdInstall(cliArgs.Install.Flower, cliArgs.Install.IgnoreUnknown)
 	case cliArgs.List != nil:
 		return inst.cmdList()
+	case cliArgs.EmbedList != nil:
+		return inst.cmdEmbedList()
 	default:
 		return fmt.Errorf("internal error: unwired subcommand: %s", parser.SubcommandNames()[0])
 	}
@@ -189,10 +193,26 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 			if err := flower.Install(); err != nil {
 				return err
 			}
-			if err := florist.WriteRecord(flower.String()); err != nil {
-				inst.log.Warn("WriteRecord", "error", err)
-			}
 		}
 	}
-	return nil
+
+	inst.log.Info("Customize motd")
+	motd := "System provisioned by 🌼 florist 🌺\n"
+	return os.WriteFile("/etc/motd", []byte(motd), 0644)
+}
+
+func (inst *Installer) cmdEmbedList() error {
+	fn := func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		kind := "f"
+		if de.IsDir() {
+			kind = "d"
+		}
+		fmt.Println(kind, path)
+		return nil
+	}
+
+	return fs.WalkDir(inst.fs, ".", fn)
 }

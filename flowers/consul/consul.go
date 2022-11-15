@@ -20,42 +20,37 @@ const (
 	ConsulBin  = "/usr/local/bin"
 )
 
-type ServerOptions struct {
+// WARNING: Do NOT install alongside a Consul client.
+type ServerFlower struct {
 	FilesFS fs.FS
 	Version string
 	Hash    string
+	log     hclog.Logger
 }
 
-type ServerFlower struct {
-	ServerOptions
-	log hclog.Logger
+func (fl *ServerFlower) String() string {
+	return "consulserver"
 }
 
-// WARNING: Do NOT install alongside a Consul client.
-func NewServer(opts ServerOptions) (*ServerFlower, error) {
-	fl := ServerFlower{ServerOptions: opts}
+func (fl *ServerFlower) Description() string {
+	return "install a Consul server (incompatible with a Consul client)"
+}
+
+func (fl *ServerFlower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.Version == "" {
-		return nil, fmt.Errorf("%s.new: missing version", name)
+		return fmt.Errorf("%s.new: missing version", name)
 	}
 	if fl.Hash == "" {
-		return nil, fmt.Errorf("%s.new: missing hash", name)
+		return fmt.Errorf("%s.new: missing hash", name)
 	}
 	if fl.FilesFS == nil {
-		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+		return fmt.Errorf("%s.new: missing FilesFS", name)
 	}
 
-	return &fl, nil
-}
-
-func (fl ServerFlower) String() string {
-	return "consulserver"
-}
-
-func (fl ServerFlower) Description() string {
-	return "install a Consul server (incompatible with a Consul client)"
+	return nil
 }
 
 func (fl *ServerFlower) Install() error {
@@ -100,42 +95,37 @@ func (fl *ServerFlower) Install() error {
 	return nil
 }
 
-type ClientOptions struct {
+// WARNING: Do NOT install alongside a Consul server.
+type ClientFlower struct {
 	FilesFS fs.FS
 	Version string
 	Hash    string
+	log     hclog.Logger
 }
 
-// WARNING: Do NOT install alongside a Consul server.
-func NewClient(opts ClientOptions) (*ClientFlower, error) {
-	fl := ClientFlower{ClientOptions: opts}
+func (fl *ClientFlower) String() string {
+	return "consulclient"
+}
+
+func (fl *ClientFlower) Description() string {
+	return "install a Consul client (incompatible with a Consul server)"
+}
+
+func (fl *ClientFlower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.Version == "" {
-		return nil, fmt.Errorf("%s.new: missing version", name)
+		return fmt.Errorf("%s.new: missing version", name)
 	}
 	if fl.Hash == "" {
-		return nil, fmt.Errorf("%s.new: missing hash", name)
+		return fmt.Errorf("%s.new: missing hash", name)
 	}
 	if fl.FilesFS == nil {
-		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+		return fmt.Errorf("%s.new: missing FilesFS", name)
 	}
 
-	return &fl, nil
-}
-
-type ClientFlower struct {
-	ClientOptions
-	log hclog.Logger
-}
-
-func (fl ClientFlower) String() string {
-	return "consulclient"
-}
-
-func (fl ClientFlower) Description() string {
-	return "install a Consul client (incompatible with a Consul server)"
+	return nil
 }
 
 func (fl *ClientFlower) Install() error {

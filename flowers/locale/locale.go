@@ -1,4 +1,4 @@
-// package locale contains a flower to setup the locale
+// Package locale contains a flower to setup the locale
 package locale
 
 import (
@@ -16,33 +16,28 @@ const (
 	Lang_en_US_UTF8 = "en_US.UTF-8"
 )
 
-type Options struct {
-	Lang string // the LANG of the locale.
-}
-
 type Flower struct {
-	Options
-	log hclog.Logger
+	Lang string // the LANG of the locale.
+	log  hclog.Logger
 }
 
-func New(opts Options) (*Flower, error) {
-	fl := Flower{Options: opts}
+func (fl *Flower) String() string {
+	return "locale"
+}
+
+func (fl *Flower) Description() string {
+	return "setup locale"
+}
+
+func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.Lang == "" {
-		return nil, fmt.Errorf("%s.new: missing lang", name)
+		return fmt.Errorf("%s.new: missing lang", name)
 	}
 
-	return &fl, nil
-}
-
-func (fl Flower) String() string {
-	return "locale"
-}
-
-func (fl Flower) Description() string {
-	return "setup locale"
+	return nil
 }
 
 func (fl *Flower) Install() error {
@@ -54,7 +49,7 @@ func (fl *Flower) Install() error {
 		return err
 	}
 
-	fl.log.Info("Setup locale", "opts", fl.Options)
+	fl.log.Info("Setup locale", "flower", fl)
 	// Since running locale-gen takes seconds, avoid if possible.
 	cmd := exec.Command("localedef", "--list-archive")
 	out, err := cmd.Output()

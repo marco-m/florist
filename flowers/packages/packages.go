@@ -9,37 +9,32 @@ import (
 	"github.com/marco-m/florist/pkg/apt"
 )
 
-type Options struct {
+type Flower struct {
 	Name     string
 	Packages []string
+	log      hclog.Logger
 }
 
-type Flower struct {
-	Options
-	log hclog.Logger
+func (fl *Flower) String() string {
+	return fl.Name
 }
 
-func New(opts Options) (*Flower, error) {
-	fl := Flower{Options: opts}
+func (fl *Flower) Description() string {
+	return "install packages with the system package manager"
+}
+
+func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.Name == "" {
-		return nil, fmt.Errorf("%s.new: missing name", name)
+		return fmt.Errorf("%s.new: missing name", name)
 	}
 	if len(fl.Packages) == 0 {
-		return nil, fmt.Errorf("%s.new: missing packages", name)
+		return fmt.Errorf("%s.new: missing packages", name)
 	}
 
-	return &fl, nil
-}
-
-func (fl Flower) String() string {
-	return fl.Name
-}
-
-func (fl Flower) Description() string {
-	return "install packages with the system package manager"
+	return nil
 }
 
 func (fl *Flower) Install() error {

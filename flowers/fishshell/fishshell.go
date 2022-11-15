@@ -12,37 +12,32 @@ import (
 	"github.com/marco-m/florist/pkg/apt"
 )
 
-type Options struct {
+type Flower struct {
 	FilesFS   fs.FS
 	Usernames []string
+	log       hclog.Logger
 }
 
-type Flower struct {
-	Options
-	log hclog.Logger
+func (fl *Flower) String() string {
+	return "fishshell"
 }
 
-func New(opts Options) (*Flower, error) {
-	fl := Flower{Options: opts}
+func (fl *Flower) Description() string {
+	return "install and configure the Fish shell"
+}
+
+func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.FilesFS == nil {
-		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+		return fmt.Errorf("%s.new: missing FilesFS", name)
 	}
 	if len(fl.Usernames) == 0 {
-		return nil, fmt.Errorf("%s.new: missing usernames", name)
+		return fmt.Errorf("%s.new: missing usernames", name)
 	}
 
-	return &fl, nil
-}
-
-func (fl Flower) String() string {
-	return "fishshell"
-}
-
-func (fl Flower) Description() string {
-	return "install and configure the Fish shell"
+	return nil
 }
 
 func (fl *Flower) Install() error {

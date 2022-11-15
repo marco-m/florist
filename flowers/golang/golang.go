@@ -19,37 +19,32 @@ const (
 	GoBin  = GoHome + "/bin"
 )
 
-type Options struct {
+type Flower struct {
 	Version string
 	Hash    string
+	log     hclog.Logger
 }
 
-type Flower struct {
-	Options
-	log hclog.Logger
+func (fl *Flower) String() string {
+	return "golang"
 }
 
-func New(opts Options) (*Flower, error) {
-	fl := Flower{Options: opts}
+func (fl *Flower) Description() string {
+	return "install the Go programming language"
+}
+
+func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.Version == "" {
-		return nil, fmt.Errorf("%s.new: missing version", name)
+		return fmt.Errorf("%s.new: missing version", name)
 	}
 	if fl.Hash == "" {
-		return nil, fmt.Errorf("%s.new: missing hash", name)
+		return fmt.Errorf("%s.new: missing hash", name)
 	}
 
-	return &fl, nil
-}
-
-func (fl Flower) String() string {
-	return "golang"
-}
-
-func (fl Flower) Description() string {
-	return "install the Go programming language"
+	return nil
 }
 
 func (fl *Flower) Install() error {

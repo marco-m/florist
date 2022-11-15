@@ -1,4 +1,4 @@
-// package docker contains a flower to install Docker.
+// Package docker contains a flower to install Docker.
 package docker
 
 import (
@@ -10,22 +10,10 @@ import (
 	"github.com/marco-m/florist/pkg/apt"
 )
 
-type Options struct {
+type Flower struct {
 	// Users to add to the docker supplementary group.
 	Users []string
-}
-
-type Flower struct {
-	Options
-	log hclog.Logger
-}
-
-func New(opts Options) (*Flower, error) {
-	fl := Flower{Options: opts}
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
-
-	return &fl, nil
+	log   hclog.Logger
 }
 
 func (fl *Flower) String() string {
@@ -34,6 +22,12 @@ func (fl *Flower) String() string {
 
 func (fl *Flower) Description() string {
 	return "install Docker"
+}
+
+func (fl *Flower) Init() error {
+	name := fmt.Sprintf("florist.flower.%s", fl)
+	fl.log = florist.Log.ResetNamed(name)
+	return nil
 }
 
 func (fl *Flower) Install() error {

@@ -22,42 +22,37 @@ const (
 	NomadBin        = "/usr/local/bin"
 )
 
-type ServerOptions struct {
+// WARNING: Do NOT install alongside a Nomad client.
+type ServerFlower struct {
 	FilesFS fs.FS
 	Version string
 	Hash    string
+	log     hclog.Logger
 }
 
-// WARNING: Do NOT install alongside a Nomad client.
-func NewServer(opts ServerOptions) (*ServerFlower, error) {
-	fl := ServerFlower{ServerOptions: opts}
+func (fl *ServerFlower) String() string {
+	return "nomadserver"
+}
+
+func (fl *ServerFlower) Description() string {
+	return "install a Nomad server (incompatible with a Nomad client)"
+}
+
+func (fl *ServerFlower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.Version == "" {
-		return nil, fmt.Errorf("%s.new: missing version", name)
+		return fmt.Errorf("%s.new: missing version", name)
 	}
 	if fl.Hash == "" {
-		return nil, fmt.Errorf("%s.new: missing hash", name)
+		return fmt.Errorf("%s.new: missing hash", name)
 	}
 	if fl.FilesFS == nil {
-		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+		return fmt.Errorf("%s.new: missing FilesFS", name)
 	}
 
-	return &fl, nil
-}
-
-type ServerFlower struct {
-	ServerOptions
-	log hclog.Logger
-}
-
-func (fl ServerFlower) String() string {
-	return "nomadserver"
-}
-
-func (fl ServerFlower) Description() string {
-	return "install a Nomad server (incompatible with a Nomad client)"
+	return nil
 }
 
 func (fl *ServerFlower) Install() error {
@@ -119,34 +114,12 @@ func (fl *ServerFlower) Install() error {
 	return nil
 }
 
-type ClientOptions struct {
+// WARNING: Do NOT install alongside a Nomad server.
+type ClientFlower struct {
 	FilesFS fs.FS
 	Version string
 	Hash    string
-}
-
-func NewClient(opts ClientOptions) (*ClientFlower, error) {
-	fl := ClientFlower{ClientOptions: opts}
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
-
-	if fl.Version == "" {
-		return nil, fmt.Errorf("%s.new: missing version", name)
-	}
-	if fl.Hash == "" {
-		return nil, fmt.Errorf("%s.new: missing hash", name)
-	}
-	if fl.FilesFS == nil {
-		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
-	}
-
-	return &fl, nil
-}
-
-// WARNING: Do NOT install alongside a Nomad server.
-type ClientFlower struct {
-	ClientOptions
-	log hclog.Logger
+	log     hclog.Logger
 }
 
 func (fl *ClientFlower) String() string {
@@ -155,6 +128,23 @@ func (fl *ClientFlower) String() string {
 
 func (fl *ClientFlower) Description() string {
 	return "install a Nomad client (incompatible with a Nomad server)"
+}
+
+func (fl *ClientFlower) Init() error {
+	name := fmt.Sprintf("florist.flower.%s", fl)
+	fl.log = florist.Log.ResetNamed(name)
+
+	if fl.Version == "" {
+		return fmt.Errorf("%s.new: missing version", name)
+	}
+	if fl.Hash == "" {
+		return fmt.Errorf("%s.new: missing hash", name)
+	}
+	if fl.FilesFS == nil {
+		return fmt.Errorf("%s.new: missing FilesFS", name)
+	}
+
+	return nil
 }
 
 func (fl *ClientFlower) Install() error {

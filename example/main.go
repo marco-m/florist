@@ -35,7 +35,7 @@ func main() {
 
 func run(log hclog.Logger) error {
 	// Create an installer.
-	inst := installer.New(log, florist.CacheValidityDefault)
+	inst := installer.New(log, florist.CacheValidityDefault, filesFS)
 
 	//
 	// Add bouquets (bunches of flowers).
@@ -49,10 +49,21 @@ func run(log hclog.Logger) error {
 	}
 
 	// A bouquet with a single flower (copyfilesFlower).
-	// Running `example-florist list` will print:
+	// Although it contains a single flower, since we want to specify a custom name and
+	// description, we use AddBouquet.
+	// Running `example list` will print:
 	// files                install the files for projectX
 	if err := inst.AddBouquet("files", "install the files for projectX",
 		copyfilesFlower); err != nil {
+		return err
+	}
+
+	// Another bouquet with a single flower (copyfilesFlower).
+	// In this case we accept the default name and description of the flower itself, so
+	// we use the simpler AddFlower.
+	// Running `example list` will print:
+	// FIXME
+	if err := inst.AddFlower(copyfilesFlower); err != nil {
 		return err
 	}
 

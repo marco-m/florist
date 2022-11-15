@@ -14,33 +14,28 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-type Options struct {
-	FilesFS fs.FS
-}
-
 type Flower struct {
-	Options
-	log hclog.Logger
+	FilesFS fs.FS
+	log     hclog.Logger
 }
 
-func New(opts Options) (*Flower, error) {
-	fl := Flower{Options: opts}
+func (fl *Flower) String() string {
+	return "sshd"
+}
+
+func (fl *Flower) Description() string {
+	return "configure an already-existing sshd server"
+}
+
+func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.FilesFS == nil {
-		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+		return fmt.Errorf("%s.new: missing FilesFS", name)
 	}
 
-	return &fl, nil
-}
-
-func (fl Flower) String() string {
-	return "sshd"
-}
-
-func (fl Flower) Description() string {
-	return "configure an already-existing sshd server"
+	return nil
 }
 
 func (fl *Flower) Install() error {
@@ -53,7 +48,7 @@ func (fl *Flower) Install() error {
 	}
 
 	fl.log.Info("Install sshd configuration file")
-	if err := florist.CopyFromFs(fl.FilesFS, "sshd_config",
+	if err := florist.CopyFromFs(fl.FilesFS, "sshd/sshd_config",
 		"/etc/ssh/sshd_config", 0644, root); err != nil {
 		return err
 	}
@@ -71,20 +66,21 @@ func (fl *Flower) Install() error {
 		}
 	}
 
-	fl.log.Info("Add SSH host key, private")
-	if err := florist.CopyFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key",
-		"/etc/ssh/ssh_host_ed25519_key", 0400, root); err != nil {
-		return err
-	}
-	fl.log.Info("Add SSH host key, public")
-	if err := florist.CopyFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key.pub",
-		"/etc/ssh/ssh_host_ed25519_key.pub", 0400, root); err != nil {
-		return err
-	}
-	fl.log.Info("Add SSH host key, certificate")
-	if err := florist.CopyFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key-cert.pub", "/etc/ssh/ssh_host_ed25519_key-cert.pub", 0400, root); err != nil {
-		return err
-	}
+	// FIXME this should be installed at deployment time
+	// fl.log.Info("Add SSH host key, private")
+	// if err := florist.CopyFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key",
+	// 	"/etc/ssh/ssh_host_ed25519_key", 0400, root); err != nil {
+	// 	return err
+	// }
+	// fl.log.Info("Add SSH host key, public")
+	// if err := florist.CopyFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key.pub",
+	// 	"/etc/ssh/ssh_host_ed25519_key.pub", 0400, root); err != nil {
+	// 	return err
+	// }
+	// fl.log.Info("Add SSH host key, certificate")
+	// if err := florist.CopyFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key-cert.pub", "/etc/ssh/ssh_host_ed25519_key-cert.pub", 0400, root); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

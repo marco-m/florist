@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gertd/wild"
+	"github.com/go-quicktest/qt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/consul"
@@ -21,25 +22,17 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 	}
 
 	files, err := fs.Sub(filesFS, "files")
-	if err != nil {
-		t.Fatal("fs.Sub:", err)
-	}
+	qt.Assert(t, qt.IsNil(err))
+
 	florist.SetLogger(florist.NewLogger("test-consulserver"))
-	cs, err := consul.NewServer(consul.ServerOptions{
+	cs := consul.ServerFlower{
 		FilesFS: files,
 		Version: "1.11.2",
 		Hash:    "380eaff1b18a2b62d8e1d8a7cbc3f3e08b34d3f7187ee335b891ca2ba98784b3",
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
+	qt.Assert(t, qt.IsNil(cs.Init()))
 
-	err = cs.Install()
-
-	if err != nil {
-		t.Fatalf("install:\nhave: %s\nwant: <no error>", err)
-	}
-
+	qt.Assert(t, qt.IsNil(cs.Install()))
 }
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
@@ -54,19 +47,19 @@ func TestConsulServerInstallFailureVM(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		opts        consul.ServerOptions
+		flower      consul.ServerFlower
 		wantErrWild string // wildcard matching
 	}{
 		{
 			name:        "missing version",
-			opts:        consul.ServerOptions{},
+			flower:      consul.ServerFlower{},
 			wantErrWild: "* missing version",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := consul.NewServer(tc.opts)
+			err := tc.flower.Init()
 
 			if err == nil {
 				t.Fatalf("install:\nhave: <no error>\nwant: %s", tc.wantErrWild)

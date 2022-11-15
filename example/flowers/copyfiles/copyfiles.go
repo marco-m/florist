@@ -31,6 +31,10 @@ func (fl *Flower) Description() string {
 	return "copy files from an embed.FS to the real filesystem"
 }
 
+func (fl *Flower) Init() error {
+	return nil
+}
+
 func (fl *Flower) Install() error {
 	// When writing your own flower, replace "example" with the name of your project.
 	log := florist.Log.ResetNamed("example.flower.copyfiles")

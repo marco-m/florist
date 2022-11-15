@@ -11,37 +11,32 @@ import (
 	"github.com/marco-m/florist/pkg/ssh"
 )
 
-type Options struct {
+type Flower struct {
 	FilesFS fs.FS
 	User    string
+	log     hclog.Logger
 }
 
-type Flower struct {
-	Options
-	log hclog.Logger
+func (fl *Flower) String() string {
+	return "user"
 }
 
-func New(opts Options) (*Flower, error) {
-	fl := Flower{Options: opts}
+func (fl *Flower) Description() string {
+	return "add a user and configure SSH access"
+}
+
+func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.FilesFS == nil {
-		return nil, fmt.Errorf("%s.new: missing FilesFS", name)
+		return fmt.Errorf("%s.new: missing FilesFS", name)
 	}
 	if fl.User == "" {
-		return nil, fmt.Errorf("%s.new: missing user", name)
+		return fmt.Errorf("%s.new: missing user", name)
 	}
 
-	return &fl, nil
-}
-
-func (fl Flower) String() string {
-	return "user"
-}
-
-func (fl Flower) Description() string {
-	return "add a user and configure SSH access"
+	return nil
 }
 
 func (fl *Flower) Install() error {
