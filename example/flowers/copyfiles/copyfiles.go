@@ -13,9 +13,6 @@ import (
 const (
 	// Another option would be to make the DstDir a parameter of the Flower.
 	DstDir = "/tmp/example-dst"
-
-	// Relative to the Go embed.FS
-	SrcDir = florist.EmbedDir
 )
 
 type Flower struct {
@@ -53,7 +50,7 @@ func (fl *Flower) Install() error {
 
 	log.Debug("installing files", "total", len(fl.SrcFiles))
 	for _, cfg := range fl.SrcFiles {
-		src := path.Join(SrcDir, cfg)
+		src := cfg
 		dst := path.Join(DstDir, cfg)
 		log.Info("Install file", "dst", dst)
 		if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0644, curUser); err != nil {

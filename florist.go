@@ -21,7 +21,6 @@ const (
 	RecordPath = WorkDir + "/florist.log"
 
 	CacheValidityDefault = 24 * time.Hour
-	EmbedDir             = "files"
 )
 
 func Init() (*user.User, error) {
