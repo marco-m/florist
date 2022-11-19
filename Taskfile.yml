@@ -3,8 +3,8 @@
 version: '3'
 
 vars:
-  GOLANGCI_VERSION: v1.43.0
-  GOTESTSUM_VERSION: v1.7.0
+  GOLANGCI_VERSION: v1.50.1
+  GOTESTSUM_VERSION: v1.8.2
   GOTESTSUM:
     sh: if which gotestsum > /dev/null; then echo gotestsum; fi
   GOTEST: "{{if .GOTESTSUM}}{{.GOTESTSUM}} --{{else}}go test{{end}}"
@@ -38,12 +38,30 @@ tasks:
   test:all:vm:dirty:
     desc: Run all the tests on a VM on the current snapshot (thus dirty) (faster but inaccurate and flaky)
     cmds:
-      - rm -f coverage.out
-      # -coverpkg=./...
-      - '{{.GOTEST}} -count=1 -coverprofile=coverage.out
-        -exec="xprog -v ssh --sudo --cfg $PWD/ssh_config --" ./...'
+      - task: _vm:set_date
+      - >
+        {{.GOTEST}} -count=1 -coverprofile=coverage.out
+        -exec="xprog -v ssh --sudo --cfg $PWD/ssh_config --"
+        ./...
     env:
       GOOS: linux
+
+  test:some:vm:dirty:
+    desc: Run the tests specified on the command-line on a VM on the current snapshot (thus dirty) (faster but inaccurate and flaky)
+    # Example:
+    # task test:some:vm:dirty -- ./pkg/installer -run 'TestInstallerDuplicateBouquetName'
+    cmds:
+      - task: _vm:set_date
+      - >
+        {{.GOTEST}} -count=1 -coverprofile=coverage.out
+        -exec="xprog -v ssh --sudo --cfg $PWD/ssh_config --"
+        {{.CLI_ARGS}}
+    env:
+      GOOS: linux
+
+  _vm:set_date:
+    cmds:
+      - ssh -F ssh_config florist-dev "sudo sntp --step 0.pool.ntp.org"
 
   browser:
     desc: "Show code coverage in browser (usage: task test:<subtarget> browser)"
@@ -70,3 +88,5 @@ tasks:
     cmds:
       - go install github.com/golangci/golangci-lint/cmd/golangci-lint@{{.GOLANGCI_VERSION}}
       - go install gotest.tools/gotestsum@{{.GOTESTSUM_VERSION}}
+      - go install github.com/marco-m/xprog/cmd/xprog@latest
+

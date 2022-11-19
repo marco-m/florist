@@ -6,6 +6,7 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder ".", "/home/vagrant/florist"
   config.vm.box_check_update = false
+  config.vm.provision "shell", inline: "apt-get update && apt-get install -y sntp && apt-get remove -y unattended-upgrades"
 
   config.vm.provider "virtualbox" do |v|
     v.name = "florist-dev" # name in VirtualBox GUI
