@@ -43,6 +43,7 @@ func ExecRunFunc(dir string, env []string, name string, arg1 ...string,
 		cmd := exec.Command(name, append(arg1, arg2...)...)
 		cmd.Dir = dir
 		cmd.Env = env
+		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
