@@ -73,10 +73,10 @@ tasks:
     cmds:
       - rm -rf bin coverage.out
 
-  prepare-vm:
+  vm:init:
     cmds:
     - vagrant destroy --force
-    - vagrant up
+    - vagrant up --provision
     # Take snapshot, name `pristine`
     - vagrant snapshot save pristine
     # Generate a SSH configuration file
