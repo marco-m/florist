@@ -14,29 +14,10 @@ import (
 	"github.com/marco-m/florist"
 )
 
-type Options struct {
+type Flower struct {
 	Version string
 	Hash    string
-}
-
-type Flower struct {
-	Options
-	log hclog.Logger
-}
-
-func New(opts Options) (*Flower, error) {
-	fl := Flower{Options: opts}
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
-
-	if fl.Version == "" {
-		return nil, fmt.Errorf("%s.new: missing version", name)
-	}
-	if fl.Hash == "" {
-		return nil, fmt.Errorf("%s.new: missing hash", name)
-	}
-
-	return &fl, nil
+	log     hclog.Logger
 }
 
 func (fl Flower) String() string {
@@ -45,6 +26,19 @@ func (fl Flower) String() string {
 
 func (fl Flower) Description() string {
 	return "install the Task (simpler make alternative) utility"
+}
+
+func (fl *Flower) Init() error {
+	name := fmt.Sprintf("florist.flower.%s", fl)
+	fl.log = florist.Log.ResetNamed(name)
+
+	if fl.Version == "" {
+		return fmt.Errorf("%s.new: missing version", name)
+	}
+	if fl.Hash == "" {
+		return fmt.Errorf("%s.new: missing hash", name)
+	}
+	return nil
 }
 
 func (fl *Flower) Install() error {

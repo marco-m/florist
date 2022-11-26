@@ -1,5 +1,5 @@
 .vagrant/
 bin/
-ssh_config
+ssh.config*
 TODO.md
 coverage.out

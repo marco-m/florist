@@ -3,10 +3,16 @@ package main
 
 import (
 	"embed"
+	"io/fs"
 	"os"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/marco-m/florist/flowers/fishshell"
+	"github.com/marco-m/florist/flowers/golang"
+	"github.com/marco-m/florist/flowers/locale"
+	"github.com/marco-m/florist/flowers/packages"
+	"github.com/marco-m/florist/flowers/taskfile"
 
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/example/flowers/copyfiles"
@@ -34,6 +40,11 @@ func main() {
 }
 
 func run(log hclog.Logger) error {
+	filesFS, err := fs.Sub(filesFS, "files")
+	if err != nil {
+		return err
+	}
+
 	// Create an installer.
 	inst := installer.New(log, florist.CacheValidityDefault, filesFS)
 
@@ -85,16 +96,47 @@ func run(log hclog.Logger) error {
 	//
 
 	if err := inst.AddBouquet("nomadconsulclients", "install Nomad and Consul clients",
-		&nomad.ClientFlower{},
-		&consul.ClientFlower{},
+		&nomad.ClientFlower{
+			FilesFS: filesFS,
+			Version: "1.4.2",
+			Hash:    "6e24efd6dfba0ba2df31347753f615cae4d3632090e68fc90933e51e640f7afc",
+		},
+		&consul.ClientFlower{
+			FilesFS: filesFS,
+			Version: "1.14.0",
+			Hash:    "6907e0dc83a05acaa9de60217e44ce55bd05c98152dcef02f9258bd2a474f2b3",
+		},
 		&docker.Flower{},
 	); err != nil {
 		return err
 	}
 
-	if err := inst.AddBouquet("nomadconsulservers", "install Nomad and Consul servers",
-		&nomad.ServerFlower{},
-		&consul.ServerFlower{},
+	if err := inst.AddBouquet("dev", "install a development environment",
+		&locale.Flower{
+			Lang: locale.Lang_en_US_UTF8,
+		},
+		&packages.Flower{
+			Name: "dev",
+			Add: []string{
+				"build-essential",
+				"sntp",
+			},
+			Remove: []string{
+				"unattended-upgrades",
+			},
+		},
+		&taskfile.Flower{
+			Version: "3.18.0",
+			Hash:    "b8bb5258d5fa3f0e278309b393b67a56065c0fa0e69be73e110b45094fa1e01c",
+		},
+		&golang.Flower{
+			Version: "1.19.2",
+			Hash:    "5e8c5a74fe6470dd7e055a461acda8bb4050ead8c2df70f227e3ff7d8eb7eeb6",
+		},
+		&fishshell.Flower{
+			FilesFS:   filesFS,
+			Usernames: []string{"vagrant"},
+		},
 	); err != nil {
 		return err
 	}

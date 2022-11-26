@@ -50,6 +50,22 @@ func Install(pkg ...string) error {
 	return nil
 }
 
+func Remove(pkg ...string) error {
+	log := florist.Log.Named("apt.Remove")
+	log.Debug("Removing", "packages", pkg)
+	args := []string{"remove", "-y"}
+	args = append(args, pkg...)
+	cmd := exec.Command("apt-get", args...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
+
+	if err := florist.LogRun(log, cmd); err != nil {
+		return fmt.Errorf("apt: remove: %s", err)
+	}
+
+	return nil
+}
+
 // modTime returns the file (or directory) last modified time.
 // If the file doesn't exist, returns the zero time.
 func modTime(path string) (time.Time, error) {

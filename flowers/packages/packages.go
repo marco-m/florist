@@ -1,4 +1,4 @@
-// Package packages contains a flower to install vanilla packages.
+// Package packages contains a flower to add and remove vanilla packages.
 package packages
 
 import (
@@ -10,9 +10,10 @@ import (
 )
 
 type Flower struct {
-	Name     string
-	Packages []string
-	log      hclog.Logger
+	Name   string
+	Add    []string
+	Remove []string
+	log    hclog.Logger
 }
 
 func (fl *Flower) String() string {
@@ -20,7 +21,7 @@ func (fl *Flower) String() string {
 }
 
 func (fl *Flower) Description() string {
-	return "install packages with the system package manager"
+	return "add and remove packages with the system package manager"
 }
 
 func (fl *Flower) Init() error {
@@ -28,10 +29,10 @@ func (fl *Flower) Init() error {
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.Name == "" {
-		return fmt.Errorf("%s.new: missing name", name)
+		return fmt.Errorf("%s.init: missing name", name)
 	}
-	if len(fl.Packages) == 0 {
-		return fmt.Errorf("%s.new: missing packages", name)
+	if len(fl.Add) == 0 && len(fl.Remove) == 0 {
+		return fmt.Errorf("%s.init: missing packages", name)
 	}
 
 	return nil
@@ -41,9 +42,18 @@ func (fl *Flower) Install() error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
-	fl.log.Info("Install packages")
-	if err := apt.Install(fl.Packages...); err != nil {
-		return err
+	if len(fl.Add) > 0 {
+		fl.log.Info("adding packages")
+		if err := apt.Install(fl.Add...); err != nil {
+			return err
+		}
+	}
+
+	if len(fl.Remove) > 0 {
+		fl.log.Info("removing packages")
+		if err := apt.Remove(fl.Remove...); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -6,7 +6,6 @@ require (
 	github.com/alexflint/go-arg v1.4.3
 	github.com/cakturk/go-netstat v0.0.0-20200220111822-e5b49efee7a5
 	github.com/gertd/wild v0.0.1
-	github.com/go-quicktest/qt v0.1.1-0.20221116170248-0c3ea11f9cb5
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/marco-m/xprog v0.3.0
@@ -27,6 +26,3 @@ require (
 
 // replace github.com/marco-m/xprog v0.3.0 => ../../xprog
 
-// Update the replacement:
-// go mod edit -replace github.com/go-quicktest/qt=github.com/marco-m/qt@main && go mod tidy
-replace github.com/go-quicktest/qt => github.com/marco-m/qt v0.0.3-0.20221118180752-89acc9d46294
