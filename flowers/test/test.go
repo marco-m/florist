@@ -13,7 +13,7 @@ import (
 
 type Flower struct {
 	Contents string
-	Dst      string
+	DstPath  string
 	log      hclog.Logger
 }
 
@@ -39,14 +39,14 @@ func (fl *Flower) Install() error {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
-	dstDir := path.Dir(fl.Dst)
+	dstDir := path.Dir(fl.DstPath)
 	fl.log.Info("Create dir", "dstDir", dstDir)
 	if err := florist.Mkdir(dstDir, curUser, 0755); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
-	fl.log.Debug("writing file", "dst", fl.Dst, "contents", fl.Contents)
-	if err := os.WriteFile(fl.Dst, []byte(fl.Contents), 0644); err != nil {
+	fl.log.Debug("writing file", "dst", fl.DstPath, "contents", fl.Contents)
+	if err := os.WriteFile(fl.DstPath, []byte(fl.Contents), 0644); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 

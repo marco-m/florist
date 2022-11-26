@@ -4,18 +4,17 @@ package sshd
 import (
 	"fmt"
 	"io/fs"
-	"os"
 	"os/user"
-	"path/filepath"
-	"strings"
 
 	"github.com/marco-m/florist"
 
+	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
 )
 
 type Flower struct {
 	FilesFS fs.FS
+	Port    int `default:"22"`
 	log     hclog.Logger
 }
 
@@ -32,7 +31,11 @@ func (fl *Flower) Init() error {
 	fl.log = florist.Log.ResetNamed(name)
 
 	if fl.FilesFS == nil {
-		return fmt.Errorf("%s.new: missing FilesFS", name)
+		return fmt.Errorf("%s.init: missing FilesFS", name)
+	}
+
+	if err := defaults.Set(fl); err != nil {
+		return fmt.Errorf("%s.init: %s", name, err)
 	}
 
 	return nil
@@ -41,6 +44,20 @@ func (fl *Flower) Init() error {
 func (fl *Flower) Install() error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
+
+	// FIXME This is dangerous when developing. Is it worthwhile?
+	// fl.log.Info("Remove SSH keys already present")
+	// entries, err := os.ReadDir("/etc/ssh/")
+	// if err != nil {
+	// 	return err
+	// }
+	// for _, file := range entries {
+	// 	if file.Type().IsRegular() && strings.HasPrefix(file.Name(), "ssh_host_") {
+	// 		if err := os.Remove(filepath.Join("/etc/ssh/", file.Name())); err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
 
 	root, err := user.Current()
 	if err != nil {
@@ -53,32 +70,19 @@ func (fl *Flower) Install() error {
 		return err
 	}
 
-	fl.log.Info("Remove SSH keys already present")
-	entries, err := os.ReadDir("/etc/ssh/")
-	if err != nil {
-		return err
-	}
-	for _, file := range entries {
-		if file.Type().IsRegular() && strings.HasPrefix(file.Name(), "ssh_host_") {
-			if err := os.Remove(filepath.Join("/etc/ssh/", file.Name())); err != nil {
-				return err
-			}
-		}
-	}
-
 	// FIXME this should be installed at deployment time
 	// fl.log.Info("Add SSH host key, private")
-	// if err := florist.CopyFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key",
+	// if err := florist.CopyFileFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key",
 	// 	"/etc/ssh/ssh_host_ed25519_key", 0400, root); err != nil {
 	// 	return err
 	// }
 	// fl.log.Info("Add SSH host key, public")
-	// if err := florist.CopyFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key.pub",
+	// if err := florist.CopyFileFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key.pub",
 	// 	"/etc/ssh/ssh_host_ed25519_key.pub", 0400, root); err != nil {
 	// 	return err
 	// }
 	// fl.log.Info("Add SSH host key, certificate")
-	// if err := florist.CopyFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key-cert.pub", "/etc/ssh/ssh_host_ed25519_key-cert.pub", 0400, root); err != nil {
+	// if err := florist.CopyFileFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key-cert.pub", "/etc/ssh/ssh_host_ed25519_key-cert.pub", 0400, root); err != nil {
 	// 	return err
 	// }
 

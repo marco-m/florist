@@ -174,7 +174,7 @@ func TestInstallerVM(t *testing.T) {
 
 	flower := &test.Flower{
 		Contents: "I am a little flower",
-		Dst:      "/flowers/banana",
+		DstPath:  "/flowers/banana",
 	}
 
 	t.Run("installer runs successfully", func(t *testing.T) {
@@ -187,7 +187,7 @@ func TestInstallerVM(t *testing.T) {
 	})
 
 	t.Run("can read what the flower wrote", func(t *testing.T) {
-		buf, err := os.ReadFile(flower.Dst)
+		buf, err := os.ReadFile(flower.DstPath)
 		if err != nil {
 			t.Fatal(err)
 		}

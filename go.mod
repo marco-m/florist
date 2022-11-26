@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/alexflint/go-arg v1.4.3
 	github.com/cakturk/go-netstat v0.0.0-20200220111822-e5b49efee7a5
+	github.com/creasty/defaults v1.6.0
 	github.com/gertd/wild v0.0.1
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/go-hclog v1.3.1

@@ -31,7 +31,7 @@ A bare-bones and opinionated Go package to create **non idempotent**, one-file-c
 - **flower** a composable unit, under the form of a Go package, that implements the `flower` interface. You can:
     - write it for your project.
     - use 3rd-party flowers (they are just Go packages).
-    - use some of the ready-made flowers in this module.
+    - use some ready-made flowers in this module.
 - **bouquet** a target for the `install` subcommand, made of one or more flowers. You can list the installable bouquets with the `list` subcommand.
 
 ## Files: embed at compile time or download at runtime
@@ -42,9 +42,28 @@ To see all the embedded files, run `go list -f '{{.EmbedFiles}}'`.
 
 It is also possible to download files at runtime, using `florist.NetFetch()`.
 
-## Templating
+## Text templates
 
-I would like to support Go templating in the configuration files, but it is not there yet.
+Florist supports [Go text templates] as follows.
+
+- Each exported field of a `Flower` is available as template field.
+- Template processing is done in one of the functions `florist.CopyFileTemplate`,`florist.CopyFileTemplateFromFs`. Just pass the flower as the tmplData parameter.
+
+Since the template data is a struct (as opposed to a map), any template field error will result in an error.
+
+See `os_test.go` for an example.
+
+## Default values
+
+Thanks to the [defaults package], you can set default values for flowers fields (pun intended!), with or without text templates:
+
+```go
+type Flower struct {
+	FilesFS fs.FS
+	Port    int `default:"22"`
+	log     hclog.Logger
+}
+```
 
 ## Secrets
 
@@ -158,3 +177,7 @@ Note that the flowers themselves are _not_ protected by the equivalent of `SkipI
 See directory [examples/](examples) for example installers.
 
 See section [Development](#development) for how to run the example installer in the VM.
+
+
+[Go text templates]: https://pkg.go.dev/text/template
+[defaults package]:  https://github.com/creasty/defaults
