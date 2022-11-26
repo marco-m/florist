@@ -19,7 +19,7 @@ func AddAuthorizedKeys(owner *user.User, vfs fs.FS, srcPath string) error {
 	}
 
 	authorizedKeysPath := filepath.Join(sshDir, "authorized_keys")
-	if err := florist.CopyFromFs(vfs, srcPath, authorizedKeysPath, 0400, owner); err != nil {
+	if err := florist.CopyFileFromFs(vfs, srcPath, authorizedKeysPath, 0400, owner); err != nil {
 		return err
 	}
 

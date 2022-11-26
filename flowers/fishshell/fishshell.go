@@ -56,13 +56,13 @@ func (fl *Flower) Install() error {
 
 	fl.log.Info("Configure fish shell functions system-wide")
 	// # This provides the FQDN hostname in the prompt
-	if err := florist.CopyFromFs(fl.FilesFS, "fish/prompt_hostname.fish",
+	if err := florist.CopyFileFromFs(fl.FilesFS, "fish/prompt_hostname.fish",
 		"/etc/fish/functions/prompt_hostname.fish", 0644, root); err != nil {
 		return err
 	}
 
 	fl.log.Info("Configure fish shell system-wide")
-	if err := florist.CopyFromFs(fl.FilesFS, "fish/config.fish",
+	if err := florist.CopyFileFromFs(fl.FilesFS, "fish/config.fish",
 		"/etc/fish/config.fish", 0644, root); err != nil {
 		return err
 	}

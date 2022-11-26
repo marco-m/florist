@@ -90,14 +90,14 @@ func (fl *ServerFlower) Install() error {
 
 	nomadCfg := path.Join(NomadServerHome, "nomad.server.hcl")
 	fl.log.Info("Install nomad server configuration file", "dst", nomadCfg)
-	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad.server.hcl",
+	if err := florist.CopyFileFromFs(fl.FilesFS, "nomad/nomad.server.hcl",
 		nomadCfg, 0640, userNomad); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-server.service")
 	fl.log.Info("Install nomad server systemd unit file", "dst", nomadUnit)
-	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad-server.service",
+	if err := florist.CopyFileFromFs(fl.FilesFS, "nomad/nomad-server.service",
 		nomadUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -185,14 +185,14 @@ func (fl *ClientFlower) Install() error {
 
 	nomadCfg := path.Join(NomadClientHome, "nomad.client.hcl")
 	fl.log.Info("Install nomad client configuration file", "dst", nomadCfg)
-	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad.client.hcl",
+	if err := florist.CopyFileFromFs(fl.FilesFS, "nomad/nomad.client.hcl",
 		nomadCfg, 0640, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-client.service")
 	fl.log.Info("Install nomad client systemd unit file", "dst", nomadUnit)
-	if err := florist.CopyFromFs(fl.FilesFS, "nomad/nomad-client.service",
+	if err := florist.CopyFileFromFs(fl.FilesFS, "nomad/nomad-client.service",
 		nomadUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -236,7 +236,7 @@ func installNomadExe(
 
 	exe := path.Join(NomadBin, "nomad")
 	log.Info("Install nomad", "dst", exe)
-	if err := florist.Copy(extracted, exe, 0755, root); err != nil {
+	if err := florist.CopyFile(extracted, exe, 0755, root); err != nil {
 		return err
 	}
 

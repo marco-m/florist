@@ -43,12 +43,14 @@ func New(log hclog.Logger, cacheValidity time.Duration, fs fs.FS) Installer {
 	}
 }
 
-// AddFlower adds a bouquet made of a single `flower`. See [AddBouquet].
+// AddFlower adds a bouquet made of a single `flower`.
+// See also: [AddBouquet].
 func (inst *Installer) AddFlower(flower florist.Flower) error {
 	return inst.AddBouquet(flower.String(), flower.Description(), flower)
 }
 
 // AddBouquet creates a bouquet with `name` and `description` and adds `flowers` to it.
+// See also: [AddFlower].
 func (inst *Installer) AddBouquet(
 	name string,
 	description string,

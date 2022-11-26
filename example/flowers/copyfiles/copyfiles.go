@@ -53,7 +53,7 @@ func (fl *Flower) Install() error {
 		src := cfg
 		dst := path.Join(DstDir, cfg)
 		log.Info("Install file", "dst", dst)
-		if err := florist.CopyFromFs(fl.FilesFS, src, dst, 0644, curUser); err != nil {
+		if err := florist.CopyFileFromFs(fl.FilesFS, src, dst, 0644, curUser); err != nil {
 			return fmt.Errorf("%s: %s", log.Name(), err)
 		}
 	}

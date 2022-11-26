@@ -48,7 +48,7 @@ func (fl *Flower) Install() error {
 	}
 
 	fl.log.Info("Install sshd configuration file")
-	if err := florist.CopyFromFs(fl.FilesFS, "sshd/sshd_config",
+	if err := florist.CopyFileFromFs(fl.FilesFS, "sshd/sshd_config",
 		"/etc/ssh/sshd_config", 0644, root); err != nil {
 		return err
 	}

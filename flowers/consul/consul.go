@@ -74,14 +74,14 @@ func (fl *ServerFlower) Install() error {
 
 	consulCfg := path.Join(ConsulHome, "consul.server.hcl")
 	fl.log.Info("Install consul server configuration file", "dst", consulCfg)
-	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul.server.hcl", consulCfg,
+	if err := florist.CopyFileFromFs(fl.FilesFS, "consul/consul.server.hcl", consulCfg,
 		0640, userConsulServer); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-server.service")
 	fl.log.Info("Install consul server systemd unit file", "dst", consulUnit)
-	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul-server.service", consulUnit,
+	if err := florist.CopyFileFromFs(fl.FilesFS, "consul/consul-server.service", consulUnit,
 		0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -159,13 +159,13 @@ func (fl *ClientFlower) Install() error {
 
 	consulCfg := path.Join(ConsulHome, "consul.client.hcl")
 	fl.log.Info("Install consul client configuration file", "dst", consulCfg)
-	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul.client.hcl", consulCfg, 0640, userConsulClient); err != nil {
+	if err := florist.CopyFileFromFs(fl.FilesFS, "consul/consul.client.hcl", consulCfg, 0640, userConsulClient); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-client.service")
 	fl.log.Info("Install consul client systemd unit file", "dst", consulUnit)
-	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul-client.service", consulUnit, 0644, root); err != nil {
+	if err := florist.CopyFileFromFs(fl.FilesFS, "consul/consul-client.service", consulUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -197,7 +197,7 @@ func installConsulExe(log hclog.Logger, version string, hash string, root *user.
 
 	exe := path.Join(ConsulBin, "consul")
 	log.Info("Install consul", "dst", exe)
-	if err := florist.Copy(extracted, exe, 0755, root); err != nil {
+	if err := florist.CopyFile(extracted, exe, 0755, root); err != nil {
 		return err
 	}
 
