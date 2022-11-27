@@ -4,13 +4,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-quicktest/qt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/test"
 	"github.com/marco-m/florist/pkg/installer"
 	"github.com/marco-m/xprog"
+	"gotest.tools/v3/assert"
 )
 
 type mockFlower struct {
@@ -66,7 +66,7 @@ func TestInstallerAddFlowerFailure(t *testing.T) {
 
 	err := inst.AddFlower(flower)
 
-	qt.Assert(t, qt.ErrorMatches(err, "AddBouquet: name cannot be empty"))
+	assert.ErrorContains(t, err, "AddBouquet: name cannot be empty")
 }
 
 func TestInstallerAddBouquetSuccess(t *testing.T) {
@@ -141,7 +141,7 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 
 			err := inst.AddBouquet(tc.bname, tc.bdescription, tc.bouquet...)
 
-			qt.Assert(t, qt.ErrorMatches(err, tc.wantErr))
+			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}
 }
@@ -183,10 +183,10 @@ func TestInstallerVM(t *testing.T) {
 	t.Run("installer runs successfully", func(t *testing.T) {
 		log := hclog.NewNullLogger()
 		inst := installer.New(log, florist.CacheValidityDefault, nil)
-		qt.Assert(t, qt.IsNil(inst.AddFlower(flower)))
+		assert.NilError(t, inst.AddFlower(flower))
 
 		os.Args = []string{"sut", "install", "test"}
-		qt.Assert(t, qt.IsNil(inst.Run()))
+		assert.NilError(t, inst.Run())
 	})
 
 	t.Run("can read what the flower wrote", func(t *testing.T) {

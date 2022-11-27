@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"github.com/gertd/wild"
-	"github.com/go-quicktest/qt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/consul"
 	"github.com/marco-m/xprog"
+	"gotest.tools/v3/assert"
 )
 
 //go:embed files
@@ -22,7 +22,7 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 	}
 
 	files, err := fs.Sub(filesFS, "files")
-	qt.Assert(t, qt.IsNil(err))
+	assert.NilError(t, err)
 
 	florist.SetLogger(florist.NewLogger("test-consulserver"))
 	cs := consul.ServerFlower{
@@ -30,9 +30,10 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 		Version: "1.11.2",
 		Hash:    "380eaff1b18a2b62d8e1d8a7cbc3f3e08b34d3f7187ee335b891ca2ba98784b3",
 	}
-	qt.Assert(t, qt.IsNil(cs.Init()))
+	assert.NilError(t, cs.Init())
 
-	qt.Assert(t, qt.IsNil(cs.Install()))
+	assert.NilError(t, cs.Install())
+
 }
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
