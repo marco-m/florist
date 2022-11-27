@@ -3,8 +3,12 @@
 package florist
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"os/user"
+	"testing"
 	"time"
 )
 
@@ -35,4 +39,13 @@ func Init() (*user.User, error) {
 	}
 	log.Info("success")
 	return userSelf, nil
+}
+
+// SkipIfNotDisposableHost skips the test if it is running on a precious host.
+func SkipIfNotDisposableHost(t *testing.T) {
+	t.Helper()
+	_, err := os.Stat("/opt/florist/disposable")
+	if errors.Is(err, fs.ErrNotExist) {
+		t.Skip()
+	}
 }

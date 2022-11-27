@@ -1,6 +1,6 @@
 # 🌼 florist 🌺
 
-A bare-bones and opinionated Go module to create **non idempotent**, one-file-contains-everything installers/provisioners.
+A bare-bones and opinionated Go package to create **non idempotent**, one-file-contains-everything installers/provisioners.
 
 ## Status
 
@@ -95,19 +95,13 @@ build {
 
 ## Prepare for development
 
-We use VM snapshots, so that we can quickly restore a pristine environment:
+We use VM snapshots, so that we can quickly restore a pristine environment.
 
-    # Ensure we start from scratch
-    $ vagrant destroy
-    $ vagrant up
+Prepare a VM from scratch, provision and take a snapshot. You need to do this only once:
 
-    # Take snapshot, name `pristine`
-    $ vagrant snapshot save pristine
-
-    # Generate a SSH configuration file
-    $ vagrant ssh-config > ssh_config.vagrant
-
-    # Edit ssh_config.vagrant and remove line `LogLevel FATAL`
+```
+task vm:init
+```
 
 ## Developing your installer/flowers
 
@@ -117,19 +111,18 @@ It is up to your convenience.
 This is the normal sequence to perform when developing.
 
     # Restore snapshot and restart VM
-    $ vagrant snapshot restore pristine
+    $ task vm:restore
 
     # Connect to the VM directly (bypass vagrant, way faster)
-    $ ssh -F ssh_config.vagrant florist-dev
+    $ ssh -F ssh.config.vagrant florist-dev
 
     == following happens in the VM ==
 
     # The florist/ directory is a shared mount with the host
-    vagrant@florist-dev:~$ ls -F
-    florist/
+    vagrant@florist-dev:~$ cd florist
 
     # Check out the example installer
-    vagrant@florist-dev $ ./florist/bin/example-florist -h
+    vagrant@florist-dev $ ./bin/example-florist -h
 
 Then:
 
@@ -138,26 +131,30 @@ Then:
 3. When the VM environment is dirty, restore the snapshot and go back to 1.
    The code is safe on the host (and editable also on the VM via the shared directory)
 
-## Testing your installer/flowers
+## Warning: testing your installer/flowers
 
-There are two ways to run the tests on the VM:
+By their nature, the flowers alter in a persistent way the global state of the machine: add/remove packages, add users, add/modify system files, add system services ...
 
-1. ssh to the VM and run the tests from a shell there as you would expect.
-2. run the tests from the host using [xprog], a test runner for `go test -exec`.
+As such, you don't want to run the installer on your development machine. Same reasoning for the majority of the tests.
 
-Using `xprog` (see the [xprog] README for more information):
+The convention taken by the tests to reduce the possibility of an error is the following.
 
-Assuming that the installer and its tests are in directory `\<project>-florist`:
+When preparing the VM, target `vm:init` will create directory `opt/florist/disposable`; its presence means that the machine can be subjected to destructive tests.
 
-From your host, cross-compile the tests and run them on the target VM 😀:
+Tests that exercise a destructive functionality begin with
 
-    $ GOOS=linux go test -exec="xprog ssh --cfg $PWD/ssh_config.vagrant --" ./<project>-florist
+```go
+func TestSshAddAuthorizedKeysVM(t *testing.T) {
+    florist.SkipIfNotDisposableHost(t)
+    ...
+```
+
+so that they will be skipped when running by mistake on the host. You can use the same conventions for your own tests.
+
+Note that the flowers themselves are _not_ protected by the equivalent of `SkipIfNotDisposableHost`: you must NOT run the installer on your host, only on a test VM.
 
 ## Examples
 
 See directory [examples/](examples) for example installers.
 
 See section [Development](#development) for how to run the example installer in the VM.
-
-
-[xprog]: https://github.com/marco-m/xprog

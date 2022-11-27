@@ -5,13 +5,10 @@ import (
 	"testing"
 
 	"github.com/marco-m/florist"
-	"github.com/marco-m/xprog"
 )
 
 func TestUserAddSuccessVM(t *testing.T) {
-	if xprog.Absent() {
-		t.Skip("skip: test requires xprog")
-	}
+	florist.SkipIfNotDisposableHost(t)
 
 	_, err := florist.UserAdd("beppe")
 
@@ -21,9 +18,7 @@ func TestUserAddSuccessVM(t *testing.T) {
 }
 
 func TestSupplementaryGroupsFailureVM(t *testing.T) {
-	if xprog.Absent() {
-		t.Skip("skip: test requires xprog")
-	}
+	florist.SkipIfNotDisposableHost(t)
 
 	err := florist.SupplementaryGroups("beppe", "banana")
 
@@ -38,9 +33,7 @@ func TestSupplementaryGroupsFailureVM(t *testing.T) {
 }
 
 func TestUserSystemAddSuccessVM(t *testing.T) {
-	if xprog.Absent() {
-		t.Skip("skip: test requires xprog")
-	}
+	florist.SkipIfNotDisposableHost(t)
 
 	_, err := florist.UserSystemAdd("maniglia", "/opt/maniglia")
 

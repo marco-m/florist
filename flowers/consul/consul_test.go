@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/consul"
-	"github.com/marco-m/xprog"
 	"gotest.tools/v3/assert"
 )
 
@@ -17,9 +16,7 @@ import (
 var filesFS embed.FS
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
-	if xprog.Absent() {
-		t.Skip("skip: test requires xprog")
-	}
+	florist.SkipIfNotDisposableHost(t)
 
 	files, err := fs.Sub(filesFS, "files")
 	assert.NilError(t, err)
@@ -37,9 +34,7 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 }
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
-	if xprog.Absent() {
-		t.Skip("skip: test requires xprog")
-	}
+	florist.SkipIfNotDisposableHost(t)
 
 	// FIXME Since not compatible with a client install, I should wipe client installs before...
 	// at this point, should I do it as a Flower method, Unistall(), or should I do it grossly only here?
@@ -76,8 +71,7 @@ func TestConsulServerInstallFailureVM(t *testing.T) {
 }
 
 func TestConsulClientInstallVM(t *testing.T) {
-	if xprog.Absent() {
-		t.Skip("skip: test requires xprog")
-	}
+	florist.SkipIfNotDisposableHost(t)
+
 	// FIXME WRITEME
 }

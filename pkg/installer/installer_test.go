@@ -9,7 +9,6 @@ import (
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/test"
 	"github.com/marco-m/florist/pkg/installer"
-	"github.com/marco-m/xprog"
 	"gotest.tools/v3/assert"
 )
 
@@ -171,9 +170,7 @@ func TestInstallerDuplicateBouquetName(t *testing.T) {
 }
 
 func TestInstallerVM(t *testing.T) {
-	if xprog.Absent() {
-		t.Skip("skip: test requires xprog")
-	}
+	florist.SkipIfNotDisposableHost(t)
 
 	flower := &test.Flower{
 		Contents: "I am a little flower",

@@ -68,7 +68,7 @@ tasks:
     # We want the default logging level instead.
     - sed -i "" 's/LogLevel FATAL//' ssh.config.vagrant
     # Mark this VM as a target for destructive tests.
-    - ssh -F ssh.config.vagrant florist-dev sudo mkdir /opt/florist
+    - ssh -F ssh.config.vagrant florist-dev sudo mkdir -p /opt/florist/disposable
     # Provision the dev flower 🌼
     - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/example-florist install dev"
     #

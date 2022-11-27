@@ -5,13 +5,10 @@ import (
 
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
-	"github.com/marco-m/xprog"
 )
 
 func TestAptUpdateVM(t *testing.T) {
-	if xprog.Absent() {
-		t.Skip("skip: test requires xprog")
-	}
+	florist.SkipIfNotDisposableHost(t)
 
 	err := apt.Update(florist.CacheValidityDefault)
 
@@ -21,9 +18,7 @@ func TestAptUpdateVM(t *testing.T) {
 }
 
 func TestAptInstallVM(t *testing.T) {
-	if xprog.Absent() {
-		t.Skip("skip: test requires xprog")
-	}
+	florist.SkipIfNotDisposableHost(t)
 
 	err := apt.Install("netcat")
 

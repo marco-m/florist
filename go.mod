@@ -8,7 +8,6 @@ require (
 	github.com/gertd/wild v0.0.1
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/go-hclog v1.3.1
-	github.com/marco-m/xprog v0.3.0
 	github.com/scylladb/go-set v1.0.2
 	gotest.tools/v3 v3.4.0
 )
