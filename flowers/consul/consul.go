@@ -74,13 +74,15 @@ func (fl *ServerFlower) Install() error {
 
 	consulCfg := path.Join(ConsulHome, "consul.server.hcl")
 	fl.log.Info("Install consul server configuration file", "dst", consulCfg)
-	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul.server.hcl", consulCfg, 0640, userConsulServer); err != nil {
+	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul.server.hcl", consulCfg,
+		0640, userConsulServer); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-server.service")
 	fl.log.Info("Install consul server systemd unit file", "dst", consulUnit)
-	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul-server.service", consulUnit, 0644, root); err != nil {
+	if err := florist.CopyFromFs(fl.FilesFS, "consul/consul-server.service", consulUnit,
+		0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 

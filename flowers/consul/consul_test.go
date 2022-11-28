@@ -30,7 +30,6 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 	assert.NilError(t, cs.Init())
 
 	assert.NilError(t, cs.Install())
-
 }
 
 func TestConsulServerInstallFailureVM(t *testing.T) {

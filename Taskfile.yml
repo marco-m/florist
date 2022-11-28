@@ -18,17 +18,10 @@ tasks:
       - go build -o bin/example-florist ./example
       - GOOS=linux go build -o bin/linux/example-florist ./example
 
-  test:unit:
-    desc: Run the unit tests.
-    cmds:
-      - rm -f coverage.out
-      - gotestsum -- -count=1 -short -coverprofile=coverage.out ./...
-
   test:all:
     desc: Run all the unit tests; makes sense only if invoking from the VM.
     cmds:
-      - rm -f coverage.out
-      - gotestsum -- -count=1 -coverprofile=coverage.out ./...
+      - gotestsum -- -count=1 -coverprofile=./bin/cover.out ./...
 
   test:all:vm:clean:
     desc: Run all the tests on a VM from a clean snapshot
@@ -49,12 +42,12 @@ tasks:
   browser:
     desc: "Show code coverage in browser (usage: task test:<subtarget> browser)"
     cmds:
-      - go tool cover -html=coverage.out
+      - go tool cover -html=./bin/cover.out
 
   clean:
     desc: Remove the build artifacts
     cmds:
-      - rm -rf bin coverage.out
+      - rm -rf bin
 
   vm:init:
     desc: Create a VM from scratch, provision and take a snapshot. Use `vm:restore` to restore the snapshot to pristine state.
