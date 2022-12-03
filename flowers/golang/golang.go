@@ -68,25 +68,38 @@ func (fl *Flower) Install() error {
 
 	fl.log.Debug("extracting Go")
 	if err := os.RemoveAll(path.Join(florist.WorkDir, "go")); err != nil {
-		return fmt.Errorf("goRun: %s", err)
+		return fmt.Errorf("go.Install: %s", err)
 	}
 	cmd := exec.Command("tar", "xzf", tgzPath)
 	cmd.Dir = florist.WorkDir
 	if err := florist.LogRun(fl.log, cmd); err != nil {
-		return fmt.Errorf("goRun: %s", err)
+		return fmt.Errorf("go.Install: %s", err)
 	}
 
 	fl.log.Debug("removing old Go (if any)")
 	if err := os.RemoveAll(Goroot); err != nil {
-		return fmt.Errorf("goRun: %s", err)
+		return fmt.Errorf("go.Install: %s", err)
 	}
+	// TODO iterate in go/bin/ and remove symlinks
 	fl.log.Debug("Moving Go into place")
 	if err := os.Rename(path.Join(florist.WorkDir, "go"), Goroot); err != nil {
-		return fmt.Errorf("goRun: %s", err)
+		return fmt.Errorf("go.Install: %s", err)
+	}
+	fl.log.Debug("Creating symbolic links")
+	binDir := path.Join(Goroot, "bin")
+	dirEntries, err := os.ReadDir(binDir)
+	if err != nil {
+		return fmt.Errorf("go.Install: %s", err)
+	}
+	for _, de := range dirEntries {
+		if err := os.Symlink(path.Join(binDir, de.Name()),
+			path.Join("/usr/local/bin", de.Name())); err != nil {
+			return fmt.Errorf("go.Install: %s", err)
+		}
 	}
 	fl.log.Info("Installed Go", "path", Goroot)
 
-	return envpath.Add(fl.log, "go", path.Join(Goroot, "bin"), "$HOME/go/bin")
+	return envpath.Add(fl.log, "go", "$HOME/go/bin")
 }
 
 // maybeGoVersion returns the version such as "1.17.2" if found, or the empty

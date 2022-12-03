@@ -54,7 +54,7 @@ tasks:
     cmds:
     - task: build:example
     - vagrant destroy --force
-    - vagrant up --provision
+    - vagrant up
     # Generate a SSH configuration file
     - vagrant ssh-config > ssh.config.vagrant
     # For some reasons, vagrant adds "LogLevel FATAL" to the generated file.
@@ -64,8 +64,8 @@ tasks:
     - ssh -F ssh.config.vagrant florist-dev sudo mkdir -p /opt/florist/disposable
     # Provision the dev flower 🌼
     - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/example-florist install dev"
-    #
-    - ssh -F ssh.config.vagrant florist-dev "cd florist && task install-deps"
+    # Install other deps. I am unsure this is the best approach...
+    - ssh -F ssh.config.vagrant florist-dev "GOBIN=/usr/local/bin sudo --preserve-env=GOBIN task -d florist install-deps"
       # Take snapshot, name `pristine`
     - vagrant snapshot save pristine
     - vagrant halt
