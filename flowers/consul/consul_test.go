@@ -5,8 +5,6 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/gertd/wild"
-	"github.com/google/go-cmp/cmp"
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/consul"
 	"gotest.tools/v3/assert"
@@ -41,30 +39,21 @@ func TestConsulServerInstallFailureVM(t *testing.T) {
 	florist.SetLogger(florist.NewLogger("test-consulserver"))
 
 	testCases := []struct {
-		name        string
-		flower      consul.ServerFlower
-		wantErrWild string // wildcard matching
+		name    string
+		flower  consul.ServerFlower
+		wantErr string
 	}{
 		{
-			name:        "missing version",
-			flower:      consul.ServerFlower{},
-			wantErrWild: "* missing version",
+			name:    "missing version",
+			flower:  consul.ServerFlower{},
+			wantErr: " missing version",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.flower.Init()
-
-			if err == nil {
-				t.Fatalf("install:\nhave: <no error>\nwant: %s", tc.wantErrWild)
-			}
-
-			have := err.Error()
-			if !wild.Match(tc.wantErrWild, have, false) {
-				diff := cmp.Diff(tc.wantErrWild, have)
-				t.Fatalf("error msg wildcard mismatch: (-want +have):\n%s", diff)
-			}
+			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}
 }

@@ -36,7 +36,7 @@ func Update(cacheValidity time.Duration) error {
 
 func Install(pkg ...string) error {
 	log := florist.Log.Named("apt.Install")
-	log.Debug("installing", "packages", pkg)
+	log.Info("installing", "packages", pkg)
 	args := []string{"install", "--no-install-recommends", "-y"}
 	args = append(args, pkg...)
 	cmd := exec.Command("apt-get", args...)
@@ -52,7 +52,7 @@ func Install(pkg ...string) error {
 
 func Remove(pkg ...string) error {
 	log := florist.Log.Named("apt.Remove")
-	log.Debug("Removing", "packages", pkg)
+	log.Info("Removing", "packages", pkg)
 	args := []string{"remove", "-y"}
 	args = append(args, pkg...)
 	cmd := exec.Command("apt-get", args...)

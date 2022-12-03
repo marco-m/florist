@@ -21,7 +21,7 @@ type Flower interface {
 }
 
 const (
-	WorkDir    = "/tmp/florist.work"
+	WorkDir              = "/tmp/florist.work"
 	CacheValidityDefault = 24 * time.Hour
 )
 
@@ -44,6 +44,6 @@ func SkipIfNotDisposableHost(t *testing.T) {
 	t.Helper()
 	_, err := os.Stat("/opt/florist/disposable")
 	if errors.Is(err, fs.ErrNotExist) {
-		t.Skip()
+		t.Skip("skip: this host is not disposable")
 	}
 }
