@@ -1,5 +1,5 @@
-// Package packages contains a flower to add and remove vanilla packages.
-package packages
+// Package ospackages contains a flower to add and remove packages with the OS package manager.
+package ospackages
 
 import (
 	"fmt"
@@ -10,27 +10,23 @@ import (
 )
 
 type Flower struct {
-	Name   string
 	Add    []string
 	Remove []string
 	log    hclog.Logger
 }
 
 func (fl *Flower) String() string {
-	return fl.Name
+	return "ospackages"
 }
 
 func (fl *Flower) Description() string {
-	return "add and remove packages with the system package manager"
+	return "add/remove packages with the OS package manager"
 }
 
 func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
-	if fl.Name == "" {
-		return fmt.Errorf("%s.init: missing name", name)
-	}
 	if len(fl.Add) == 0 && len(fl.Remove) == 0 {
 		return fmt.Errorf("%s.init: missing packages", name)
 	}

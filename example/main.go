@@ -11,7 +11,7 @@ import (
 	"github.com/marco-m/florist/flowers/fishshell"
 	"github.com/marco-m/florist/flowers/golang"
 	"github.com/marco-m/florist/flowers/locale"
-	"github.com/marco-m/florist/flowers/packages"
+	"github.com/marco-m/florist/flowers/ospackages"
 	"github.com/marco-m/florist/flowers/taskfile"
 
 	"github.com/marco-m/florist"
@@ -115,11 +115,11 @@ func run(log hclog.Logger) error {
 		&locale.Flower{
 			Lang: locale.Lang_en_US_UTF8,
 		},
-		&packages.Flower{
-			Name: "dev",
+		&ospackages.Flower{
 			Add: []string{
 				"build-essential",
 				"sntp",
+				"ripgrep",
 			},
 			Remove: []string{
 				"unattended-upgrades",
