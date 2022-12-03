@@ -13,9 +13,11 @@ import (
 )
 
 type Flower struct {
-	FilesFS fs.FS
-	Port    int `default:"22"`
-	log     hclog.Logger
+	FilesFS       fs.FS
+	SrcSshdConfig string `default:"sshd/sshd_config"`
+	DstSshdConfig string `default:"/etc/ssh/sshd_config"`
+	Port          int    `default:"22"`
+	log           hclog.Logger
 }
 
 func (fl *Flower) String() string {
@@ -61,29 +63,29 @@ func (fl *Flower) Install() error {
 
 	root, err := user.Current()
 	if err != nil {
-		return err
+		return fmt.Errorf("sshd.Install: %s", err)
 	}
 
 	fl.log.Info("Install sshd configuration file")
-	if err := florist.CopyFileFromFs(fl.FilesFS, "sshd/sshd_config",
-		"/etc/ssh/sshd_config", 0644, root); err != nil {
-		return err
+	if err := florist.CopyFileTemplateFromFs(fl.FilesFS, fl.SrcSshdConfig,
+		fl.DstSshdConfig, 0644, root, fl); err != nil {
+		return fmt.Errorf("sshd.Install: %s", err)
 	}
 
 	// FIXME this should be installed at deployment time
 	// fl.log.Info("Add SSH host key, private")
 	// if err := florist.CopyFileFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key",
 	// 	"/etc/ssh/ssh_host_ed25519_key", 0400, root); err != nil {
-	// 	return err
+	// 	return fmt.Errorf("sshd.Install: %s", err)
 	// }
 	// fl.log.Info("Add SSH host key, public")
 	// if err := florist.CopyFileFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key.pub",
 	// 	"/etc/ssh/ssh_host_ed25519_key.pub", 0400, root); err != nil {
-	// 	return err
+	// 	return fmt.Errorf("sshd.Install: %s", err)
 	// }
 	// fl.log.Info("Add SSH host key, certificate")
 	// if err := florist.CopyFileFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key-cert.pub", "/etc/ssh/ssh_host_ed25519_key-cert.pub", 0400, root); err != nil {
-	// 	return err
+	// return fmt.Errorf("sshd.Install: %s", err)
 	// }
 
 	return nil
