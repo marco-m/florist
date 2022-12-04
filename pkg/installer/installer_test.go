@@ -2,6 +2,7 @@ package installer_test
 
 import (
 	"os"
+	"path"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -33,6 +34,10 @@ func (fl *mockFlower) Init() error {
 }
 
 func (fl *mockFlower) Install() error {
+	return nil
+}
+
+func (fl *mockFlower) Configure(rawCfg []byte) error {
 	return nil
 }
 
@@ -169,7 +174,7 @@ func TestInstallerDuplicateBouquetName(t *testing.T) {
 	}
 }
 
-func TestInstallerVM(t *testing.T) {
+func TestInstall(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	flower := &test.Flower{
@@ -177,7 +182,7 @@ func TestInstallerVM(t *testing.T) {
 		DstPath:  "/flowers/banana",
 	}
 
-	t.Run("installer runs successfully", func(t *testing.T) {
+	t.Run("install runs successfully", func(t *testing.T) {
 		log := hclog.NewNullLogger()
 		inst := installer.New(log, florist.CacheValidityDefault, nil)
 		assert.NilError(t, inst.AddFlower(flower))
@@ -186,13 +191,40 @@ func TestInstallerVM(t *testing.T) {
 		assert.NilError(t, inst.Run())
 	})
 
-	t.Run("can read what the flower wrote", func(t *testing.T) {
+	t.Run("can read what the install step wrote", func(t *testing.T) {
 		buf, err := os.ReadFile(flower.DstPath)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if diff := cmp.Diff(flower.Contents, string(buf)); diff != "" {
-			t.Errorf("contents: mismatch (-want +have):\n%s", diff)
-		}
+		assert.NilError(t, err)
+		have := string(buf)
+		assert.Equal(t, have, flower.Contents)
+	})
+}
+
+func TestConfigure(t *testing.T) {
+	florist.SkipIfNotDisposableHost(t)
+
+	dir := t.TempDir()
+	flower := &test.Flower{
+		SrcPath: "testdata/flower.txt.tmpl",
+		DstPath: path.Join(dir, "flower.txt"),
+	}
+
+	// TODO one secres file for two flowers...
+
+	t.Run("configure runs successfully", func(t *testing.T) {
+		log := hclog.NewNullLogger()
+		inst := installer.New(log, florist.CacheValidityDefault, nil)
+		assert.NilError(t, inst.AddFlower(flower))
+
+		os.Args = []string{"sut", "configure",
+			"--cfg=" + "testdata/florist.config.json", "test"}
+		assert.NilError(t, inst.Run())
+	})
+
+	t.Run("can read what the configure step wrote", func(t *testing.T) {
+		buf, err := os.ReadFile(flower.DstPath)
+		assert.NilError(t, err)
+		have := string(buf)
+		want := "I am a little strawberry"
+		assert.Equal(t, have, want)
 	})
 }

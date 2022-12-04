@@ -18,6 +18,7 @@ type Flower interface {
 	Description() string
 	Init() error
 	Install() error
+	Configure(rawCfg []byte) error
 }
 
 const (

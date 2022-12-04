@@ -21,7 +21,8 @@ type Flower struct {
 }
 
 func (fl *Flower) String() string {
-	return "copyfiles"
+	// When writing your own flower, replace "example" with the name of your project.
+	return "example.flower.copyfiles"
 }
 
 func (fl *Flower) Description() string {
@@ -33,8 +34,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	// When writing your own flower, replace "example" with the name of your project.
-	log := florist.Log.ResetNamed("example.flower.copyfiles")
+	log := florist.Log.ResetNamed(fl.String())
 	log.Info("begin")
 	defer log.Info("end")
 
@@ -58,5 +58,9 @@ func (fl *Flower) Install() error {
 		}
 	}
 
+	return nil
+}
+
+func (fl *Flower) Configure(rawCfg []byte) error {
 	return nil
 }

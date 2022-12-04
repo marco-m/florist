@@ -85,6 +85,10 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
+func (fl *Flower) Configure(rawCfg []byte) error {
+	return nil
+}
+
 // maybeGoVersion returns the version such as "1.17.2" if found, or the empty
 // string if not found.
 func maybeTaskfileVersion(log hclog.Logger, taskexe string) string {

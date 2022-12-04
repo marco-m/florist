@@ -14,14 +14,14 @@ import (
 
 type Flower struct {
 	FilesFS       fs.FS
-	SrcSshdConfig string `default:"sshd/sshd_config"`
+	SrcSshdConfig string `default:"sshd/sshd_config.tmpl"`
 	DstSshdConfig string `default:"/etc/ssh/sshd_config"`
 	Port          int    `default:"22"`
 	log           hclog.Logger
 }
 
 func (fl *Flower) String() string {
-	return "sshd"
+	return "florist.flower.sshd"
 }
 
 func (fl *Flower) Description() string {
@@ -29,15 +29,14 @@ func (fl *Flower) Description() string {
 }
 
 func (fl *Flower) Init() error {
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
+	fl.log = florist.Log.ResetNamed(fl.String())
 
 	if fl.FilesFS == nil {
-		return fmt.Errorf("%s.init: missing FilesFS", name)
+		return fmt.Errorf("%s.init: missing FilesFS", fl)
 	}
 
 	if err := defaults.Set(fl); err != nil {
-		return fmt.Errorf("%s.init: %s", name, err)
+		return fmt.Errorf("%s.init: %s", fl, err)
 	}
 
 	return nil
@@ -46,6 +45,23 @@ func (fl *Flower) Init() error {
 func (fl *Flower) Install() error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
+	return nil
+}
+
+func (fl *Flower) Configure() error {
+	fl.log.Info("begin")
+	defer fl.log.Info("end")
+
+	root, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
+
+	fl.log.Info("Install sshd configuration file")
+	if err := florist.CopyFileTemplateFromFs(fl.FilesFS, fl.SrcSshdConfig,
+		fl.DstSshdConfig, 0644, root, fl); err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
 
 	// FIXME This is dangerous when developing. Is it worthwhile?
 	// fl.log.Info("Remove SSH keys already present")
@@ -61,32 +77,24 @@ func (fl *Flower) Install() error {
 	// 	}
 	// }
 
-	root, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("sshd.Install: %s", err)
+	// FIXME NEED TO THINK A BIT MORE HERE...
+
+	fl.log.Info("Add SSH host key, private")
+	if err := florist.CopyFile("secrets/ssh_host_ed25519_key",
+		"/etc/ssh/ssh_host_ed25519_key", 0400, root); err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
+	fl.log.Info("Add SSH host key, public")
+	if err := florist.CopyFile("secrets/ssh_host_ed25519_key.pub",
+		"/etc/ssh/ssh_host_ed25519_key.pub", 0400, root); err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
+	fl.log.Info("Add SSH host key, certificate")
+	if err := florist.CopyFile("secrets/ssh_host_ed25519_key-cert.pub", "/etc/ssh/ssh_host_ed25519_key-cert.pub", 0400, root); err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	fl.log.Info("Install sshd configuration file")
-	if err := florist.CopyFileTemplateFromFs(fl.FilesFS, fl.SrcSshdConfig,
-		fl.DstSshdConfig, 0644, root, fl); err != nil {
-		return fmt.Errorf("sshd.Install: %s", err)
-	}
-
-	// FIXME this should be installed at deployment time
-	// fl.log.Info("Add SSH host key, private")
-	// if err := florist.CopyFileFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key",
-	// 	"/etc/ssh/ssh_host_ed25519_key", 0400, root); err != nil {
-	// 	return fmt.Errorf("sshd.Install: %s", err)
-	// }
-	// fl.log.Info("Add SSH host key, public")
-	// if err := florist.CopyFileFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key.pub",
-	// 	"/etc/ssh/ssh_host_ed25519_key.pub", 0400, root); err != nil {
-	// 	return fmt.Errorf("sshd.Install: %s", err)
-	// }
-	// fl.log.Info("Add SSH host key, certificate")
-	// if err := florist.CopyFileFromFs(fl.FilesFS, "secrets/ssh_host_ed25519_key-cert.pub", "/etc/ssh/ssh_host_ed25519_key-cert.pub", 0400, root); err != nil {
-	// return fmt.Errorf("sshd.Install: %s", err)
-	// }
+	// FIXME NEED TO RELOAD SSHD HERE...
 
 	return nil
 }

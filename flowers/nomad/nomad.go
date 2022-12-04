@@ -114,6 +114,10 @@ func (fl *ServerFlower) Install() error {
 	return nil
 }
 
+func (fl *ServerFlower) Configure(rawCfg []byte) error {
+	return nil
+}
+
 // WARNING: Do NOT install alongside a Nomad server.
 type ClientFlower struct {
 	FilesFS fs.FS
@@ -206,6 +210,10 @@ func (fl *ClientFlower) Install() error {
 	// because it saves state that makes reaching consensus more complicated if
 	// more than one agent.
 
+	return nil
+}
+
+func (fl *ClientFlower) Configure(rawCfg []byte) error {
 	return nil
 }
 

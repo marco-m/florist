@@ -93,6 +93,7 @@ func (inst *Installer) AddBouquet(
 
 type cliArgs struct {
 	Install   *InstallCmd   `arg:"subcommand:install" help:"install one or more bouquets"`
+	Configure *ConfigureCmd `arg:"subcommand:configure" help:"configure one or more bouquets"`
 	List      *ListCmd      `arg:"subcommand:list" help:"list the available bouquets"`
 	EmbedList *EmbedListCmd `arg:"subcommand:embed-list" help:"list the embedded FS"`
 }
@@ -104,6 +105,11 @@ func (cliArgs) Description() string {
 type InstallCmd struct {
 	Flower        []string `arg:"required,positional" help:"list of bouquets to install"`
 	IgnoreUnknown bool     `arg:"--ignore-unknown" help:"ignore unknown bouquets instead of failing"`
+}
+
+type ConfigureCmd struct {
+	Flower []string `arg:"required,positional" help:"list of bouquets to configure"`
+	Cfg    string   `arg:"required" help:"k/v in JSON format"`
 }
 
 type ListCmd struct {
@@ -123,6 +129,8 @@ func (inst *Installer) Run() error {
 	switch {
 	case cliArgs.Install != nil:
 		return inst.cmdInstall(cliArgs.Install.Flower, cliArgs.Install.IgnoreUnknown)
+	case cliArgs.Configure != nil:
+		return inst.cmdConfigure(cliArgs.Configure.Flower, cliArgs.Configure.Cfg)
 	case cliArgs.List != nil:
 		return inst.cmdList()
 	case cliArgs.EmbedList != nil:
@@ -199,7 +207,41 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 	}
 
 	inst.log.Info("Customize motd")
-	motd := "System provisioned by 🌼 florist 🌺\n"
+	motd := "System installed by 🌼 florist 🌺\n"
+	return os.WriteFile("/etc/motd", []byte(motd), 0644)
+}
+
+func (inst *Installer) cmdConfigure(names []string, cfgPath string) error {
+	found := make([]string, 0, len(names))
+	for _, name := range names {
+		if _, ok := inst.bouquets[name]; !ok {
+			return fmt.Errorf("configure: unknown bouquet %s", name)
+		}
+		found = append(found, name)
+	}
+
+	rawCfg, err := os.ReadFile(cfgPath)
+	if err != nil {
+		return fmt.Errorf("configure: reading cfg file: %s", err)
+	}
+
+	if _, err := florist.Init(); err != nil {
+		return err
+	}
+
+	for _, name := range found {
+		bouquet := inst.bouquets[name]
+		inst.log.Info("configuring", "bouquet", name, "flowers", len(bouquet.Flowers))
+		for _, flower := range bouquet.Flowers {
+			inst.log.Info("configuring", "flower", flower.String())
+			if err := flower.Configure(rawCfg); err != nil {
+				return err
+			}
+		}
+	}
+
+	inst.log.Info("Customize motd")
+	motd := "System configured by 🌼 florist 🌺\n"
 	return os.WriteFile("/etc/motd", []byte(motd), 0644)
 }
 
