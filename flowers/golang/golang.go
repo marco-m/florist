@@ -72,7 +72,7 @@ func (fl *Flower) Install() error {
 	}
 	cmd := exec.Command("tar", "xzf", tgzPath)
 	cmd.Dir = florist.WorkDir
-	if err := florist.LogRun(fl.log, cmd); err != nil {
+	if err := florist.CmdRun(fl.log, cmd); err != nil {
 		return fmt.Errorf("go.Install: %s", err)
 	}
 

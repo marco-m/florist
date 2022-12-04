@@ -8,9 +8,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-func LogRun(log hclog.Logger, cmd *exec.Cmd) error {
-	log = log.Named("LogRun")
-
+func CmdRun(log hclog.Logger, cmd *exec.Cmd) error {
 	const truncLen = 160
 
 	log.Debug("executing", "cmd", cmd.String())

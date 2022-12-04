@@ -27,7 +27,7 @@ func UserAdd(username string, groups ...string) (*user.User, error) {
 		"--gecos", fmt.Sprintf("'user %s'", username),
 		"--disabled-password",
 		username)
-	if err := LogRun(log, cmd); err != nil {
+	if err := CmdRun(log, cmd); err != nil {
 		return nil, fmt.Errorf("user: add: %s", err)
 	}
 	log.Debug("user added")
@@ -57,7 +57,7 @@ func SupplementaryGroups(username string, groups ...string) error {
 	}
 	args := strings.Join(groups, ",")
 	cmd := exec.Command("usermod", "--append", "--groups", args, username)
-	if err := LogRun(log, cmd); err != nil {
+	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("user: add to groups: %s", err)
 	}
 	log.Debug("user added to supplementary groups")
@@ -79,7 +79,7 @@ func UserSystemAdd(username string, homedir string) (*user.User, error) {
 		"--home", homedir,
 		"--gecos", fmt.Sprintf("'user %s'", username),
 		username)
-	if err := LogRun(log, cmd); err != nil {
+	if err := CmdRun(log, cmd); err != nil {
 		return nil, fmt.Errorf("user: add: %s", err)
 	}
 	log.Debug("user added")
@@ -96,7 +96,7 @@ func GroupSystemAdd(groupname string) error {
 	log := Log.Named("GroupAdd").With("group", groupname)
 
 	cmd := exec.Command("addgroup", "--system", groupname)
-	if err := LogRun(log, cmd); err != nil {
+	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("group: add: %s", err)
 	}
 	log.Debug("group added")

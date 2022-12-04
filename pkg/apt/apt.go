@@ -27,7 +27,7 @@ func Update(cacheValidity time.Duration) error {
 	log.Debug("", "cache", "expired")
 
 	cmd := exec.Command("apt-get", "update")
-	if err := florist.LogRun(log, cmd); err != nil {
+	if err := florist.CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("apt.Update: %s", err)
 	}
 
@@ -43,7 +43,7 @@ func Install(pkg ...string) error {
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
 
-	if err := florist.LogRun(log, cmd); err != nil {
+	if err := florist.CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("apt: install: %s", err)
 	}
 
@@ -59,7 +59,7 @@ func Remove(pkg ...string) error {
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
 
-	if err := florist.LogRun(log, cmd); err != nil {
+	if err := florist.CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("apt: remove: %s", err)
 	}
 

@@ -77,7 +77,7 @@ func (fl *Flower) Install() error {
 
 		fl.log.Info("set fish shell", "user", username)
 		cmd := exec.Command("chsh", "-s", "/usr/bin/fish", username)
-		if err := florist.LogRun(fl.log, cmd); err != nil {
+		if err := florist.CmdRun(fl.log, cmd); err != nil {
 			return err
 		}
 	}

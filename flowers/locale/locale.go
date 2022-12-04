@@ -67,7 +67,7 @@ func (fl *Flower) Install() error {
 			return err
 		}
 		cmd = exec.Command("locale-gen")
-		if err := florist.LogRun(fl.log, cmd); err != nil {
+		if err := florist.CmdRun(fl.log, cmd); err != nil {
 			return err
 		}
 	}

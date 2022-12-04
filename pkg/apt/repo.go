@@ -40,7 +40,7 @@ func AddRepo(
 	// delete key file if present, to avoid gpg going into interactive mode
 	os.Remove(keyDst)
 	cmd := exec.Command("gpg", "--dearmor", "-o", keyDst, keyPath)
-	if err := florist.LogRun(log, cmd); err != nil {
+	if err := florist.CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
