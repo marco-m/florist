@@ -169,21 +169,10 @@ func (inst *Installer) cmdList() error {
 }
 
 func (inst *Installer) cmdInstall(names []string, ignore bool) error {
-	found := make([]string, 0, len(names))
 	for _, name := range names {
 		if _, ok := inst.bouquets[name]; !ok {
-			if ignore {
-				inst.log.Warn("ignoring unknown", "bouquet", name)
-				continue
-			}
-			return fmt.Errorf("install: unknown bouquet %s", name)
+			return fmt.Errorf("configure: unknown bouquet %s", name)
 		}
-		found = append(found, name)
-	}
-
-	if len(found) == 0 {
-		inst.log.Warn("all bouquets are unknown, nothing to do")
-		return nil
 	}
 
 	if _, err := florist.Init(); err != nil {
@@ -195,7 +184,7 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 		return err
 	}
 
-	for _, name := range found {
+	for _, name := range names {
 		bouquet := inst.bouquets[name]
 		inst.log.Info("installing", "bouquet", name, "flowers", len(bouquet.Flowers))
 		for _, flower := range bouquet.Flowers {
@@ -212,12 +201,10 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 }
 
 func (inst *Installer) cmdConfigure(names []string, cfgPath string) error {
-	found := make([]string, 0, len(names))
 	for _, name := range names {
 		if _, ok := inst.bouquets[name]; !ok {
 			return fmt.Errorf("configure: unknown bouquet %s", name)
 		}
-		found = append(found, name)
 	}
 
 	rawCfg, err := os.ReadFile(cfgPath)
@@ -229,7 +216,7 @@ func (inst *Installer) cmdConfigure(names []string, cfgPath string) error {
 		return err
 	}
 
-	for _, name := range found {
+	for _, name := range names {
 		bouquet := inst.bouquets[name]
 		inst.log.Info("configuring", "bouquet", name, "flowers", len(bouquet.Flowers))
 		for _, flower := range bouquet.Flowers {

@@ -208,7 +208,7 @@ func TestConfigure(t *testing.T) {
 		DstPath: path.Join(dir, "flower.txt"),
 	}
 
-	// TODO one secres file for two flowers...
+	// TODO one secret file for two flowers...
 
 	t.Run("configure runs successfully", func(t *testing.T) {
 		log := hclog.NewNullLogger()

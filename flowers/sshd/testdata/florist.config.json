@@ -1,0 +1,5 @@
+{
+  "ssh_host_ed25519_key": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzmx/pCGOwFDvIyh9AAAACmNvbnRyb2xsZXIBAgM=\n-----END OPENSSH PRIVATE KEY-----\n",
+  "ssh_host_ed25519_key_cert_pub": "ssh-ed25519-cert-v01@openssh.com AAAAIHNzaCgo= foo\n",
+  "ssh_host_ed25519_key_pub": "ssh-ed25519 /pCGOwFDvIyh9 controller\n"
+}

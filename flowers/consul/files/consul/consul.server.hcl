@@ -2,7 +2,7 @@ data_dir = "/opt/consul/data"
 
 server           = true
 bootstrap_expect = 1
-retry_join       = ["10.0.0.11"] # The first core server
+retry_join       = ["10.0.0.11"] # The first contoller server
 
 # Enable the built-in web UI server
 ui_config = {

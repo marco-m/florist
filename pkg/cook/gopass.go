@@ -1,8 +1,10 @@
 package cook
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path"
 	"strings"
@@ -19,28 +21,74 @@ var ErrNotFound = errors.New("not found")
 //
 // Example:
 //
-//	env, err := gopassEnv(GopassPrefix+ws,
-//		"TF_VAR_consul_gossip_key", "consul_gossip_key",
+//	env, err := GopassEnv(GopassPrefix+ws,
 //		"TF_VAR_hcloud_token",      "hcloud_token"
 //	)
+//
+// See also [GopassToConfig].
 func GopassEnv(prefix string, kv ...string) ([]string, error) {
-	Out("gopass: reading secrets")
+	Out("gopass: reading secrets to env")
 	if len(kv)%2 != 0 {
-		return nil, fmt.Errorf("gopassEnv: want an even number of key/vals; have: %v", kv)
+		return nil, fmt.Errorf("GopassEnv: want an even number of key/vals; have: %v", kv)
 	}
 	env := make([]string, 0, (len(kv)/2)+1)
 	for i := 0; i+1 < len(kv); i += 2 {
 		key := kv[i]
 		val := kv[i+1]
-		// FIXME replace with
-		// out, err := GopassGet(path.Join(prefix, val))
-		out, err := ExecOut(nil, "gopass", "show", path.Join(prefix, val))
+		path := path.Join(prefix, val)
+		out, err := GopassGet(path)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("GopassEnv: looking for %s: %s", path, err)
 		}
 		env = append(env, key+"="+strings.TrimSpace(out))
 	}
 	return env, nil
+}
+
+// GopassToConfig creates file secretsPath, containing one JSON object, whose keys are
+// the odd-numbered parameters (the "k") and whose values are the gopass secrets
+// corresponding to the even-numbered parameters (the "v").
+// Parameter "prefix" is prefixed to each "v".
+//
+// Example:
+//
+//	err := GopassToConfig("hcloud/prod/controllers", "florist.controllers.config.json",
+//		"ssh_host_ed25519_key",          "ssh_host_ed25519_key",
+//		"ssh_host_ed25519_key_cert_pub", "ssh_host_ed25519_key-cert.pub",
+//	)
+//
+// See also [GopassEnv].
+func GopassToConfig(prefix string, secretsPath string, kv ...string) error {
+	Out("gopass: reading secrets to file")
+	if len(kv)%2 != 0 {
+		return fmt.Errorf("GopassToConfig: want an even number of key/vals; have: %v", kv)
+	}
+
+	fi, err := os.OpenFile(secretsPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return fmt.Errorf("GopassToConfig: %s", err)
+	}
+	defer fi.Close()
+
+	m := make(map[string]string, len(kv)/2)
+	for i := 0; i+1 < len(kv); i += 2 {
+		key := kv[i]
+		val := kv[i+1]
+		path := path.Join(prefix, val)
+		out, err := GopassGet(path)
+		if err != nil {
+			return fmt.Errorf("GopassToConfig: looking for %s: %s", path, err)
+		}
+		m[key] = out
+	}
+
+	enc := json.NewEncoder(fi)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(m); err != nil {
+		return fmt.Errorf("GopassToConfig: %s", err)
+	}
+
+	return nil
 }
 
 // GopassDelete removes key.
@@ -65,7 +113,6 @@ func GopassDelete(key string) error {
 
 // GopassGet returns the secret corresponding to key.
 // If key does not exist, it returns [ErrNotFound].
-// FIXME use gopass cat and stdout
 func GopassGet(key string) (string, error) {
 	out, err := ExecOut(nil, "gopass", "cat", key)
 	if err != nil {
@@ -80,7 +127,6 @@ func GopassGet(key string) (string, error) {
 // GopassPut inserts key with associated secret.
 // If key already exists, it will be overwritten. To distinguish the case of an existing
 // key, use [GopassGet].
-// FIXME use gopass cat and stdin
 func GopassPut(key string, secret string) error {
 	cmd := exec.Command("gopass", "cat", key)
 	cmd.Stdin = strings.NewReader(secret)

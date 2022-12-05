@@ -66,8 +66,7 @@ func (fl *Flower) Configure(rawCfg []byte) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
-	var flowerCfg Flower
-	err := json.Unmarshal(rawCfg, &flowerCfg)
+	err := json.Unmarshal(rawCfg, fl)
 	if err != nil {
 		return fmt.Errorf("test.Configure: %s", err)
 	}
@@ -79,7 +78,7 @@ func (fl *Flower) Configure(rawCfg []byte) error {
 
 	fl.log.Debug("writing template file", "dst", fl.DstPath)
 	if err := florist.CopyFileTemplate(
-		fl.SrcPath, fl.DstPath, 0644, currUser, flowerCfg); err != nil {
+		fl.SrcPath, fl.DstPath, 0644, currUser, fl); err != nil {
 		return fmt.Errorf("test.Configure: %s", err)
 	}
 

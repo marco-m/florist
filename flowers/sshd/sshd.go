@@ -1,23 +1,31 @@
 // Package sshd contains a flower to configure the OpenSSH sshd server.
+//
+// To generate host keys, see README.
 package sshd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
+	"os/exec"
 	"os/user"
-
-	"github.com/marco-m/florist"
 
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
+	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/systemd"
 )
 
 type Flower struct {
-	FilesFS       fs.FS
-	SrcSshdConfig string `default:"sshd/sshd_config.tmpl"`
-	DstSshdConfig string `default:"/etc/ssh/sshd_config"`
-	Port          int    `default:"22"`
-	log           hclog.Logger
+	FilesFS fs.FS
+	Port    int `default:"22"`
+	// FIXME mmmh I ma not sure I want the paths to be overridable...
+	SrcSshdConfigPath        string `default:"sshd/sshd_config.tmpl"`
+	DstSshdConfigPath        string `default:"/etc/ssh/sshd_config"`
+	SshHostEd25519KeyPub     string `default:"CHANGEME" json:"ssh_host_ed25519_key_pub"`
+	SshHostEd25519Key        string `default:"CHANGEME" json:"ssh_host_ed25519_key"`
+	SshHostEd25519KeyCertPub string `default:"CHANGEME" json:"ssh_host_ed25519_key_cert_pub"`
+	log                      hclog.Logger
 }
 
 func (fl *Flower) String() string {
@@ -45,21 +53,33 @@ func (fl *Flower) Init() error {
 func (fl *Flower) Install() error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
+
+	root, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("%s.install: %s", fl, err)
+	}
+
+	fl.log.Info("Install sshd configuration file")
+	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
+		fl.SrcSshdConfigPath, fl.DstSshdConfigPath,
+		0644, root, fl); err != nil {
+		return fmt.Errorf("%s.install: %s", fl, err)
+	}
+
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(rawCfg []byte) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
-	root, err := user.Current()
+	err := json.Unmarshal(rawCfg, fl)
 	if err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	fl.log.Info("Install sshd configuration file")
-	if err := florist.CopyFileTemplateFromFs(fl.FilesFS, fl.SrcSshdConfig,
-		fl.DstSshdConfig, 0644, root, fl); err != nil {
+	root, err := user.Current()
+	if err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
@@ -77,24 +97,35 @@ func (fl *Flower) Configure() error {
 	// 	}
 	// }
 
-	// FIXME NEED TO THINK A BIT MORE HERE...
-
 	fl.log.Info("Add SSH host key, private")
-	if err := florist.CopyFile("secrets/ssh_host_ed25519_key",
-		"/etc/ssh/ssh_host_ed25519_key", 0400, root); err != nil {
+	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
+		"sshd/ssh_host_ed25519_key.tmpl", "/etc/ssh/ssh_host_ed25519_key",
+		0400, root, fl); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	fl.log.Info("Add SSH host key, public")
-	if err := florist.CopyFile("secrets/ssh_host_ed25519_key.pub",
-		"/etc/ssh/ssh_host_ed25519_key.pub", 0400, root); err != nil {
+	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
+		"sshd/ssh_host_ed25519_key.pub.tmpl", "/etc/ssh/ssh_host_ed25519_key.pub",
+		0400, root, fl); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	fl.log.Info("Add SSH host key, certificate")
-	if err := florist.CopyFile("secrets/ssh_host_ed25519_key-cert.pub", "/etc/ssh/ssh_host_ed25519_key-cert.pub", 0400, root); err != nil {
+	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
+		"sshd/ssh_host_ed25519_key-cert.pub.tmpl", "/etc/ssh/ssh_host_ed25519_key-cert.pub",
+		0400, root, fl); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	// FIXME NEED TO RELOAD SSHD HERE...
+	// Test mode. Only check the validity of the configuration file and sanity of the keys.
+	// This gives better diagnostics in case of error.
+	cmd := exec.Command("/usr/sbin/sshd", "-t")
+	if err := florist.CmdRun(fl.log, cmd); err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
+
+	if err := systemd.Reload("ssh"); err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
 
 	return nil
 }
