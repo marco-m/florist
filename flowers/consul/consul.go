@@ -184,7 +184,7 @@ func (fl *ClientFlower) Install() error {
 	return nil
 }
 
-func (fl *ClientFlower) Configure(rawCfg []byte) error {
+func (fl *ClientFlower) Configure() error {
 	return nil
 }
 

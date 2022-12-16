@@ -76,6 +76,6 @@ func (fl *Flower) Install() error {
 
 }
 
-func (fl *Flower) Configure(rawCfg []byte) error {
+func (fl *Flower) Configure() error {
 	return nil
 }

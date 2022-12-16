@@ -11,6 +11,7 @@ import (
 
 	"github.com/alexflint/go-arg"
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
 )
@@ -19,7 +20,8 @@ type Installer struct {
 	log           hclog.Logger
 	cacheValidity time.Duration
 	bouquets      map[string]Bouquet
-	fs            fs.FS
+	filesFS       fs.FS
+	secretsFS     fs.FS
 }
 
 type Bouquet struct {
@@ -28,7 +30,9 @@ type Bouquet struct {
 	Flowers     []florist.Flower
 }
 
-func New(log hclog.Logger, cacheValidity time.Duration, fs fs.FS) Installer {
+func New(
+	log hclog.Logger, cacheValidity time.Duration, filesFS, secretsFS fs.FS,
+) Installer {
 	florist.SetLogger(log)
 
 	stdlog.SetOutput(log.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
@@ -39,7 +43,8 @@ func New(log hclog.Logger, cacheValidity time.Duration, fs fs.FS) Installer {
 		log:           log.Named("installer"),
 		cacheValidity: cacheValidity,
 		bouquets:      map[string]Bouquet{},
-		fs:            fs,
+		filesFS:       filesFS,
+		secretsFS:     secretsFS,
 	}
 }
 
@@ -109,7 +114,6 @@ type InstallCmd struct {
 
 type ConfigureCmd struct {
 	Flower []string `arg:"required,positional" help:"list of bouquets to configure"`
-	Cfg    string   `arg:"required" help:"k/v in JSON format"`
 }
 
 type ListCmd struct {
@@ -130,13 +134,14 @@ func (inst *Installer) Run() error {
 	case cliArgs.Install != nil:
 		return inst.cmdInstall(cliArgs.Install.Flower, cliArgs.Install.IgnoreUnknown)
 	case cliArgs.Configure != nil:
-		return inst.cmdConfigure(cliArgs.Configure.Flower, cliArgs.Configure.Cfg)
+		return inst.cmdConfigure(cliArgs.Configure.Flower)
 	case cliArgs.List != nil:
 		return inst.cmdList()
 	case cliArgs.EmbedList != nil:
 		return inst.cmdEmbedList()
 	default:
-		return fmt.Errorf("internal error: unwired subcommand: %s", parser.SubcommandNames()[0])
+		return fmt.Errorf("internal error: unwired subcommand: %s",
+			parser.SubcommandNames()[0])
 	}
 }
 
@@ -200,16 +205,11 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 	return os.WriteFile("/etc/motd", []byte(motd), 0644)
 }
 
-func (inst *Installer) cmdConfigure(names []string, cfgPath string) error {
+func (inst *Installer) cmdConfigure(names []string) error {
 	for _, name := range names {
 		if _, ok := inst.bouquets[name]; !ok {
 			return fmt.Errorf("configure: unknown bouquet %s", name)
 		}
-	}
-
-	rawCfg, err := os.ReadFile(cfgPath)
-	if err != nil {
-		return fmt.Errorf("configure: reading cfg file: %s", err)
 	}
 
 	if _, err := florist.Init(); err != nil {
@@ -221,7 +221,7 @@ func (inst *Installer) cmdConfigure(names []string, cfgPath string) error {
 		inst.log.Info("configuring", "bouquet", name, "flowers", len(bouquet.Flowers))
 		for _, flower := range bouquet.Flowers {
 			inst.log.Info("configuring", "flower", flower.String())
-			if err := flower.Configure(rawCfg); err != nil {
+			if err := flower.Configure(); err != nil {
 				return err
 			}
 		}
@@ -245,5 +245,15 @@ func (inst *Installer) cmdEmbedList() error {
 		return nil
 	}
 
-	return fs.WalkDir(inst.fs, ".", fn)
+	fmt.Println("====> filesFS")
+	if err := fs.WalkDir(inst.filesFS, ".", fn); err != nil {
+		return fmt.Errorf("embed-list: filesFS: %s", err)
+	}
+
+	fmt.Println("====> secretsFS")
+	if err := fs.WalkDir(inst.secretsFS, ".", fn); err != nil {
+		return fmt.Errorf("embed-list: secretsFS: %s", err)
+	}
+
+	return nil
 }

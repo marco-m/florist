@@ -1,16 +1,14 @@
 package installer_test
 
 import (
-	"os"
-	"path"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-hclog"
-	"github.com/marco-m/florist"
-	"github.com/marco-m/florist/flowers/test"
-	"github.com/marco-m/florist/pkg/installer"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
+
+	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/installer"
 )
 
 type mockFlower struct {
@@ -37,18 +35,16 @@ func (fl *mockFlower) Install() error {
 	return nil
 }
 
-func (fl *mockFlower) Configure(rawCfg []byte) error {
+func (fl *mockFlower) Configure() error {
 	return nil
 }
 
 func TestInstallerAddFlowerSuccess(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil)
+	inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
 	flower := &mockFlower{Name: "foo"}
 
-	if err := inst.AddFlower(flower); err != nil {
-		t.Fatal(err)
-	}
+	assert.NilError(t, inst.AddFlower(flower))
 
 	want := []installer.Bouquet{
 		{
@@ -58,14 +54,12 @@ func TestInstallerAddFlowerSuccess(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(want, inst.Bouquets()); diff != "" {
-		t.Errorf("\nbouquets: mismatch (-want +have):\n%s", diff)
-	}
+	assert.Assert(t, cmp.DeepEqual(inst.Bouquets(), want))
 }
 
 func TestInstallerAddFlowerFailure(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil)
+	inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
 	flower := &mockFlower{Name: ""}
 
 	err := inst.AddFlower(flower)
@@ -75,7 +69,7 @@ func TestInstallerAddFlowerFailure(t *testing.T) {
 
 func TestInstallerAddBouquetSuccess(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil)
+	inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
 
 	flowers := []florist.Flower{
 		&mockFlower{Name: "a"},
@@ -83,9 +77,7 @@ func TestInstallerAddBouquetSuccess(t *testing.T) {
 		&mockFlower{Name: "c"},
 	}
 
-	if err := inst.AddBouquet("pippo", "topolino", flowers...); err != nil {
-		t.Fatal(err)
-	}
+	assert.NilError(t, inst.AddBouquet("pippo", "topolino", flowers...))
 
 	want := []installer.Bouquet{
 		{
@@ -95,9 +87,7 @@ func TestInstallerAddBouquetSuccess(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(want, inst.Bouquets()); diff != "" {
-		t.Errorf("\nlist: mismatch (-want +have):\n%s", diff)
-	}
+	assert.Assert(t, cmp.DeepEqual(inst.Bouquets(), want))
 }
 
 func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
@@ -141,7 +131,7 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			inst := installer.New(log, florist.CacheValidityDefault, nil)
+			inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
 
 			err := inst.AddBouquet(tc.bname, tc.bdescription, tc.bouquet...)
 
@@ -152,79 +142,15 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 
 func TestInstallerDuplicateBouquetName(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil)
+	inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
 
 	bname := "pippo"
 	bouquet1 := []florist.Flower{&mockFlower{Name: "1"}}
 	bouquet2 := []florist.Flower{&mockFlower{Name: "2"}}
 	wantErr := "AddBouquet: there is already a bouquet with name pippo"
 
-	if err := inst.AddBouquet(bname, "topolino", bouquet1...); err != nil {
-		t.Fatalf("have: %s; want: <no error>", err)
-	}
+	assert.NilError(t, inst.AddBouquet(bname, "topolino", bouquet1...))
 
 	err := inst.AddBouquet(bname, "clarabella", bouquet2...)
-
-	have := "<no error>"
-	if err != nil {
-		have = err.Error()
-	}
-	if have != wantErr {
-		t.Fatalf("\nhave: %s\nwant: %s", have, wantErr)
-	}
-}
-
-func TestInstall(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
-
-	flower := &test.Flower{
-		Contents: "I am a little flower",
-		DstPath:  "/flowers/banana",
-	}
-
-	t.Run("install runs successfully", func(t *testing.T) {
-		log := hclog.NewNullLogger()
-		inst := installer.New(log, florist.CacheValidityDefault, nil)
-		assert.NilError(t, inst.AddFlower(flower))
-
-		os.Args = []string{"sut", "install", "test"}
-		assert.NilError(t, inst.Run())
-	})
-
-	t.Run("can read what the install step wrote", func(t *testing.T) {
-		buf, err := os.ReadFile(flower.DstPath)
-		assert.NilError(t, err)
-		have := string(buf)
-		assert.Equal(t, have, flower.Contents)
-	})
-}
-
-func TestConfigure(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
-
-	dir := t.TempDir()
-	flower := &test.Flower{
-		SrcPath: "testdata/flower.txt.tmpl",
-		DstPath: path.Join(dir, "flower.txt"),
-	}
-
-	// TODO one secret file for two flowers...
-
-	t.Run("configure runs successfully", func(t *testing.T) {
-		log := hclog.NewNullLogger()
-		inst := installer.New(log, florist.CacheValidityDefault, nil)
-		assert.NilError(t, inst.AddFlower(flower))
-
-		os.Args = []string{"sut", "configure",
-			"--cfg=" + "testdata/florist.config.json", "test"}
-		assert.NilError(t, inst.Run())
-	})
-
-	t.Run("can read what the configure step wrote", func(t *testing.T) {
-		buf, err := os.ReadFile(flower.DstPath)
-		assert.NilError(t, err)
-		have := string(buf)
-		want := "I am a little strawberry"
-		assert.Equal(t, have, want)
-	})
+	assert.ErrorContains(t, err, wantErr)
 }

@@ -58,7 +58,7 @@ func GopassEnv(prefix string, kv ...string) ([]string, error) {
 //	)
 //
 // See also [GopassEnv].
-func GopassToConfig(prefix string, secretsPath string, kv ...string) error {
+func GopassToConfig(secretsPath string, prefix string, kv ...string) error {
 	Out("gopass: reading secrets to file")
 	if len(kv)%2 != 0 {
 		return fmt.Errorf("GopassToConfig: want an even number of key/vals; have: %v", kv)

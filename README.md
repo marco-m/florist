@@ -1,6 +1,6 @@
 # 🌼 florist 🌺
 
-A bare-bones and opinionated Go package to create **non idempotent**, one-file-contains-everything installers/provisioners.
+A bare-bones and opinionated Go package to create a **non idempotent**, one-file-contains-everything installer and configurer.
 
 ## Status
 
@@ -16,7 +16,8 @@ A bare-bones and opinionated Go package to create **non idempotent**, one-file-c
 
 ## Use cases
 
-- Substitute shell scripts / Salt / Ansible / similar tools to build images with tools like Packer.
+- Installer: substitute shell scripts / Salt / Ansible / similar tools when building an image with Packer.
+- Configurer: substitute cloud-init / shell scripts / Salt / Ansible / similar tools to configure an image at deployment time with Terraform.
 
 ## Non-goals
 
@@ -34,13 +35,20 @@ A bare-bones and opinionated Go package to create **non idempotent**, one-file-c
     - use some ready-made flowers in this module.
 - **bouquet** a target for the `install` subcommand, made of one or more flowers. You can list the installable bouquets with the `list` subcommand.
 
+## The install and configure subcommands.
+
+- Use `install` when building the image with Packer.
+- Use `configure` when deploying the image with Terraform.
+
+See also section [Secrets](#secrets) to understand Florist and secrets handling.
+
 ## Files: embed at compile time or download at runtime
 
-Florist expects your code to use Go [embed](https://pkg.go.dev/embed) to recursively embed all files below directory `files/` (must be this name). You will then pass along the embed.FS to the various flowers.
+Florist uses Go [embed](https://pkg.go.dev/embed) to recursively embed all files below a directory. The conventional name of the directory is `files/` (can be overridden by each flower). You will then pass along the `embed.FS` to the various flowers.
 
-To see all the embedded files, run `go list -f '{{.EmbedFiles}}'`.
+To see all the embedded files in a given installer, run it with the `embed-list` subcommand, or run `go list -f '{{.EmbedFiles}}'` in the directory containing the main package of the installer.
 
-It is also possible to download files at runtime, using `florist.NetFetch()`.
+It is also possible to download files at runtime, using `florist.NetFetch` and then unarchive with `florist.UnzipOne`.
 
 ## Text templates
 
@@ -67,9 +75,23 @@ type Flower struct {
 
 ## Secrets
 
-I recommend to use another mechanism to inject secrets in your image and to inject them at deployment time: backing secrets in the image at Packer build time should be avoided. For example, use cloud-init driven from Terraform.
+In general, do NOT store any secret on the image at image build time (`florist install`). Instead, inject secrets only in the running instance.
 
-As a last and insecure resort, you can embed secrets in the installer, using by convention the `files/secrets/` directory. Do not commit the secrets in git.
+You have two options:
+- Use `cloud-init` or equivalent.
+- Use `florist configure`, as explained in the rest of this section.
+
+Secrets handling in Florist depend on how deep you are bootstrapping your infrastructure:
+- If at Terraform time you have available something on the network, such as a secrets store like Vault or SSM, or a KV store like Consul, use it (currently Florist doesn't have an API for this, but it is easy to add it yourself).
+- If at Terraform time you do not have available anything on the network, you can embed the secrets in florist. This is safe, as long as:
+  - the florist executable is purpose-built for the specific Terraform root or instance.
+  - the florist executable is uploaded on the instance with a `file` provisioner and executed with a `remote-exec` provisioner in the same `null_resource`.
+  - the florist executable is deleted form the instance, also in case of failure.
+  - the florist executable, together with the files containing the secrets (that have been embedded), are deleted from the local host just after the `terraform apply` (also in case of failure!)
+  - all this means that you need to drive all this sequence from a build script carefully written.
+
+For a real-world example, see the orsolabs project (FIXME ADD LINK)
+
 
 ## Usage
 
@@ -84,7 +106,9 @@ Options:
 
 Commands:
   install                install one or more bouquets
+  configure              configure one or more bouquets
   list                   list the available bouquets
+  embed-list             list the embedded FS
 ```
 
 ## Usage with Packer

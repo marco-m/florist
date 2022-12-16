@@ -114,7 +114,7 @@ func (fl *ServerFlower) Install() error {
 	return nil
 }
 
-func (fl *ServerFlower) Configure(rawCfg []byte) error {
+func (fl *ServerFlower) Configure() error {
 	return nil
 }
 
@@ -213,7 +213,7 @@ func (fl *ClientFlower) Install() error {
 	return nil
 }
 
-func (fl *ClientFlower) Configure(rawCfg []byte) error {
+func (fl *ClientFlower) Configure() error {
 	return nil
 }
 

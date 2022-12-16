@@ -4,7 +4,6 @@
 package sshd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os/exec"
@@ -69,14 +68,9 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure(rawCfg []byte) error {
+func (fl *Flower) Configure() error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
-
-	err := json.Unmarshal(rawCfg, fl)
-	if err != nil {
-		return fmt.Errorf("%s.configure: %s", fl, err)
-	}
 
 	root, err := user.Current()
 	if err != nil {

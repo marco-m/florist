@@ -6,17 +6,29 @@ vars:
   GOTESTSUM_VERSION: v1.8.2
 
 tasks:
-  build:
-    desc: Build all
+  build:example:install:
+    desc: Build the example installer for the install step, so without secrets.
     cmds:
-      - go build ./...
-      - task: build:example
+      - go build -o bin/example ./example
 
-  build:example:
-    desc: Build the example
+  build:example:configure:
+    desc: Build the example installer for the configure step, so _with_ secrets.
+      It is very important to remove the secrets also in case of failure, which we
+      obtain with the Task "defer" keyword.
     cmds:
-      - go build -o bin/example-florist ./example
-      - GOOS=linux go build -o bin/linux/example-florist ./example
+      - defer: echo -n "dummy-value" > ./example/embed/secrets/dummy
+      - defer: rm -r ./example/embed/secrets/*
+      - cmd: echo -n "the secret value" > ./example/embed/secrets/secret
+        silent: true
+      - cmd: echo -n "the custom value" > ./example/embed/secrets/custom
+        silent: true
+      - go build -o bin/example ./example
+
+  build:installer:
+    desc: Build the installer
+    cmds:
+      - go build -o bin/installer ./installer
+      - GOOS=linux go build -o bin/linux/installer ./installer
 
   test:all:
     desc: Run all the unit tests; makes sense only if invoking from the VM.
@@ -32,10 +44,11 @@ tasks:
   test:all:vm:dirty:
     desc: Run all the tests on a VM on the current snapshot (thus dirty) (faster but inaccurate and flaky)
     cmds:
-      - task: _vm:set_date
+      - task: vm:set_date
       - ssh -F ssh.config.vagrant florist-dev "cd florist && sudo task test:all"
 
-  _vm:set_date:
+  vm:set_date:
+    desc: Set the current date in the VM (expects the VM to be running).
     cmds:
       - ssh -F ssh.config.vagrant florist-dev sudo sntp --step 0.pool.ntp.org
 
@@ -52,7 +65,7 @@ tasks:
   vm:init:
     desc: Create a VM from scratch, provision and take a snapshot. Use `vm:restore` to restore the snapshot to pristine state.
     cmds:
-    - task: build:example
+    - task: build:installer
     - vagrant destroy --force
     - vagrant up
     # Generate a SSH configuration file
@@ -63,7 +76,7 @@ tasks:
     # Mark this VM as a target for destructive tests.
     - ssh -F ssh.config.vagrant florist-dev sudo mkdir -p /opt/florist/disposable
     # Provision the dev flower 🌼
-    - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/example-florist install dev"
+    - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/installer install dev"
     # Install other deps. I am unsure this is the best approach...
     - ssh -F ssh.config.vagrant florist-dev "GOBIN=/usr/local/bin sudo --preserve-env=GOBIN task -d florist install-deps"
       # Take snapshot, name `pristine`
@@ -74,7 +87,7 @@ tasks:
     desc: Restore the VM snapshot to pristine state and set the current date
     cmds:
       - task: _vm:restore
-      - task: _vm:set_date
+      - task: vm:set_date
 
   _vm:restore:
     cmds:

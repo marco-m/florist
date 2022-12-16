@@ -46,7 +46,8 @@ func Mkdir(path string, owner *user.User, perm fs.FileMode) error {
 // Notes:
 // - If dstPath exists, it will be overwritten.
 // - Setting an owner different that the current user requires elevated privileges.
-func CopyFile(srcPath string, dstPath string,
+func CopyFile(
+	srcPath string, dstPath string,
 	mode os.FileMode, owner *user.User,
 ) error {
 	return copyfile(nil, srcPath, dstPath, mode, owner)
@@ -58,7 +59,8 @@ func CopyFile(srcPath string, dstPath string,
 // Notes:
 // - If dstPath exists, it will be overwritten.
 // - Setting an owner different that the current user requires elevated privileges.
-func CopyFileFromFs(srcFs fs.FS, srcPath string, dstPath string,
+func CopyFileFromFs(
+	srcFs fs.FS, srcPath string, dstPath string,
 	mode os.FileMode, owner *user.User,
 ) error {
 	return copyfile(srcFs, srcPath, dstPath, mode, owner)
@@ -70,7 +72,8 @@ func CopyFileFromFs(srcFs fs.FS, srcPath string, dstPath string,
 // Notes:
 // - If dstPath exists, it will be overwritten.
 // - Setting an owner different that the current user requires elevated privileges.
-func CopyFileTemplate(srcPath string, dstPath string,
+func CopyFileTemplate(
+	srcPath string, dstPath string,
 	mode os.FileMode, owner *user.User, tmplData any,
 ) error {
 	return copyfiletmpl(nil, srcPath, dstPath, mode, owner, tmplData)
@@ -83,14 +86,16 @@ func CopyFileTemplate(srcPath string, dstPath string,
 // Notes:
 // - If dstPath exists, it will be overwritten.
 // - Setting an owner different that the current user requires elevated privileges.
-func CopyFileTemplateFromFs(srcFs fs.FS, srcPath string, dstPath string,
+func CopyFileTemplateFromFs(
+	srcFs fs.FS, srcPath string, dstPath string,
 	mode os.FileMode, owner *user.User, tmplData any,
 ) error {
 	return copyfiletmpl(srcFs, srcPath, dstPath, mode, owner, tmplData)
 }
 
 // Does not read the whole file in memory.
-func copyfile(srcFs fs.FS, srcPath string, dstPath string,
+func copyfile(
+	srcFs fs.FS, srcPath string, dstPath string,
 	mode os.FileMode, owner *user.User,
 ) error {
 	var src fs.File
@@ -130,7 +135,8 @@ func copyfile(srcFs fs.FS, srcPath string, dstPath string,
 }
 
 // Reads the whole file in memory, since it must do text template processing.
-func copyfiletmpl(srcFs fs.FS, srcPath string, dstPath string,
+func copyfiletmpl(
+	srcFs fs.FS, srcPath string, dstPath string,
 	mode os.FileMode, owner *user.User, tmplData any,
 ) error {
 	var buf []byte
@@ -148,6 +154,9 @@ func copyfiletmpl(srcFs fs.FS, srcPath string, dstPath string,
 	if err != nil {
 		return fmt.Errorf("florist.copyfile: %s", err)
 	}
+	// When looking up keys in a map, error out on missing key, as is the case for
+	// struct missing field.
+	tmpl.Option("missingkey=error")
 
 	// if dstPath is an executable file and is running, then we will get back a
 	// TXTBSY (text file busy).

@@ -102,7 +102,7 @@ func (fl *Flower) Install() error {
 	return envpath.Add(fl.log, "go", "$HOME/go/bin")
 }
 
-func (fl *Flower) Configure(rawCfg []byte) error {
+func (fl *Flower) Configure() error {
 	return nil
 }
 

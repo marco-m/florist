@@ -8,6 +8,7 @@ import (
 	"os/user"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
 )
@@ -15,7 +16,9 @@ import (
 type Flower struct {
 	FilesFS   fs.FS
 	Usernames []string
-	log       hclog.Logger
+	// Using Fish as default shell breaks too many programs when they ssh :-(
+	SetAsDefault bool
+	log          hclog.Logger
 }
 
 func (fl *Flower) String() string {
@@ -75,19 +78,22 @@ func (fl *Flower) Install() error {
 		}
 		found++
 
-		fl.log.Info("set fish shell", "user", username)
-		cmd := exec.Command("chsh", "-s", "/usr/bin/fish", username)
-		if err := florist.CmdRun(fl.log, cmd); err != nil {
-			return err
+		if fl.SetAsDefault {
+			fl.log.Info("set fish shell", "user", username)
+			cmd := exec.Command("chsh", "-s", "/usr/bin/fish", username)
+			if err := florist.CmdRun(fl.log, cmd); err != nil {
+				return err
+			}
 		}
 	}
 	if found == 0 {
-		return fmt.Errorf("%s: could not find any users (%s)", fl.log.Name(), fl.Usernames)
+		return fmt.Errorf("%s: could not find any users (%s)", fl.log.Name(),
+			fl.Usernames)
 	}
 
 	return nil
 }
 
-func (fl *Flower) Configure(rawCfg []byte) error {
+func (fl *Flower) Configure() error {
 	return nil
 }
