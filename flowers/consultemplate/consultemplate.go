@@ -92,6 +92,8 @@ func (fl *Flower) Install() error {
 	// sending signals to other processes.
 	// Actually writing files is so powerful that probably this protection would
 	// be useless? :-(
+	//
+	// Could be a better approach to use sudo and dedicated sudoers entries...
 	userConsulTemplate = root
 
 	if err := installExe(fl.log, fl.Version, fl.Hash, root); err != nil {

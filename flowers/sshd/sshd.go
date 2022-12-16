@@ -97,19 +97,19 @@ func (fl *Flower) Configure(rawCfg []byte) error {
 	// 	}
 	// }
 
-	fl.log.Info("Add SSH host key, private")
+	fl.log.Info("Adding SSH host key, private")
 	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
 		"sshd/ssh_host_ed25519_key.tmpl", "/etc/ssh/ssh_host_ed25519_key",
 		0400, root, fl); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
-	fl.log.Info("Add SSH host key, public")
+	fl.log.Info("Adding SSH host key, public")
 	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
 		"sshd/ssh_host_ed25519_key.pub.tmpl", "/etc/ssh/ssh_host_ed25519_key.pub",
 		0400, root, fl); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
-	fl.log.Info("Add SSH host key, certificate")
+	fl.log.Info("Adding SSH host key, certificate")
 	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
 		"sshd/ssh_host_ed25519_key-cert.pub.tmpl", "/etc/ssh/ssh_host_ed25519_key-cert.pub",
 		0400, root, fl); err != nil {
@@ -118,11 +118,13 @@ func (fl *Flower) Configure(rawCfg []byte) error {
 
 	// Test mode. Only check the validity of the configuration file and sanity of the keys.
 	// This gives better diagnostics in case of error.
+	fl.log.Info("Checking validity of configuration file")
 	cmd := exec.Command("/usr/sbin/sshd", "-t")
 	if err := florist.CmdRun(fl.log, cmd); err != nil {
-		return fmt.Errorf("%s.configure: %s", fl, err)
+		return fmt.Errorf("%s.configure: check sshd configuration: %s", fl, err)
 	}
 
+	fl.log.Info("Reloading sshd service")
 	if err := systemd.Reload("ssh"); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}

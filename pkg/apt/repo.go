@@ -11,8 +11,22 @@ import (
 	"github.com/marco-m/florist"
 )
 
-// Securely add a APT repo with corresponding PGP key.
-// https://wiki.debian.org/DebianRepository/UseThirdParty
+// AddRepo securely adds an APT repo with corresponding PGP key.
+// See: https://wiki.debian.org/DebianRepository/UseThirdParty
+//
+// Example:
+//
+//	if err := apt.AddRepo(
+//		"docker",
+//		"https://download.docker.com/linux/debian",
+//		"https://download.docker.com/linux/debian/gpg",
+//		"1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570",
+//	); err != nil {
+//		return err
+//	}
+//	if err := apt.Update(0 * time.Second); err != nil {
+//		return err
+//	}
 func AddRepo(
 	name string,
 	repoURL string,
