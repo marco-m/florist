@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/alexflint/go-arg"
+	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist"
@@ -96,24 +96,19 @@ func (inst *Installer) AddBouquet(
 	return nil
 }
 
-type cliArgs struct {
-	Install   *InstallCmd   `arg:"subcommand:install" help:"install one or more bouquets"`
-	Configure *ConfigureCmd `arg:"subcommand:configure" help:"configure one or more bouquets"`
-	List      *ListCmd      `arg:"subcommand:list" help:"list the available bouquets"`
-	EmbedList *EmbedListCmd `arg:"subcommand:embed-list" help:"list the embedded FS"`
-}
-
-func (cliArgs) Description() string {
-	return "🌼 florist 🌺 - a simple installer\n"
+type cli struct {
+	Install   InstallCmd   `cmd:"" help:"install one or more bouquets"`
+	Configure ConfigureCmd `cmd:"" help:"configure one or more bouquets"`
+	List      ListCmd      `cmd:"" help:"list the available bouquets"`
+	EmbedList EmbedListCmd `cmd:"" help:"list the embedded FS"`
 }
 
 type InstallCmd struct {
-	Flower        []string `arg:"required,positional" help:"list of bouquets to install"`
-	IgnoreUnknown bool     `arg:"--ignore-unknown" help:"ignore unknown bouquets instead of failing"`
+	Bouquets []string `arg:"" help:"list of bouquets to install"`
 }
 
 type ConfigureCmd struct {
-	Flower []string `arg:"required,positional" help:"list of bouquets to configure"`
+	Bouquets []string `arg:"" help:"list of bouquets to configure"`
 }
 
 type ListCmd struct {
@@ -123,26 +118,18 @@ type ListCmd struct {
 type EmbedListCmd struct{}
 
 func (inst *Installer) Run() error {
-	var cliArgs cliArgs
+	var cli cli
+	ctx := kong.Parse(
+		&cli,
+		kong.Description("🌼 florist 🌺 - a simple installer"),
+		kong.UsageOnError(),
+		kong.ConfigureHelp(kong.HelpOptions{
+			Compact: true,
+			Summary: true,
+		}),
+	)
 
-	parser := arg.MustParse(&cliArgs)
-	if parser.Subcommand() == nil {
-		parser.Fail("missing subcommand")
-	}
-
-	switch {
-	case cliArgs.Install != nil:
-		return inst.cmdInstall(cliArgs.Install.Flower, cliArgs.Install.IgnoreUnknown)
-	case cliArgs.Configure != nil:
-		return inst.cmdConfigure(cliArgs.Configure.Flower)
-	case cliArgs.List != nil:
-		return inst.cmdList()
-	case cliArgs.EmbedList != nil:
-		return inst.cmdEmbedList()
-	default:
-		return fmt.Errorf("internal error: unwired subcommand: %s",
-			parser.SubcommandNames()[0])
-	}
+	return ctx.Run(inst)
 }
 
 // Bouquets returns a list of the added bouquets sorted by name.
@@ -161,7 +148,7 @@ func (inst *Installer) Bouquets() []Bouquet {
 	return bouquets
 }
 
-func (inst *Installer) cmdList() error {
+func (cmd *ListCmd) Run(inst *Installer) error {
 	fmt.Println("Available bouquets:")
 	for _, bouquet := range inst.Bouquets() {
 		fmt.Printf("%-20s %s\n", bouquet.Name, bouquet.Description)
@@ -173,10 +160,10 @@ func (inst *Installer) cmdList() error {
 	return nil
 }
 
-func (inst *Installer) cmdInstall(names []string, ignore bool) error {
-	for _, name := range names {
+func (cmd *InstallCmd) Run(inst *Installer) error {
+	for _, name := range cmd.Bouquets {
 		if _, ok := inst.bouquets[name]; !ok {
-			return fmt.Errorf("configure: unknown bouquet %s", name)
+			return fmt.Errorf("install: unknown bouquet %s", name)
 		}
 	}
 
@@ -189,7 +176,7 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 		return err
 	}
 
-	for _, name := range names {
+	for _, name := range cmd.Bouquets {
 		bouquet := inst.bouquets[name]
 		inst.log.Info("installing", "bouquet", name, "flowers", len(bouquet.Flowers))
 		for _, flower := range bouquet.Flowers {
@@ -205,8 +192,8 @@ func (inst *Installer) cmdInstall(names []string, ignore bool) error {
 	return os.WriteFile("/etc/motd", []byte(motd), 0644)
 }
 
-func (inst *Installer) cmdConfigure(names []string) error {
-	for _, name := range names {
+func (cmd *ConfigureCmd) Run(inst *Installer) error {
+	for _, name := range cmd.Bouquets {
 		if _, ok := inst.bouquets[name]; !ok {
 			return fmt.Errorf("configure: unknown bouquet %s", name)
 		}
@@ -216,7 +203,7 @@ func (inst *Installer) cmdConfigure(names []string) error {
 		return err
 	}
 
-	for _, name := range names {
+	for _, name := range cmd.Bouquets {
 		bouquet := inst.bouquets[name]
 		inst.log.Info("configuring", "bouquet", name, "flowers", len(bouquet.Flowers))
 		for _, flower := range bouquet.Flowers {
@@ -232,7 +219,7 @@ func (inst *Installer) cmdConfigure(names []string) error {
 	return os.WriteFile("/etc/motd", []byte(motd), 0644)
 }
 
-func (inst *Installer) cmdEmbedList() error {
+func (cmd *EmbedListCmd) Run(inst *Installer) error {
 	fn := func(path string, de fs.DirEntry, err error) error {
 		if err != nil {
 			return err

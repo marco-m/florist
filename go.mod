@@ -3,7 +3,7 @@ module github.com/marco-m/florist
 go 1.20
 
 require (
-	github.com/alexflint/go-arg v1.4.3
+	github.com/alecthomas/kong v0.7.1
 	github.com/cakturk/go-netstat v0.0.0-20200220111822-e5b49efee7a5
 	github.com/creasty/defaults v1.6.0
 	github.com/hashicorp/go-hclog v1.4.0
@@ -12,7 +12,6 @@ require (
 )
 
 require (
-	github.com/alexflint/go-scalar v1.2.0 // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
