@@ -33,7 +33,7 @@ tasks:
     desc: Run all the tests on a VM on the current snapshot (thus dirty) (faster but inaccurate and flaky)
     cmds:
       - task: _vm:set_date
-      - ssh -F ssh.config.vagrant florist-dev "cd florist && task test:all"
+      - ssh -F ssh.config.vagrant florist-dev "cd florist && sudo task test:all"
 
   _vm:set_date:
     cmds:
@@ -84,4 +84,3 @@ tasks:
     desc: Install tool dependencies.
     cmds:
       - go install gotest.tools/gotestsum@{{.GOTESTSUM_VERSION}}
-
