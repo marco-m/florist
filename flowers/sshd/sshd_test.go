@@ -34,7 +34,6 @@ func TestSshdInstallSuccess(t *testing.T) {
 	assert.Assert(t, cmp.Contains(have, want), "reading %s", fl.DstSshdConfigPath)
 }
 
-// FIXME WRITEME...
 func TestSshdConfigureSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
