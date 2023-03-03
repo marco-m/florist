@@ -19,8 +19,8 @@ import (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	FilesFS fs.FS
-	Port    int `default:"22"`
+	fsys fs.FS
+	Port int `default:"22"`
 	// FIXME mmmh I ma not sure I want the paths to be overridable...
 	SrcSshdConfigPath        string `default:"sshd/sshd_config.tmpl"`
 	DstSshdConfigPath        string `default:"/etc/ssh/sshd_config"`
@@ -38,12 +38,9 @@ func (fl *Flower) Description() string {
 	return "configure an already-existing sshd server"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	fl.log = florist.Log.ResetNamed(fl.String())
-
-	if fl.FilesFS == nil {
-		return fmt.Errorf("%s.init: missing FilesFS", fl)
-	}
 
 	if err := defaults.Set(fl); err != nil {
 		return fmt.Errorf("%s.init: %s", fl, err)
@@ -62,7 +59,7 @@ func (fl *Flower) Install() error {
 	}
 
 	fl.log.Info("Install sshd configuration file")
-	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
+	if err := florist.CopyFileTemplateFromFs(fl.fsys,
 		fl.SrcSshdConfigPath, fl.DstSshdConfigPath,
 		0644, root, fl); err != nil {
 		return fmt.Errorf("%s.install: %s", fl, err)
@@ -95,19 +92,19 @@ func (fl *Flower) Configure() error {
 	// }
 
 	fl.log.Info("Adding SSH host key, private")
-	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
+	if err := florist.CopyFileTemplateFromFs(fl.fsys,
 		"sshd/ssh_host_ed25519_key.tmpl", "/etc/ssh/ssh_host_ed25519_key",
 		0400, root, fl); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	fl.log.Info("Adding SSH host key, public")
-	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
+	if err := florist.CopyFileTemplateFromFs(fl.fsys,
 		"sshd/ssh_host_ed25519_key.pub.tmpl", "/etc/ssh/ssh_host_ed25519_key.pub",
 		0400, root, fl); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	fl.log.Info("Adding SSH host key, certificate")
-	if err := florist.CopyFileTemplateFromFs(fl.FilesFS,
+	if err := florist.CopyFileTemplateFromFs(fl.fsys,
 		"sshd/ssh_host_ed25519_key-cert.pub.tmpl", "/etc/ssh/ssh_host_ed25519_key-cert.pub",
 		0400, root, fl); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)

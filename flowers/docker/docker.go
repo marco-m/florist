@@ -3,6 +3,7 @@ package docker
 
 import (
 	"fmt"
+	"io/fs"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -14,6 +15,7 @@ import (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
+	fsys fs.FS
 	// Users to add to the docker supplementary group.
 	Users []string
 	log   hclog.Logger
@@ -27,7 +29,8 @@ func (fl *Flower) Description() string {
 	return "install Docker"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 	return nil

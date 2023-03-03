@@ -5,9 +5,10 @@ import (
 	"io/fs"
 	"testing"
 
+	"gotest.tools/v3/assert"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/consul"
-	"gotest.tools/v3/assert"
 )
 
 //go:embed files
@@ -16,16 +17,15 @@ var filesFS embed.FS
 func TestConsulServerInstallSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
-	files, err := fs.Sub(filesFS, "files")
+	fsys, err := fs.Sub(filesFS, "files")
 	assert.NilError(t, err)
 
 	florist.SetLogger(florist.NewLogger("test-consulserver"))
 	cs := consul.ServerFlower{
-		FilesFS: files,
 		Version: "1.11.2",
 		Hash:    "380eaff1b18a2b62d8e1d8a7cbc3f3e08b34d3f7187ee335b891ca2ba98784b3",
 	}
-	assert.NilError(t, cs.Init())
+	assert.NilError(t, cs.Init(fsys))
 
 	assert.NilError(t, cs.Install())
 }
@@ -52,7 +52,7 @@ func TestConsulServerInstallFailureVM(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.flower.Init()
+			err := tc.flower.Init(nil)
 			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}

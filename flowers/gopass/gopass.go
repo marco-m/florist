@@ -3,6 +3,7 @@ package gopass
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"time"
@@ -16,6 +17,7 @@ import (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
+	fsys    fs.FS
 	Version string
 	Hash    string
 	log     hclog.Logger
@@ -29,7 +31,8 @@ func (fl *Flower) Description() string {
 	return "install gopass"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 

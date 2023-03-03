@@ -26,14 +26,11 @@ func TestSampleInstall(t *testing.T) {
 		},
 	}
 
-	flower := &sample.Flower{
-		FilesFs:   fsys,
-		SecretsFs: fsys,
-	}
+	flower := &sample.Flower{}
 
 	t.Run("install runs successfully", func(t *testing.T) {
 		log := hclog.NewNullLogger()
-		inst := installer.New(log, florist.CacheValidityDefault, fsys, fsys)
+		inst := installer.New(log, florist.CacheValidityDefault, fsys)
 		assert.NilError(t, inst.AddFlower(flower))
 
 		os.Args = []string{"sut", "install", flower.String()}
@@ -69,15 +66,11 @@ func TestSampleConfigure(t *testing.T) {
 		sample.CustomK: {Data: []byte("vita")},
 	}
 
-	flower := &sample.Flower{
-		FilesFs:   fsys,
-		SecretsFs: fsys,
-		Fruit:     "cammin",
-	}
+	flower := &sample.Flower{Fruit: "cammin"}
 
 	t.Run("configure runs successfully", func(t *testing.T) {
 		log := hclog.NewNullLogger()
-		inst := installer.New(log, florist.CacheValidityDefault, fsys, fsys)
+		inst := installer.New(log, florist.CacheValidityDefault, fsys)
 		assert.NilError(t, inst.AddFlower(flower))
 
 		os.Args = []string{"sut", "configure", flower.String()}

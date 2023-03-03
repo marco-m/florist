@@ -14,9 +14,9 @@ import (
 
 // A Flower is a composable unit that can be installed.
 type Flower interface {
+	Init(fsys fs.FS) error
 	fmt.Stringer
 	Description() string
-	Init() error
 	Install() error
 	Configure() error
 }

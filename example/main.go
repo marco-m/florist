@@ -4,6 +4,7 @@ package main
 
 import (
 	"embed"
+	"io/fs"
 	"os"
 	"time"
 
@@ -14,11 +15,8 @@ import (
 	"github.com/marco-m/florist/pkg/installer"
 )
 
-//go:embed embed/files
-var filesFS embed.FS
-
-//go:embed embed/secrets
-var secretsFS embed.FS
+//go:embed embed
+var fsys embed.FS
 
 func main() {
 	start := time.Now()
@@ -34,15 +32,16 @@ func main() {
 }
 
 func run(log hclog.Logger) error {
+	fsys, err := fs.Sub(fsys, "embed")
+	if err != nil {
+		return err
+	}
+
 	// Create an installer.
-	inst := installer.New(log, florist.CacheValidityDefault, filesFS, secretsFS)
+	inst := installer.New(log, florist.CacheValidityDefault, fsys)
 
 	// Create the sample flower.
-	flower := sample.Flower{
-		FilesFs:   filesFS,
-		SecretsFs: secretsFS,
-		Fruit:     "strawberry",
-	}
+	flower := sample.Flower{Fruit: "strawberry"}
 
 	// Add a bouquet with a single flower.
 	if err := inst.AddFlower(&flower); err != nil {

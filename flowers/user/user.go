@@ -15,9 +15,10 @@ import (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	FilesFS fs.FS
-	User    string
-	log     hclog.Logger
+	fsys      fs.FS
+	SecretsFS fs.FS
+	User      string
+	log       hclog.Logger
 }
 
 func (fl *Flower) String() string {
@@ -28,13 +29,11 @@ func (fl *Flower) Description() string {
 	return "add a user and configure SSH access"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
-	if fl.FilesFS == nil {
-		return fmt.Errorf("%s.new: missing FilesFS", name)
-	}
 	if fl.User == "" {
 		return fmt.Errorf("%s.new: missing user", name)
 	}
@@ -59,8 +58,8 @@ func (fl *Flower) Install() error {
 	}
 
 	fl.log.Info("Add SSH authorized_keys")
-	if err := ssh.AddAuthorizedKeys(user, fl.FilesFS,
-		"secrets/authorized_keys"); err != nil {
+	if err := ssh.AddAuthorizedKeys(user, fl.SecretsFS,
+		"secrets/user/authorized_keys"); err != nil {
 		return err
 	}
 

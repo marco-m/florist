@@ -29,7 +29,7 @@ const (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	FilesFS        fs.FS
+	fsys           fs.FS
 	Version        string
 	Hash           string
 	Configurations []string
@@ -45,12 +45,10 @@ func (fl *Flower) Description() string {
 	return "install consul-template"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	fl.log = florist.Log.ResetNamed("florist.flower.consultemplate")
 
-	if fl.FilesFS == nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), "FilesFS cannot be nil")
-	}
 	if fl.Version == "" {
 		return fmt.Errorf("%s: %s", fl.log.Name(), "Version cannot be empty")
 	}
@@ -107,7 +105,7 @@ func (fl *Flower) Install() error {
 		src := path.Join(SrcConfigDir, cfg)
 		dst := path.Join(ConfigDir, cfg)
 		fl.log.Info("Install consul-template configuration file", "dst", dst)
-		if err := florist.CopyFileFromFs(fl.FilesFS, src, dst, 0640,
+		if err := florist.CopyFileFromFs(fl.fsys, src, dst, 0640,
 			userConsulTemplate); err != nil {
 			return fmt.Errorf("%s: %s", fl.log.Name(), err)
 		}
@@ -117,7 +115,7 @@ func (fl *Flower) Install() error {
 		src := path.Join(SrcTemplatesDir, tmpl)
 		dst := path.Join(TemplatesDir, tmpl)
 		fl.log.Info("Install consul-template template file", "dst", dst)
-		if err := florist.CopyFileFromFs(fl.FilesFS, src, dst, 0640,
+		if err := florist.CopyFileFromFs(fl.fsys, src, dst, 0640,
 			userConsulTemplate); err != nil {
 			return fmt.Errorf("%s: %s", fl.log.Name(), err)
 		}
@@ -128,7 +126,7 @@ func (fl *Flower) Install() error {
 	src := path.Join(SrcDir, unit)
 	dst := path.Join("/etc/systemd/system/", unit)
 	fl.log.Info("Install consul-template systemd unit file", "dst", dst)
-	if err := florist.CopyFileFromFs(fl.FilesFS, src, dst, 0644, root); err != nil {
+	if err := florist.CopyFileFromFs(fl.fsys, src, dst, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 

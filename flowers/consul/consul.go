@@ -25,7 +25,7 @@ var _ florist.Flower = (*ServerFlower)(nil)
 
 // WARNING: Do NOT install alongside a Consul client.
 type ServerFlower struct {
-	FilesFS fs.FS
+	fsys    fs.FS
 	Version string
 	Hash    string
 	log     hclog.Logger
@@ -39,7 +39,8 @@ func (fl *ServerFlower) Description() string {
 	return "install a Consul server (incompatible with a Consul client)"
 }
 
-func (fl *ServerFlower) Init() error {
+func (fl *ServerFlower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
@@ -48,9 +49,6 @@ func (fl *ServerFlower) Init() error {
 	}
 	if fl.Hash == "" {
 		return fmt.Errorf("%s.new: missing hash", name)
-	}
-	if fl.FilesFS == nil {
-		return fmt.Errorf("%s.new: missing FilesFS", name)
 	}
 
 	return nil
@@ -77,14 +75,14 @@ func (fl *ServerFlower) Install() error {
 
 	consulCfg := path.Join(ConsulHome, "consul.server.hcl")
 	fl.log.Info("Install consul server configuration file", "dst", consulCfg)
-	if err := florist.CopyFileFromFs(fl.FilesFS, "consul/consul.server.hcl", consulCfg,
+	if err := florist.CopyFileFromFs(fl.fsys, "consul/consul.server.hcl", consulCfg,
 		0640, userConsulServer); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-server.service")
 	fl.log.Info("Install consul server systemd unit file", "dst", consulUnit)
-	if err := florist.CopyFileFromFs(fl.FilesFS, "consul/consul-server.service", consulUnit,
+	if err := florist.CopyFileFromFs(fl.fsys, "consul/consul-server.service", consulUnit,
 		0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -108,7 +106,7 @@ var _ florist.Flower = (*ClientFlower)(nil)
 
 // WARNING: Do NOT install alongside a Consul server.
 type ClientFlower struct {
-	FilesFS fs.FS
+	fsys    fs.FS
 	Version string
 	Hash    string
 	log     hclog.Logger
@@ -122,7 +120,8 @@ func (fl *ClientFlower) Description() string {
 	return "install a Consul client (incompatible with a Consul server)"
 }
 
-func (fl *ClientFlower) Init() error {
+func (fl *ClientFlower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
@@ -131,9 +130,6 @@ func (fl *ClientFlower) Init() error {
 	}
 	if fl.Hash == "" {
 		return fmt.Errorf("%s.new: missing hash", name)
-	}
-	if fl.FilesFS == nil {
-		return fmt.Errorf("%s.new: missing FilesFS", name)
 	}
 
 	return nil
@@ -168,13 +164,13 @@ func (fl *ClientFlower) Install() error {
 
 	consulCfg := path.Join(ConsulHome, "consul.client.hcl")
 	fl.log.Info("Install consul client configuration file", "dst", consulCfg)
-	if err := florist.CopyFileFromFs(fl.FilesFS, "consul/consul.client.hcl", consulCfg, 0640, userConsulClient); err != nil {
+	if err := florist.CopyFileFromFs(fl.fsys, "consul/consul.client.hcl", consulCfg, 0640, userConsulClient); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-client.service")
 	fl.log.Info("Install consul client systemd unit file", "dst", consulUnit)
-	if err := florist.CopyFileFromFs(fl.FilesFS, "consul/consul-client.service", consulUnit, 0644, root); err != nil {
+	if err := florist.CopyFileFromFs(fl.fsys, "consul/consul-client.service", consulUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 

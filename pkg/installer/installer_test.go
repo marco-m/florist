@@ -1,6 +1,7 @@
 package installer_test
 
 import (
+	"io/fs"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
@@ -24,7 +25,7 @@ func (fl *mockFlower) Description() string {
 	return "I am a mock flower"
 }
 
-func (fl *mockFlower) Init() error {
+func (fl *mockFlower) Init(fsys fs.FS) error {
 	if fl.Log == nil {
 		fl.Log = hclog.NewNullLogger()
 	}
@@ -41,7 +42,7 @@ func (fl *mockFlower) Configure() error {
 
 func TestInstallerAddFlowerSuccess(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
+	inst := installer.New(log, florist.CacheValidityDefault, nil)
 	flower := &mockFlower{Name: "foo"}
 
 	assert.NilError(t, inst.AddFlower(flower))
@@ -59,7 +60,7 @@ func TestInstallerAddFlowerSuccess(t *testing.T) {
 
 func TestInstallerAddFlowerFailure(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
+	inst := installer.New(log, florist.CacheValidityDefault, nil)
 	flower := &mockFlower{Name: ""}
 
 	err := inst.AddFlower(flower)
@@ -69,7 +70,7 @@ func TestInstallerAddFlowerFailure(t *testing.T) {
 
 func TestInstallerAddBouquetSuccess(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
+	inst := installer.New(log, florist.CacheValidityDefault, nil)
 
 	flowers := []florist.Flower{
 		&mockFlower{Name: "a"},
@@ -131,7 +132,7 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
+			inst := installer.New(log, florist.CacheValidityDefault, nil)
 
 			err := inst.AddBouquet(tc.bname, tc.bdescription, tc.bouquet...)
 
@@ -142,7 +143,7 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 
 func TestInstallerDuplicateBouquetName(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil, nil)
+	inst := installer.New(log, florist.CacheValidityDefault, nil)
 
 	bname := "pippo"
 	bouquet1 := []florist.Flower{&mockFlower{Name: "1"}}

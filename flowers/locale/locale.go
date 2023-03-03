@@ -3,6 +3,7 @@ package locale
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"strings"
@@ -20,6 +21,7 @@ const (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
+	fsys fs.FS
 	Lang string // the LANG of the locale.
 	log  hclog.Logger
 }
@@ -32,7 +34,8 @@ func (fl *Flower) Description() string {
 	return "setup locale"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 

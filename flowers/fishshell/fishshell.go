@@ -16,7 +16,7 @@ import (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	FilesFS   fs.FS
+	fsys      fs.FS
 	Usernames []string
 	// Using Fish as default shell breaks too many programs when they ssh :-(
 	SetAsDefault bool
@@ -31,13 +31,11 @@ func (fl *Flower) Description() string {
 	return "install and configure the Fish shell"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
-	if fl.FilesFS == nil {
-		return fmt.Errorf("%s.new: missing FilesFS", name)
-	}
 	if len(fl.Usernames) == 0 {
 		return fmt.Errorf("%s.new: missing usernames", name)
 	}
@@ -61,13 +59,13 @@ func (fl *Flower) Install() error {
 
 	fl.log.Info("Configure fish shell functions system-wide")
 	// # This provides the FQDN hostname in the prompt
-	if err := florist.CopyFileFromFs(fl.FilesFS, "fish/prompt_hostname.fish",
+	if err := florist.CopyFileFromFs(fl.fsys, "fish/prompt_hostname.fish",
 		"/etc/fish/functions/prompt_hostname.fish", 0644, root); err != nil {
 		return err
 	}
 
 	fl.log.Info("Configure fish shell system-wide")
-	if err := florist.CopyFileFromFs(fl.FilesFS, "fish/config.fish",
+	if err := florist.CopyFileFromFs(fl.fsys, "fish/config.fish",
 		"/etc/fish/config.fish", 0644, root); err != nil {
 		return err
 	}

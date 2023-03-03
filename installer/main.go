@@ -23,7 +23,7 @@ import (
 )
 
 //go:embed files
-var filesFS embed.FS
+var fsys embed.FS
 
 func main() {
 	start := time.Now()
@@ -39,13 +39,13 @@ func main() {
 }
 
 func run(log hclog.Logger) error {
-	filesFS, err := fs.Sub(filesFS, "files")
+	filesFS, err := fs.Sub(fsys, "files")
 	if err != nil {
 		return err
 	}
 
 	// Create an installer.
-	inst := installer.New(log, florist.CacheValidityDefault, filesFS, nil)
+	inst := installer.New(log, florist.CacheValidityDefault, filesFS)
 
 	//
 	// Add bouquets (bunches of flowers).
@@ -56,7 +56,6 @@ func run(log hclog.Logger) error {
 	// the second flower (consultemplate.Flower) is instantiated inline.
 	if err := inst.AddBouquet("all-you-need", "install everything",
 		&consultemplate.Flower{
-			FilesFS: filesFS,
 			Version: "0.27.2",
 			Hash:    "d3d428ede8cb6e486d74b74deb9a7cdba6a6de293f3311f178cc147f1d1837e8",
 		}); err != nil {
@@ -69,12 +68,10 @@ func run(log hclog.Logger) error {
 
 	if err := inst.AddBouquet("nomadconsulclients", "install Nomad and Consul clients",
 		&nomad.ClientFlower{
-			FilesFS: filesFS,
 			Version: "1.4.2",
 			Hash:    "6e24efd6dfba0ba2df31347753f615cae4d3632090e68fc90933e51e640f7afc",
 		},
 		&consul.ClientFlower{
-			FilesFS: filesFS,
 			Version: "1.14.0",
 			Hash:    "6907e0dc83a05acaa9de60217e44ce55bd05c98152dcef02f9258bd2a474f2b3",
 		},
@@ -107,7 +104,6 @@ func run(log hclog.Logger) error {
 			Hash:    "000a5b1fca4f75895f78befeb2eecf10bfff3c428597f3f1e69133b63b911b02",
 		},
 		&fishshell.Flower{
-			FilesFS:      filesFS,
 			Usernames:    []string{"vagrant"},
 			SetAsDefault: true,
 		},

@@ -34,10 +34,7 @@ const (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	// Used at install and at configure time: static and non-secret data.
-	FilesFs fs.FS
-	// Used only at configure time: dynamic or secret data.
-	SecretsFs fs.FS
+	fsys fs.FS
 
 	// Base directory into which all files will be installed.
 	DstDir string `default:"/opt/sample"`
@@ -58,7 +55,8 @@ func (fl *Flower) Description() string {
 	return "a sample flower"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	fl.log = florist.Log.ResetNamed(fl.String())
 
 	if err := defaults.Set(fl); err != nil {
@@ -86,7 +84,7 @@ func (fl *Flower) Install() error {
 	fl.log.Debug("installing file (static)",
 		"src", InstallStaticFileSrc, "dst", dstPath1)
 	if err := florist.CopyFileFromFs(
-		fl.FilesFs, InstallStaticFileSrc, dstPath1, 0600, fl.user); err != nil {
+		fl.fsys, InstallStaticFileSrc, dstPath1, 0600, fl.user); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -96,7 +94,7 @@ func (fl *Flower) Install() error {
 	fl.log.Debug("installing file (templated)",
 		"src", InstallTmplFileSrc, "dst", dstPath2)
 	if err := florist.CopyFileTemplateFromFs(
-		fl.FilesFs, InstallTmplFileSrc, dstPath2, 0600, fl.user, data2); err != nil {
+		fl.fsys, InstallTmplFileSrc, dstPath2, 0600, fl.user, data2); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -107,7 +105,7 @@ func (fl *Flower) Configure() error {
 	fl.log = fl.log.Named("configure")
 
 	fl.log.Debug("loading secrets")
-	data3, err := florist.MakeTmplData(fl.SecretsFs, SecretK, CustomK)
+	data3, err := florist.MakeTmplData(fl.fsys, SecretK, CustomK)
 	if err != nil {
 		return fmt.Errorf("%s:\n%s", fl.log.Name(), err)
 	}
@@ -120,7 +118,7 @@ func (fl *Flower) Configure() error {
 	fl.log.Debug("installing file (templated)",
 		"src", ConfigTmplFileSrc, "dst", dstPath3)
 	if err := florist.CopyFileTemplateFromFs(
-		fl.FilesFs, ConfigTmplFileSrc, dstPath3, 0600, fl.user, data3); err != nil {
+		fl.fsys, ConfigTmplFileSrc, dstPath3, 0600, fl.user, data3); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 

@@ -3,6 +3,7 @@ package taskfile
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -18,6 +19,7 @@ import (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
+	fsys    fs.FS
 	Version string
 	Hash    string
 	log     hclog.Logger
@@ -31,7 +33,8 @@ func (fl Flower) Description() string {
 	return "install the Task (simpler make alternative) utility"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 

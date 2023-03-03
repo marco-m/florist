@@ -3,6 +3,7 @@ package ospackages
 
 import (
 	"fmt"
+	"io/fs"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -13,6 +14,7 @@ import (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
+	fsys   fs.FS
 	Add    []string
 	Remove []string
 	log    hclog.Logger
@@ -26,7 +28,8 @@ func (fl *Flower) Description() string {
 	return "add/remove packages with the OS package manager"
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(fsys fs.FS) error {
+	fl.fsys = fsys
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 

@@ -20,8 +20,7 @@ type Installer struct {
 	log           hclog.Logger
 	cacheValidity time.Duration
 	bouquets      map[string]Bouquet
-	filesFS       fs.FS
-	secretsFS     fs.FS
+	fsys          fs.FS
 }
 
 type Bouquet struct {
@@ -30,9 +29,7 @@ type Bouquet struct {
 	Flowers     []florist.Flower
 }
 
-func New(
-	log hclog.Logger, cacheValidity time.Duration, filesFS, secretsFS fs.FS,
-) Installer {
+func New(log hclog.Logger, cacheValidity time.Duration, fsys fs.FS) Installer {
 	florist.SetLogger(log)
 
 	stdlog.SetOutput(log.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
@@ -43,8 +40,7 @@ func New(
 		log:           log.Named("installer"),
 		cacheValidity: cacheValidity,
 		bouquets:      map[string]Bouquet{},
-		filesFS:       filesFS,
-		secretsFS:     secretsFS,
+		fsys:          fsys,
 	}
 }
 
@@ -78,7 +74,7 @@ func (inst *Installer) AddBouquet(
 		if fl.Description() == "" {
 			return fmt.Errorf("AddBouquet %s: flower %s has empty description", name, fl)
 		}
-		if err := fl.Init(); err != nil {
+		if err := fl.Init(inst.fsys); err != nil {
 			return fmt.Errorf("AddBouquet %s: flower %s: %s", name, fl, err)
 		}
 	}
@@ -232,14 +228,8 @@ func (cmd *EmbedListCmd) Run(inst *Installer) error {
 		return nil
 	}
 
-	fmt.Println("====> filesFS")
-	if err := fs.WalkDir(inst.filesFS, ".", fn); err != nil {
-		return fmt.Errorf("embed-list: filesFS: %s", err)
-	}
-
-	fmt.Println("====> secretsFS")
-	if err := fs.WalkDir(inst.secretsFS, ".", fn); err != nil {
-		return fmt.Errorf("embed-list: secretsFS: %s", err)
+	if err := fs.WalkDir(inst.fsys, ".", fn); err != nil {
+		return fmt.Errorf("embed-list: fsys: %s", err)
 	}
 
 	return nil
