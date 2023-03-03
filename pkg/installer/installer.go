@@ -220,11 +220,9 @@ func (cmd *EmbedListCmd) Run(inst *Installer) error {
 		if err != nil {
 			return err
 		}
-		kind := "f"
-		if de.IsDir() {
-			kind = "d"
+		if !de.IsDir() {
+			fmt.Println(path)
 		}
-		fmt.Println(kind, path)
 		return nil
 	}
 
