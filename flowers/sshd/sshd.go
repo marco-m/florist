@@ -11,9 +11,12 @@ import (
 
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/systemd"
 )
+
+var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	FilesFS fs.FS

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/systemd"
 )
@@ -24,6 +25,8 @@ const (
 	SrcConfigDir    = SrcDir + "/config"
 	SrcTemplatesDir = SrcDir + "/templates"
 )
+
+var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	FilesFS        fs.FS

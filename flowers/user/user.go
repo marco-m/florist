@@ -7,9 +7,12 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/ssh"
 )
+
+var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	FilesFS fs.FS
@@ -71,6 +74,6 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure(rawCfg []byte) error {
+func (fl *Flower) Configure() error {
 	return nil
 }

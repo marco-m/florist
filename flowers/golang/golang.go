@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/envpath"
 )
@@ -18,6 +19,8 @@ import (
 const (
 	Goroot = "/usr/local/go"
 )
+
+var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	Version string

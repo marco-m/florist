@@ -13,6 +13,8 @@ import (
 	"github.com/marco-m/florist/pkg/apt"
 )
 
+var _ florist.Flower = (*Flower)(nil)
+
 type Flower struct {
 	FilesFS   fs.FS
 	Usernames []string

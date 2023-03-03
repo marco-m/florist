@@ -8,9 +8,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
 )
+
+var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	Version string
@@ -68,6 +71,6 @@ func (fl *Flower) Install() error {
 
 }
 
-func (fl *Flower) Configure(rawCfg []byte) error {
+func (fl *Flower) Configure() error {
 	return nil
 }

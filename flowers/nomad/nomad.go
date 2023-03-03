@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/systemd"
@@ -21,6 +22,8 @@ const (
 	NomadClientHome = "/opt/nomad/client"
 	NomadBin        = "/usr/local/bin"
 )
+
+var _ florist.Flower = (*ServerFlower)(nil)
 
 // WARNING: Do NOT install alongside a Nomad client.
 type ServerFlower struct {
@@ -117,6 +120,8 @@ func (fl *ServerFlower) Install() error {
 func (fl *ServerFlower) Configure() error {
 	return nil
 }
+
+var _ florist.Flower = (*ClientFlower)(nil)
 
 // WARNING: Do NOT install alongside a Nomad server.
 type ClientFlower struct {

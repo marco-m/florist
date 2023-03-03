@@ -11,8 +11,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 )
+
+var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	Version string

@@ -6,9 +6,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
 )
+
+var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	// Users to add to the docker supplementary group.

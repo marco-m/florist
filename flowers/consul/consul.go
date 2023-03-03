@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/systemd"
 )
@@ -19,6 +20,8 @@ const (
 	ConsulHome = "/opt/consul"
 	ConsulBin  = "/usr/local/bin"
 )
+
+var _ florist.Flower = (*ServerFlower)(nil)
 
 // WARNING: Do NOT install alongside a Consul client.
 type ServerFlower struct {
@@ -97,9 +100,11 @@ func (fl *ServerFlower) Install() error {
 	return nil
 }
 
-func (fl *ServerFlower) Configure(rawCfg []byte) error {
+func (fl *ServerFlower) Configure() error {
 	return nil
 }
+
+var _ florist.Flower = (*ClientFlower)(nil)
 
 // WARNING: Do NOT install alongside a Consul server.
 type ClientFlower struct {

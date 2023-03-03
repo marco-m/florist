@@ -1,4 +1,4 @@
-// Package sampleflower is an example flower that copies, expanding the template, one
+// Package sample is an example flower that copies, expanding the template, one
 // file at install time and one file at configure time.
 package sample
 
@@ -30,6 +30,8 @@ const (
 	InstallTmplFileDst   = "inst-tmpl.txt"
 	ConfigTmplFileDst    = "config-tmpl.txt"
 )
+
+var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	// Used at install and at configure time: static and non-secret data.

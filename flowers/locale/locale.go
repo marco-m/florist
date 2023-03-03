@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
 )
@@ -15,6 +16,8 @@ import (
 const (
 	Lang_en_US_UTF8 = "en_US.UTF-8"
 )
+
+var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	Lang string // the LANG of the locale.
