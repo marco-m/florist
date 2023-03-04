@@ -5,6 +5,8 @@ import (
 	"io/fs"
 )
 
+// MakeTmplData returns a map, where each key is a path in fsys and each value is the
+// contents of the corresponding path.
 func MakeTmplData(fsys fs.FS, keys ...string) (map[string]string, error) {
 	var m = make(map[string]string, len(keys))
 	var errs []error

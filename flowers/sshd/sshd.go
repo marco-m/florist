@@ -16,18 +16,29 @@ import (
 	"github.com/marco-m/florist/pkg/systemd"
 )
 
+const (
+	ConfigPathSrc = "files/sshd/sshd_config.tmpl"
+	ConfigPathDst = "/etc/ssh/sshd_config"
+
+	SshHostEd25519KeySecret = "secrets/sshd/ssh_host_ed25519_key"
+	SshHostEd25519KeySrc    = "files/sshd/ssh_host_ed25519_key.tmpl"
+	SshHostEd25519KeyDst    = "/etc/ssh/ssh_host_ed25519_key"
+
+	SshHostEd25519KeyPubSecret = "secrets/sshd/ssh_host_ed25519_key.pub"
+	SshHostEd25519KeyPubSrc    = "files/sshd/ssh_host_ed25519_key.pub.tmpl"
+	SshHostEd25519KeyPubDst    = "/etc/ssh/ssh_host_ed25519_key.pub"
+
+	SshHostEd25519KeyCertPubSecret = "secret/sshd/ssh_host_ed25519_key-cert.pub"
+	SshHostEd25519KeyCertPubSrc    = "files/sshd/ssh_host_ed25519_key-cert.pub.tmpl"
+	SshHostEd25519KeyCertPubDst    = "/etc/ssh/ssh_host_ed25519_key-cert.pub"
+)
+
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
 	fsys fs.FS
 	Port int `default:"22"`
-	// FIXME mmmh I ma not sure I want the paths to be overridable...
-	SrcSshdConfigPath        string `default:"sshd/sshd_config.tmpl"`
-	DstSshdConfigPath        string `default:"/etc/ssh/sshd_config"`
-	SshHostEd25519KeyPub     string `default:"CHANGEME" json:"ssh_host_ed25519_key_pub"`
-	SshHostEd25519Key        string `default:"CHANGEME" json:"ssh_host_ed25519_key"`
-	SshHostEd25519KeyCertPub string `default:"CHANGEME" json:"ssh_host_ed25519_key_cert_pub"`
-	log                      hclog.Logger
+	log  hclog.Logger
 }
 
 func (fl *Flower) String() string {
@@ -50,18 +61,17 @@ func (fl *Flower) Init(fsys fs.FS) error {
 }
 
 func (fl *Flower) Install() error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
+	log := fl.log.Named("install")
 
 	root, err := user.Current()
 	if err != nil {
 		return fmt.Errorf("%s.install: %s", fl, err)
 	}
 
-	fl.log.Info("Install sshd configuration file")
-	if err := florist.CopyFileTemplateFromFs(fl.fsys,
-		fl.SrcSshdConfigPath, fl.DstSshdConfigPath,
-		0644, root, fl); err != nil {
+	log.Info("installing sshd configuration file")
+	data := map[string]any{"Port": fl.Port}
+	if err := florist.CopyFileTemplateFromFs(fl.fsys, ConfigPathSrc, ConfigPathDst,
+		0644, root, data); err != nil {
 		return fmt.Errorf("%s.install: %s", fl, err)
 	}
 
@@ -69,8 +79,7 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
+	log := fl.log.Named("configure")
 
 	root, err := user.Current()
 	if err != nil {
@@ -78,7 +87,7 @@ func (fl *Flower) Configure() error {
 	}
 
 	// FIXME This is dangerous when developing. Is it worthwhile?
-	// fl.log.Info("Remove SSH keys already present")
+	// log.Info("Remove SSH keys already present")
 	// entries, err := os.ReadDir("/etc/ssh/")
 	// if err != nil {
 	// 	return err
@@ -91,34 +100,41 @@ func (fl *Flower) Configure() error {
 	// 	}
 	// }
 
-	fl.log.Info("Adding SSH host key, private")
+	log.Debug("loading secrets")
+	data, err := florist.MakeTmplData(fl.fsys,
+		SshHostEd25519KeySecret,
+		SshHostEd25519KeyPubSecret,
+		SshHostEd25519KeyCertPubSecret)
+	if err != nil {
+		return fmt.Errorf("%s:\n%s", log.Name(), err)
+	}
+
+	log.Info("adding SSH host key, private")
 	if err := florist.CopyFileTemplateFromFs(fl.fsys,
-		"sshd/ssh_host_ed25519_key.tmpl", "/etc/ssh/ssh_host_ed25519_key",
-		0400, root, fl); err != nil {
+		SshHostEd25519KeySrc, SshHostEd25519KeyDst, 0400, root, data); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
-	fl.log.Info("Adding SSH host key, public")
+	log.Info("adding SSH host key, public")
 	if err := florist.CopyFileTemplateFromFs(fl.fsys,
-		"sshd/ssh_host_ed25519_key.pub.tmpl", "/etc/ssh/ssh_host_ed25519_key.pub",
-		0400, root, fl); err != nil {
+		SshHostEd25519KeyPubSrc, SshHostEd25519KeyPubDst, 0400, root, data); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
-	fl.log.Info("Adding SSH host key, certificate")
+	log.Info("adding SSH host key, certificate")
 	if err := florist.CopyFileTemplateFromFs(fl.fsys,
-		"sshd/ssh_host_ed25519_key-cert.pub.tmpl", "/etc/ssh/ssh_host_ed25519_key-cert.pub",
-		0400, root, fl); err != nil {
+		SshHostEd25519KeyCertPubSrc, SshHostEd25519KeyCertPubDst,
+		0400, root, data); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	// Test mode. Only check the validity of the configuration file and sanity of the keys.
+	// Flag -t only checks the validity of the configuration file and sanity of the keys.
 	// This gives better diagnostics in case of error.
-	fl.log.Info("Checking validity of configuration file")
+	log.Info("checking validity of configuration file")
 	cmd := exec.Command("/usr/sbin/sshd", "-t")
-	if err := florist.CmdRun(fl.log, cmd); err != nil {
+	if err := florist.CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("%s.configure: check sshd configuration: %s", fl, err)
 	}
 
-	fl.log.Info("Reloading sshd service")
+	log.Info("reloading sshd service")
 	if err := systemd.Reload("ssh"); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}

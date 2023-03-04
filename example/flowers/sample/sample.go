@@ -16,12 +16,12 @@ import (
 
 // Input paths in the source fs.
 const (
-	InstallStaticFileSrc = "embed/files/sample/inst-static.txt"
-	InstallTmplFileSrc   = "embed/files/sample/inst-tmpl.txt.tmpl"
-	ConfigTmplFileSrc    = "embed/files/sample/config-tmpl.txt.tmpl"
+	InstallStaticFileSrc = "files/sample/inst-static.txt"
+	InstallTmplFileSrc   = "files/sample/inst-tmpl.txt.tmpl"
+	ConfigTmplFileSrc    = "files/sample/config-tmpl.txt.tmpl"
 
-	SecretK = "embed/secrets/secret"
-	CustomK = "embed/secrets/custom"
+	SecretK = "secrets/secret"
+	CustomK = "secrets/custom"
 )
 
 // Output paths in the destination fs, relative to the customizable Flower.DstDir.

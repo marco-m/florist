@@ -13,6 +13,14 @@ import (
 	"github.com/marco-m/florist/pkg/apt"
 )
 
+const (
+	PromptFileSrc = "files/fish/prompt_hostname.fish"
+	PromptFileDst = "/etc/fish/functions/prompt_hostname.fish"
+
+	ConfigFileSrc = "files/fish/config.fish"
+	ConfigFileDst = "/etc/fish/config.fish"
+)
+
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
@@ -59,14 +67,14 @@ func (fl *Flower) Install() error {
 
 	fl.log.Info("Configure fish shell functions system-wide")
 	// # This provides the FQDN hostname in the prompt
-	if err := florist.CopyFileFromFs(fl.fsys, "fish/prompt_hostname.fish",
-		"/etc/fish/functions/prompt_hostname.fish", 0644, root); err != nil {
+	if err := florist.CopyFileFromFs(fl.fsys, PromptFileSrc, PromptFileDst,
+		0644, root); err != nil {
 		return err
 	}
 
 	fl.log.Info("Configure fish shell system-wide")
-	if err := florist.CopyFileFromFs(fl.fsys, "fish/config.fish",
-		"/etc/fish/config.fish", 0644, root); err != nil {
+	if err := florist.CopyFileFromFs(fl.fsys, ConfigFileSrc, ConfigFileDst,
+		0644, root); err != nil {
 		return err
 	}
 

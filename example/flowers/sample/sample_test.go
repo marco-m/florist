@@ -60,7 +60,7 @@ func TestSampleConfigure(t *testing.T) {
 
 	fsys := fstest.MapFS{
 		sample.ConfigTmplFileSrc: {
-			Data: []byte(`Nel {{index . "embed/secrets/secret"}} del {{.Fruit}} di nostra {{index . "embed/secrets/custom"}}`),
+			Data: []byte(`Nel {{index . "secrets/secret"}} del {{.Fruit}} di nostra {{index . "secrets/custom"}}`),
 		},
 		sample.SecretK: {Data: []byte("mezzo")},
 		sample.CustomK: {Data: []byte("vita")},
