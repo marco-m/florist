@@ -10,14 +10,19 @@
 package cook_test
 
 import (
+	"fmt"
+	"io/fs"
 	"math/rand"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/marco-m/florist/pkg/cook"
 	"gotest.tools/v3/assert"
+	gotestfs "gotest.tools/v3/fs"
+
+	"github.com/marco-m/florist/pkg/cook"
 )
 
 func TestGopassDeleteNonExistingKey(t *testing.T) {
@@ -87,6 +92,70 @@ func TestGopassPutSuccess(t *testing.T) {
 	have, err := cook.GopassGet(key)
 	assert.NilError(t, err)
 	assert.Equal(t, have, val)
+}
+
+func TestGopassLsSuccess(t *testing.T) {
+	skipIfGopassNotFound(t)
+
+	want := []string{
+		"a/b/k3",
+		"a/k2",
+		"k1",
+	}
+
+	have, err := cook.GopassLs("florist.test/secrets")
+	assert.NilError(t, err)
+	assert.DeepEqual(t, have, want)
+}
+
+func TestGopassLsFailure(t *testing.T) {
+	skipIfGopassNotFound(t)
+
+	_, err := cook.GopassLs("florist.test/non-existing")
+	assert.ErrorContains(t, err, "not found")
+}
+
+// gopass ls florist.test
+// florist.test/
+// ├── outside/   <= everything else will not be exported
+// │   └── q
+// └── secrets/   <= we point to this directory
+//     ├── a/
+//     │   ├── b/
+//     │   │   └── k3
+//     │   └── k2
+//     └── k1
+
+func TestGopassToDirSuccess(t *testing.T) {
+	skipIfGopassNotFound(t)
+
+	dstDir := filepath.Join(t.TempDir(), "secrets")
+
+	err := cook.GopassToDir("florist.test/secrets", dstDir)
+	assert.NilError(t, err)
+
+	want := gotestfs.Expected(t,
+		gotestfs.WithMode(0755),
+		gotestfs.WithFile("k1", "v1", gotestfs.WithMode(0600)),
+		gotestfs.WithDir("a", gotestfs.WithMode(0755),
+			gotestfs.WithFile("k2", "v2", gotestfs.WithMode(0600)),
+			gotestfs.WithDir("b", gotestfs.WithMode(0755),
+				gotestfs.WithFile("k3", "v3", gotestfs.WithMode(0600)),
+			),
+		),
+	)
+	// repr.Println("manifest", want)
+	// assert.NilError(t, walkDir(dstDir))
+	assert.Assert(t, gotestfs.Equal(dstDir, want))
+}
+
+func walkDir(root string) error {
+	fn := func(path string, d fs.DirEntry, err error) error {
+		fmt.Println("=>", path)
+		return nil
+	}
+
+	return filepath.WalkDir(root, fn)
 }
 
 func skipIfGopassNotFound(t *testing.T) {

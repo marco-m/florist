@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -91,6 +92,50 @@ func GopassToConfig(secretsPath string, prefix string, kv ...string) error {
 	return nil
 }
 
+// GopassToDir decrypts and exports to dstDir all the gopass secrets below srdDir.
+// If dstDir does not exist, it will create it.
+// NOTE It is up to the caller to delete dstDir, the directory with exported secrets.
+// The idea is that the gopass secrets below SrcDir are all and only the needed secrets,
+// with the expected names by the corresponding florist Flowers. This is done on purpose
+// to have a 1:1 relationship between the secrets in gopass and the secrets expected by
+// the flowers (no need to build a translation table in your head).
+func GopassToDir(srcDir string, dstDir string) error {
+	keys, err := GopassLs(srcDir)
+	if err != nil {
+		return fmt.Errorf("GopassToDir: %s", err)
+	}
+	if len(keys) == 0 {
+		return fmt.Errorf("GopassToDir: no keys below %s", srcDir)
+	}
+
+	seen := make(map[string]bool)
+	for _, key := range keys {
+		// "a/b/k3" => "a/b", "k3"
+		dstFile := filepath.Join(dstDir, key)
+		dir, _ := path.Split(dstFile)
+		if dir != "" && !seen[dir] {
+			seen[dir] = true
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return fmt.Errorf("GopassToDir: %s", err)
+			}
+		}
+		secret, err := GopassGet(path.Join(srcDir, key))
+		if err != nil {
+			return fmt.Errorf("GopassToDir: %s", err)
+		}
+		f, err := os.OpenFile(dstFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			return fmt.Errorf("GopassToDir: %s", err)
+		}
+		_, err = f.WriteString(secret)
+		if err != nil {
+			return fmt.Errorf("GopassToDir: %s", err)
+		}
+	}
+
+	return nil
+}
+
 // GopassDelete removes key.
 // A non-existing key is not considered an error. To distinguish the case of a
 // non-existent key, use [GopassGet].
@@ -138,4 +183,17 @@ func GopassPut(key string, secret string) error {
 		return fmt.Errorf("unexpected: %s", string(out))
 	}
 	return nil
+}
+
+// GopassLs returns a list of the keys below prefix, with the prefix stripped.
+func GopassLs(prefix string) ([]string, error) {
+	var keys []string
+
+	out, err := ExecOut(nil, "gopass", "ls", "--flat", "--strip-prefix", prefix)
+	if err != nil {
+		return keys, fmt.Errorf("GopassLs: %s", err)
+	}
+	keys = append(keys, strings.Fields(out)...)
+
+	return keys, nil
 }
