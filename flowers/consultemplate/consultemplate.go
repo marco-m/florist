@@ -21,7 +21,7 @@ const (
 	BinDir       = "/usr/local/bin"
 
 	// relative to the Go embed FS
-	SrcDir          = "consul-template"
+	SrcDir          = "files/consul-template"
 	SrcConfigDir    = SrcDir + "/config"
 	SrcTemplatesDir = SrcDir + "/templates"
 )

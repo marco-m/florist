@@ -19,6 +19,9 @@ import (
 const (
 	ConsulHome = "/opt/consul"
 	ConsulBin  = "/usr/local/bin"
+
+	// relative to the Go embed FS
+	SrcDir = "files/consul"
 )
 
 var _ florist.Flower = (*ServerFlower)(nil)
@@ -75,15 +78,15 @@ func (fl *ServerFlower) Install() error {
 
 	consulCfg := path.Join(ConsulHome, "consul.server.hcl")
 	fl.log.Info("Install consul server configuration file", "dst", consulCfg)
-	if err := florist.CopyFileFromFs(fl.fsys, "consul/consul.server.hcl", consulCfg,
-		0640, userConsulServer); err != nil {
+	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "consul.server.hcl"),
+		consulCfg, 0640, userConsulServer); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-server.service")
 	fl.log.Info("Install consul server systemd unit file", "dst", consulUnit)
-	if err := florist.CopyFileFromFs(fl.fsys, "consul/consul-server.service", consulUnit,
-		0644, root); err != nil {
+	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "consul-server.service"),
+		consulUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -164,13 +167,14 @@ func (fl *ClientFlower) Install() error {
 
 	consulCfg := path.Join(ConsulHome, "consul.client.hcl")
 	fl.log.Info("Install consul client configuration file", "dst", consulCfg)
-	if err := florist.CopyFileFromFs(fl.fsys, "consul/consul.client.hcl", consulCfg, 0640, userConsulClient); err != nil {
+	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "consul.client.hcl"), consulCfg, 0640, userConsulClient); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-client.service")
 	fl.log.Info("Install consul client systemd unit file", "dst", consulUnit)
-	if err := florist.CopyFileFromFs(fl.fsys, "consul/consul-client.service", consulUnit, 0644, root); err != nil {
+	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "consul-client.service"),
+		consulUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
