@@ -25,52 +25,25 @@ func (fl *mockFlower) Description() string {
 	return "I am a mock flower"
 }
 
-func (fl *mockFlower) Init(fsys fs.FS) error {
+func (fl *mockFlower) Init() error {
 	if fl.Log == nil {
 		fl.Log = hclog.NewNullLogger()
 	}
 	return nil
 }
 
-func (fl *mockFlower) Install() error {
+func (fl *mockFlower) Install(files fs.FS, finder florist.Finder) error {
 	return nil
 }
 
-func (fl *mockFlower) Configure() error {
+func (fl *mockFlower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
-}
-
-func TestInstallerAddFlowerSuccess(t *testing.T) {
-	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil)
-	flower := &mockFlower{Name: "foo"}
-
-	assert.NilError(t, inst.AddFlower(flower))
-
-	want := []installer.Bouquet{
-		{
-			Name:        "foo",
-			Description: "I am a mock flower",
-			Flowers:     []florist.Flower{flower},
-		},
-	}
-
-	assert.Assert(t, cmp.DeepEqual(inst.Bouquets(), want))
-}
-
-func TestInstallerAddFlowerFailure(t *testing.T) {
-	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil)
-	flower := &mockFlower{Name: ""}
-
-	err := inst.AddFlower(flower)
-
-	assert.ErrorContains(t, err, "AddBouquet: name cannot be empty")
 }
 
 func TestInstallerAddBouquetSuccess(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil)
+	inst, err := installer.New(log, florist.CacheValidity, nil, nil)
+	assert.NilError(t, err)
 
 	flowers := []florist.Flower{
 		&mockFlower{Name: "a"},
@@ -78,20 +51,21 @@ func TestInstallerAddBouquetSuccess(t *testing.T) {
 		&mockFlower{Name: "c"},
 	}
 
-	assert.NilError(t, inst.AddBouquet("pippo", "topolino", flowers...))
+	err = inst.AddBouquet("goofy", "mickey's friend", flowers...)
+	assert.NilError(t, err)
 
+	have := inst.Bouquets()
 	want := []installer.Bouquet{
 		{
-			Name:        "pippo",
-			Description: "topolino",
+			Name:        "goofy",
+			Description: "mickey's friend",
 			Flowers:     flowers,
 		},
 	}
-
-	assert.Assert(t, cmp.DeepEqual(inst.Bouquets(), want))
+	assert.Assert(t, cmp.DeepEqual(have, want))
 }
 
-func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
+func TestInstallerAddBouquetFailure(t *testing.T) {
 	log := hclog.NewNullLogger()
 
 	flowers := []florist.Flower{
@@ -132,9 +106,10 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			inst := installer.New(log, florist.CacheValidityDefault, nil)
+			inst, err := installer.New(log, florist.CacheValidity, nil, nil)
+			assert.NilError(t, err)
 
-			err := inst.AddBouquet(tc.bname, tc.bdescription, tc.bouquet...)
+			err = inst.AddBouquet(tc.bname, tc.bdescription, tc.bouquet...)
 
 			assert.ErrorContains(t, err, tc.wantErr)
 		})
@@ -143,15 +118,17 @@ func TestInstallerAddMultipleFlowersFailure(t *testing.T) {
 
 func TestInstallerDuplicateBouquetName(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst := installer.New(log, florist.CacheValidityDefault, nil)
+	inst, err := installer.New(log, florist.CacheValidity, nil, nil)
+	assert.NilError(t, err)
 
 	bname := "pippo"
 	bouquet1 := []florist.Flower{&mockFlower{Name: "1"}}
 	bouquet2 := []florist.Flower{&mockFlower{Name: "2"}}
 	wantErr := "AddBouquet: there is already a bouquet with name pippo"
 
-	assert.NilError(t, inst.AddBouquet(bname, "topolino", bouquet1...))
+	err = inst.AddBouquet(bname, "topolino", bouquet1...)
+	assert.NilError(t, err)
 
-	err := inst.AddBouquet(bname, "clarabella", bouquet2...)
+	err = inst.AddBouquet(bname, "clarabella", bouquet2...)
 	assert.ErrorContains(t, err, wantErr)
 }

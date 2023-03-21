@@ -17,9 +17,6 @@ import (
 func Mkdir(path string, owner *user.User, perm fs.FileMode) error {
 	log := Log.Named("Mkdir").With("path", path)
 
-	uid, _ := strconv.Atoi(owner.Uid)
-	gid, _ := strconv.Atoi(owner.Gid)
-
 	_, err := os.Stat(path)
 	if err == nil {
 		log.Debug("directory exists")
@@ -30,14 +27,20 @@ func Mkdir(path string, owner *user.User, perm fs.FileMode) error {
 		return fmt.Errorf("florist.Mkdir: %s", err)
 	}
 	// Directory doesn't exist, let's create it
+	log.Debug("creating directory", "dir", path, "perm", perm)
 	if err := os.Mkdir(path, perm); err != nil {
 		return fmt.Errorf("florist.Mkdir: %s", err)
 	}
-	log.Debug("directory created", "perm", perm)
-	if err := os.Chown(path, uid, gid); err != nil {
-		return fmt.Errorf("florist.Mkdir: %s", err)
+
+	if owner != nil {
+		uid, _ := strconv.Atoi(owner.Uid)
+		gid, _ := strconv.Atoi(owner.Gid)
+		log.Debug("chowning directory", "owner", owner.Username)
+		if err := os.Chown(path, uid, gid); err != nil {
+			return fmt.Errorf("florist.Mkdir: %s", err)
+		}
 	}
-	log.Debug("directory chown", "owner", owner.Username)
+
 	return nil
 }
 
@@ -66,31 +69,31 @@ func CopyFileFromFs(
 	return copyfile(srcFs, srcPath, dstPath, mode, owner)
 }
 
-// CopyFileTemplate copies file srcPath to dstPath, with mode and owner, performing Go
+// CopyTemplate copies file srcPath to dstPath, with mode and owner, performing Go
 // text template processing based on the fields in tmplData. The source and destination
 // files reside in the "real" filesystem.
 // Notes:
 // - If dstPath exists, it will be overwritten.
 // - Setting an owner different that the current user requires elevated privileges.
-func CopyFileTemplate(
+func CopyTemplate(
 	srcPath string, dstPath string,
 	mode os.FileMode, owner *user.User, tmplData any,
 ) error {
-	return copyfiletmpl(nil, srcPath, dstPath, mode, owner, tmplData)
+	return copytemplate(nil, srcPath, dstPath, mode, owner, tmplData)
 }
 
-// CopyFileTemplateFromFs copies file srcPath to dstPath, with mode and owner, performing
+// CopyTemplateFromFs copies file srcPath to dstPath, with mode and owner, performing
 // Go text template processing based on the fields in tmplData. The source file resides
 // in the srcFs filesystem (for example, via go:embed), while the destination file
 // resides in the "real" filesystem.
 // Notes:
 // - If dstPath exists, it will be overwritten.
 // - Setting an owner different that the current user requires elevated privileges.
-func CopyFileTemplateFromFs(
+func CopyTemplateFromFs(
 	srcFs fs.FS, srcPath string, dstPath string,
 	mode os.FileMode, owner *user.User, tmplData any,
 ) error {
-	return copyfiletmpl(srcFs, srcPath, dstPath, mode, owner, tmplData)
+	return copytemplate(srcFs, srcPath, dstPath, mode, owner, tmplData)
 }
 
 // Does not read the whole file in memory.
@@ -135,7 +138,7 @@ func copyfile(
 }
 
 // Reads the whole file in memory, since it must do text template processing.
-func copyfiletmpl(
+func copytemplate(
 	srcFs fs.FS, srcPath string, dstPath string,
 	mode os.FileMode, owner *user.User, tmplData any,
 ) error {

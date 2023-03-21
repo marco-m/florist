@@ -1,27 +1,20 @@
 package ssh_test
 
 import (
-	"embed"
+	"gotest.tools/v3/assert"
 	"testing"
 
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/ssh"
 )
 
-//go:embed testdata
-var filesFS embed.FS
-
 func TestSshAddAuthorizedKeysVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	user, err := florist.UserAdd("ssh-user")
-	if err != nil {
-		t.Fatalf("add user:\nhave: %s\nwant: <no error>", err)
-	}
+	assert.NilError(t, err)
 
-	err = ssh.AddAuthorizedKeys(user, filesFS, "testdata/client_key.pub")
-
-	if err != nil {
-		t.Fatalf("\nhave: %s\nwant: <no error>", err)
-	}
+	content := "hello"
+	err = ssh.AddAuthorizedKeys(user, content)
+	assert.NilError(t, err)
 }

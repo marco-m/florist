@@ -8,8 +8,9 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/marco-m/florist"
 	"gotest.tools/v3/assert"
+
+	"github.com/marco-m/florist"
 )
 
 func TestUnderstandTemplate(t *testing.T) {
@@ -55,7 +56,7 @@ func TestCopyFileTemplate(t *testing.T) {
 	currUser, err := user.Current()
 	assert.NilError(t, err)
 
-	assert.NilError(t, florist.CopyFileTemplate(tmplFilePath, renderedFilePath, 0640, currUser, box))
+	assert.NilError(t, florist.CopyTemplate(tmplFilePath, renderedFilePath, 0640, currUser, box))
 
 	renderedContents, err := os.ReadFile(renderedFilePath)
 	assert.NilError(t, err)

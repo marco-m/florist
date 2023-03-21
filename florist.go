@@ -1,4 +1,4 @@
-// Florist helps creating non idempotent, one-file-contains-everything
+// Package florist helps to create non-idempotent, one-file-contains-everything
 // installers/provisioners.
 package florist
 
@@ -12,18 +12,17 @@ import (
 	"time"
 )
 
-// A Flower is a composable unit that can be installed.
 type Flower interface {
-	Init(fsys fs.FS) error
+	Init() error
 	fmt.Stringer
 	Description() string
-	Install() error
-	Configure() error
+	Install(files fs.FS, finder Finder) error
+	Configure(files fs.FS, finder Finder) error
 }
 
 const (
-	WorkDir              = "/tmp/florist.work"
-	CacheValidityDefault = 24 * time.Hour
+	WorkDir       = "/tmp/florist.work"
+	CacheValidity = 24 * time.Hour
 )
 
 func Init() (*user.User, error) {

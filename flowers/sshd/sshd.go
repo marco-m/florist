@@ -16,41 +16,54 @@ import (
 	"github.com/marco-m/florist/pkg/systemd"
 )
 
-const (
-	ConfigPathSrc = "files/sshd/sshd_config.tmpl"
-	ConfigPathDst = "/etc/ssh/sshd_config"
+type SrcDst struct {
+	Src string
+	Dst string
+}
 
-	SshHostEd25519KeySecret = "secrets/sshd/ssh_host_ed25519_key"
-	SshHostEd25519KeySrc    = "files/sshd/ssh_host_ed25519_key.tmpl"
-	SshHostEd25519KeyDst    = "/etc/ssh/ssh_host_ed25519_key"
+var SshdConfig = SrcDst{
+	Src: "sshd_config.tpl",
+	Dst: "/etc/ssh/sshd_config",
+}
 
-	SshHostEd25519KeyPubSecret = "secrets/sshd/ssh_host_ed25519_key.pub"
-	SshHostEd25519KeyPubSrc    = "files/sshd/ssh_host_ed25519_key.pub.tmpl"
-	SshHostEd25519KeyPubDst    = "/etc/ssh/ssh_host_ed25519_key.pub"
+var SshHostEd25519Key = SrcDst{
+	Src: "ssh_host_ed25519_key.tpl",
+	Dst: "/etc/ssh/ssh_host_ed25519_key",
+}
 
-	SshHostEd25519KeyCertPubSecret = "secret/sshd/ssh_host_ed25519_key-cert.pub"
-	SshHostEd25519KeyCertPubSrc    = "files/sshd/ssh_host_ed25519_key-cert.pub.tmpl"
-	SshHostEd25519KeyCertPubDst    = "/etc/ssh/ssh_host_ed25519_key-cert.pub"
-)
+var SshHostEd25519KeyPub = SrcDst{
+	Src: "ssh_host_ed25519_key.pub.tpl",
+	Dst: "/etc/ssh/ssh_host_ed25519_key.pub",
+}
+
+var SshHostEd25519KeyCertPub = SrcDst{
+	Src: "ssh_host_ed25519_key-cert.pub.tpl",
+	Dst: "/etc/ssh/ssh_host_ed25519_key-cert.pub",
+}
+
+type secrets struct {
+	SshHostEd25519Key        string
+	SshHostEd25519KeyPub     string
+	SshHostEd25519KeyCertPub string
+}
 
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	fsys fs.FS
 	Port int `default:"22"`
-	log  hclog.Logger
+
+	log hclog.Logger
 }
 
 func (fl *Flower) String() string {
-	return "florist.flower.sshd"
+	return "sshd"
 }
 
 func (fl *Flower) Description() string {
 	return "configure an already-existing sshd server"
 }
 
-func (fl *Flower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *Flower) Init() error {
 	fl.log = florist.Log.ResetNamed(fl.String())
 
 	if err := defaults.Set(fl); err != nil {
@@ -60,7 +73,7 @@ func (fl *Flower) Init(fsys fs.FS) error {
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	log := fl.log.Named("install")
 
 	root, err := user.Current()
@@ -70,7 +83,7 @@ func (fl *Flower) Install() error {
 
 	log.Info("installing sshd configuration file")
 	data := map[string]any{"Port": fl.Port}
-	if err := florist.CopyFileTemplateFromFs(fl.fsys, ConfigPathSrc, ConfigPathDst,
+	if err := florist.CopyTemplateFromFs(files, SshdConfig.Src, SshdConfig.Dst,
 		0644, root, data); err != nil {
 		return fmt.Errorf("%s.install: %s", fl, err)
 	}
@@ -78,7 +91,7 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	log := fl.log.Named("configure")
 
 	root, err := user.Current()
@@ -101,27 +114,28 @@ func (fl *Flower) Configure() error {
 	// }
 
 	log.Debug("loading secrets")
-	data, err := florist.MakeTmplData(fl.fsys,
-		SshHostEd25519KeySecret,
-		SshHostEd25519KeyPubSecret,
-		SshHostEd25519KeyCertPubSecret)
-	if err != nil {
-		return fmt.Errorf("%s:\n%s", log.Name(), err)
+	data := secrets{
+		SshHostEd25519Key:        finder.Get("SshHostEd25519Key"),
+		SshHostEd25519KeyPub:     finder.Get("SshHostEd25519KeyPub"),
+		SshHostEd25519KeyCertPub: finder.Get("SshHostEd25519KeyCertPub"),
+	}
+	if err := finder.Error(); err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
 	log.Info("adding SSH host key, private")
-	if err := florist.CopyFileTemplateFromFs(fl.fsys,
-		SshHostEd25519KeySrc, SshHostEd25519KeyDst, 0400, root, data); err != nil {
+	if err := florist.CopyTemplateFromFs(files,
+		SshHostEd25519Key.Src, SshHostEd25519Key.Dst, 0400, root, data); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	log.Info("adding SSH host key, public")
-	if err := florist.CopyFileTemplateFromFs(fl.fsys,
-		SshHostEd25519KeyPubSrc, SshHostEd25519KeyPubDst, 0400, root, data); err != nil {
+	if err := florist.CopyTemplateFromFs(files,
+		SshHostEd25519KeyPub.Src, SshHostEd25519KeyPub.Dst, 0400, root, data); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	log.Info("adding SSH host key, certificate")
-	if err := florist.CopyFileTemplateFromFs(fl.fsys,
-		SshHostEd25519KeyCertPubSrc, SshHostEd25519KeyCertPubDst,
+	if err := florist.CopyTemplateFromFs(files,
+		SshHostEd25519KeyCertPub.Src, SshHostEd25519KeyCertPub.Dst,
 		0400, root, data); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}

@@ -21,16 +21,12 @@ const (
 	NomadServerHome = "/opt/nomad/server"
 	NomadClientHome = "/opt/nomad/client"
 	NomadBin        = "/usr/local/bin"
-
-	// relative to the Go embed FS
-	SrcDir = "files/nomad"
 )
 
 var _ florist.Flower = (*ServerFlower)(nil)
 
 // WARNING: Do NOT install alongside a Nomad client.
 type ServerFlower struct {
-	fsys    fs.FS
 	Version string
 	Hash    string
 	log     hclog.Logger
@@ -44,8 +40,7 @@ func (fl *ServerFlower) Description() string {
 	return "install a Nomad server (incompatible with a Nomad client)"
 }
 
-func (fl *ServerFlower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *ServerFlower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
@@ -59,7 +54,7 @@ func (fl *ServerFlower) Init(fsys fs.FS) error {
 	return nil
 }
 
-func (fl *ServerFlower) Install() error {
+func (fl *ServerFlower) Install(files fs.FS, finder florist.Finder) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
@@ -87,14 +82,14 @@ func (fl *ServerFlower) Install() error {
 
 	nomadCfg := path.Join(NomadServerHome, "nomad.server.hcl")
 	fl.log.Info("Install nomad server configuration file", "dst", nomadCfg)
-	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "nomad.server.hcl"),
+	if err := florist.CopyFileFromFs(files, "nomad.server.hcl",
 		nomadCfg, 0640, userNomad); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-server.service")
 	fl.log.Info("Install nomad server systemd unit file", "dst", nomadUnit)
-	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "nomad-server.service"),
+	if err := florist.CopyFileFromFs(files, "nomad-server.service",
 		nomadUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -111,7 +106,7 @@ func (fl *ServerFlower) Install() error {
 	return nil
 }
 
-func (fl *ServerFlower) Configure() error {
+func (fl *ServerFlower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }
 
@@ -119,7 +114,6 @@ var _ florist.Flower = (*ClientFlower)(nil)
 
 // WARNING: Do NOT install alongside a Nomad server.
 type ClientFlower struct {
-	fsys    fs.FS
 	Version string
 	Hash    string
 	log     hclog.Logger
@@ -133,8 +127,7 @@ func (fl *ClientFlower) Description() string {
 	return "install a Nomad client (incompatible with a Nomad server)"
 }
 
-func (fl *ClientFlower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *ClientFlower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
@@ -148,7 +141,7 @@ func (fl *ClientFlower) Init(fsys fs.FS) error {
 	return nil
 }
 
-func (fl *ClientFlower) Install() error {
+func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
@@ -179,14 +172,14 @@ func (fl *ClientFlower) Install() error {
 
 	nomadCfg := path.Join(NomadClientHome, "nomad.client.hcl")
 	fl.log.Info("Install nomad client configuration file", "dst", nomadCfg)
-	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "nomad.client.hcl"),
+	if err := florist.CopyFileFromFs(files, "nomad.client.hcl",
 		nomadCfg, 0640, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-client.service")
 	fl.log.Info("Install nomad client systemd unit file", "dst", nomadUnit)
-	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "nomad-client.service"),
+	if err := florist.CopyFileFromFs(files, "nomad-client.service",
 		nomadUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -203,7 +196,7 @@ func (fl *ClientFlower) Install() error {
 	return nil
 }
 
-func (fl *ClientFlower) Configure() error {
+func (fl *ClientFlower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/user"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -13,13 +14,12 @@ import (
 )
 
 const (
-	AuthorizedKeysSecret = "secrets/user/authorized_keys"
+	AuthorizedKeys = "authorized_keys"
 )
 
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	fsys fs.FS
 	User string
 	log  hclog.Logger
 }
@@ -32,8 +32,7 @@ func (fl *Flower) Description() string {
 	return "add a user and configure SSH access"
 }
 
-func (fl *Flower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *Flower) Init() error {
 	fl.log = florist.Log.Named("flower.user")
 
 	if fl.User == "" {
@@ -43,7 +42,7 @@ func (fl *Flower) Init(fsys fs.FS) error {
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	log := fl.log.Named("install").With("user", fl.User, "supplementary group", "docker")
 
 	// FIXME missing SupplementaryGroups ???
@@ -52,18 +51,28 @@ func (fl *Flower) Install() error {
 	}
 
 	log.Info("adding user")
-	user, err := florist.UserAdd(fl.User)
+	localUser, err := florist.UserAdd(fl.User)
 	if err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
+	log.Debug("loading secrets")
+	content := finder.Get(AuthorizedKeys)
+	if err := finder.Error(); err != nil {
+		return fmt.Errorf("%s: %s", log.Name(), err)
+	}
+
 	log.Info("adding SSH authorized_keys")
-	if err := ssh.AddAuthorizedKeys(user, fl.fsys, AuthorizedKeysSecret); err != nil {
+	if err := ssh.AddAuthorizedKeys(localUser, content); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
 	// FIXME passwordless sudo has user "ops" hardcoded
 	log.Info("enabling passwordless sudo")
+	root, _ := user.Current()
+	if err := florist.Mkdir("/etc/sudoers.d", root, 0755); err != nil {
+		return fmt.Errorf("%s: %s", log.Name(), err)
+	}
 	if err := os.WriteFile("/etc/sudoers.d/user-ops",
 		[]byte("ops ALL=(ALL) NOPASSWD: ALL\n"), 0644); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
@@ -72,6 +81,6 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }

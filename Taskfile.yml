@@ -16,11 +16,15 @@ tasks:
       It is very important to remove the secrets also in case of failure, which we
       obtain with the Task "defer" keyword.
     cmds:
-      - defer: echo -n "dummy-value" > ./example/embed/secrets/dummy
-      - defer: rm -r ./example/embed/secrets/*
-      - cmd: echo -n "the secret value" > ./example/embed/secrets/secret
+      - defer: rm -r ./example/embed/secrets
+      - cmd: mkdir -p ./example/embed/secrets/flowers/daisy
+      - cmd: mkdir -p ./example/embed/secrets/flowers/oleander
+      - cmd: mkdir -p ./example/embed/secrets/nodes/controller/daisy
+      - cmd: echo -n "the base secret value" > ./example/embed/secrets/flowers/daisy/secret
         silent: true
-      - cmd: echo -n "the custom value" > ./example/embed/secrets/custom
+      - cmd: echo -n "the overridden secret value" > ./example/embed/secrets/nodes/controller/daisy/secret
+        silent: true
+      - cmd: echo -n "the custom value" > ./example/embed/secrets/flowers/daisy/custom
         silent: true
       - go build -o bin/example ./example
 

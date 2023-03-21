@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
+	"path"
 	"time"
 
 	"github.com/marco-m/florist"
@@ -67,10 +69,14 @@ func AddRepo(
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
+	root, _ := user.Current()
+	repoListDir := "/etc/apt/sources.list.d/"
+	if err := florist.Mkdir(repoListDir, root, 0755); err != nil {
+		return fmt.Errorf("%s: %s", log.Name(), err)
+	}
 	repoLine := fmt.Sprintf("deb [arch=%s signed-by=%s] %s %s stable\n",
 		string(bytes.TrimSpace(arch)), keyDst, repoURL, string(bytes.TrimSpace(codename)))
-	repoListPath := fmt.Sprintf("/etc/apt/sources.list.d/%s.list", name)
-
+	repoListPath := path.Join(repoListDir, name+".list")
 	// write repoline to repolistpath
 	log.Debug("write file", "repoline", repoLine, "repoListPath", repoListPath)
 	fi, err := os.Create(repoListPath)

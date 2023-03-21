@@ -4,7 +4,7 @@ import (
 	"embed"
 	"io/fs"
 	"os"
-	"strings"
+	"path"
 	"testing"
 	"testing/fstest"
 
@@ -21,18 +21,19 @@ var filesFS embed.FS
 func TestSshdInstallSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
-	florist.SetLogger(florist.NewLogger("test"))
-
 	fl := sshd.Flower{Port: 1234}
-	assert.NilError(t, fl.Init(filesFS))
+	assert.NilError(t, fl.Init())
 
-	assert.NilError(t, fl.Install())
+	files, err := fs.Sub(filesFS, path.Join("files", fl.String()))
+	assert.NilError(t, err)
+	finder := florist.NewFsFinder(files)
+	assert.NilError(t, fl.Install(files, finder))
 
-	buf, err := os.ReadFile(sshd.ConfigPathDst)
+	buf, err := os.ReadFile(sshd.SshdConfig.Dst)
 	assert.NilError(t, err)
 	have := string(buf)
 	want := "Port 1234"
-	assert.Assert(t, cmp.Contains(have, want), "reading %s", sshd.ConfigPathDst)
+	assert.Assert(t, cmp.Contains(have, want), "reading %s", sshd.SshdConfig.Dst)
 }
 
 func TestSshdConfigureSuccess(t *testing.T) {
@@ -45,38 +46,20 @@ func TestSshdConfigureSuccess(t *testing.T) {
 	)
 
 	secretsFS := fstest.MapFS{
-		sshd.SshHostEd25519KeySecret:        {Data: []byte(SshHostEd25519Key)},
-		sshd.SshHostEd25519KeyPubSecret:     {Data: []byte(SshHostEd25519KeyPub)},
-		sshd.SshHostEd25519KeyCertPubSecret: {Data: []byte(SshHostEd25519KeyCertPub)},
-	}
-
-	// write a simple unionfs that reads the files from embed and the secrets
-	// from the test.mapfs above!
-	fsys := &UnionFS{
-		FilesFS:   filesFS,
-		SecretsFS: secretsFS,
+		"SshHostEd25519Key":        {Data: []byte(SshHostEd25519Key)},
+		"SshHostEd25519KeyPub":     {Data: []byte(SshHostEd25519KeyPub)},
+		"SshHostEd25519KeyCertPub": {Data: []byte(SshHostEd25519KeyCertPub)},
 	}
 
 	florist.SetLogger(florist.NewLogger("test"))
 
 	fl := sshd.Flower{Port: 1234}
-	assert.NilError(t, fl.Init(fsys))
+	assert.NilError(t, fl.Init())
 
-	assert.NilError(t, fl.Configure())
+	files, err := fs.Sub(filesFS, path.Join("files", fl.String()))
+	assert.NilError(t, err)
+	finder := florist.NewFsFinder(secretsFS)
+	assert.NilError(t, fl.Configure(files, finder))
 
 	// FIXME WRITEME... FOR THE REST OF CONFIGURE (THE KEYS...)
-}
-
-// Implements fs.FS. As usual, Go is a pleasure to use.
-type UnionFS struct {
-	FilesFS   fs.FS
-	SecretsFS fs.FS
-}
-
-func (ufs *UnionFS) Open(name string) (fs.File, error) {
-	// Barely sufficient logic.
-	if strings.HasPrefix(name, "files/") {
-		return ufs.FilesFS.Open(name)
-	}
-	return ufs.SecretsFS.Open(name)
 }

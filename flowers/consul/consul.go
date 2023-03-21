@@ -19,16 +19,12 @@ import (
 const (
 	ConsulHome = "/opt/consul"
 	ConsulBin  = "/usr/local/bin"
-
-	// relative to the Go embed FS
-	SrcDir = "files/consul"
 )
 
 var _ florist.Flower = (*ServerFlower)(nil)
 
 // WARNING: Do NOT install alongside a Consul client.
 type ServerFlower struct {
-	fsys    fs.FS
 	Version string
 	Hash    string
 	log     hclog.Logger
@@ -42,8 +38,7 @@ func (fl *ServerFlower) Description() string {
 	return "install a Consul server (incompatible with a Consul client)"
 }
 
-func (fl *ServerFlower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *ServerFlower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
@@ -57,10 +52,7 @@ func (fl *ServerFlower) Init(fsys fs.FS) error {
 	return nil
 }
 
-func (fl *ServerFlower) Install() error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
-
+func (fl *ServerFlower) Install(files fs.FS, finder florist.Finder) error {
 	root, err := user.Current()
 	if err != nil {
 		return err
@@ -78,14 +70,14 @@ func (fl *ServerFlower) Install() error {
 
 	consulCfg := path.Join(ConsulHome, "consul.server.hcl")
 	fl.log.Info("Install consul server configuration file", "dst", consulCfg)
-	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "consul.server.hcl"),
+	if err := florist.CopyFileFromFs(files, "consul.server.hcl",
 		consulCfg, 0640, userConsulServer); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-server.service")
 	fl.log.Info("Install consul server systemd unit file", "dst", consulUnit)
-	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "consul-server.service"),
+	if err := florist.CopyFileFromFs(files, "consul-server.service",
 		consulUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -101,7 +93,7 @@ func (fl *ServerFlower) Install() error {
 	return nil
 }
 
-func (fl *ServerFlower) Configure() error {
+func (fl *ServerFlower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }
 
@@ -109,7 +101,6 @@ var _ florist.Flower = (*ClientFlower)(nil)
 
 // WARNING: Do NOT install alongside a Consul server.
 type ClientFlower struct {
-	fsys    fs.FS
 	Version string
 	Hash    string
 	log     hclog.Logger
@@ -123,8 +114,7 @@ func (fl *ClientFlower) Description() string {
 	return "install a Consul client (incompatible with a Consul server)"
 }
 
-func (fl *ClientFlower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *ClientFlower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
@@ -138,7 +128,7 @@ func (fl *ClientFlower) Init(fsys fs.FS) error {
 	return nil
 }
 
-func (fl *ClientFlower) Install() error {
+func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
@@ -167,13 +157,14 @@ func (fl *ClientFlower) Install() error {
 
 	consulCfg := path.Join(ConsulHome, "consul.client.hcl")
 	fl.log.Info("Install consul client configuration file", "dst", consulCfg)
-	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "consul.client.hcl"), consulCfg, 0640, userConsulClient); err != nil {
+	if err := florist.CopyFileFromFs(files, "consul.client.hcl",
+		consulCfg, 0640, userConsulClient); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	consulUnit := path.Join("/etc/systemd/system/", "consul-client.service")
 	fl.log.Info("Install consul client systemd unit file", "dst", consulUnit)
-	if err := florist.CopyFileFromFs(fl.fsys, path.Join(SrcDir, "consul-client.service"),
+	if err := florist.CopyFileFromFs(files, "consul-client.service",
 		consulUnit, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -189,7 +180,7 @@ func (fl *ClientFlower) Install() error {
 	return nil
 }
 
-func (fl *ClientFlower) Configure() error {
+func (fl *ClientFlower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }
 

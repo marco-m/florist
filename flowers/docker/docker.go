@@ -15,7 +15,6 @@ import (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	fsys fs.FS
 	// Users to add to the docker supplementary group.
 	Users []string
 	log   hclog.Logger
@@ -29,14 +28,13 @@ func (fl *Flower) Description() string {
 	return "install Docker"
 }
 
-func (fl *Flower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
@@ -74,6 +72,6 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }

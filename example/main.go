@@ -1,53 +1,66 @@
-// Program "example" is the smallest possible florist installer.
+// Program "example" is a small florist installer.
 // For a bigger example, see program "installer", still in the florist module.
 package main
 
 import (
 	"embed"
+	"fmt"
+	"github.com/marco-m/florist/example/flowers/daisy"
 	"io/fs"
 	"os"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist"
-	"github.com/marco-m/florist/example/flowers/sample"
 	"github.com/marco-m/florist/pkg/installer"
 )
 
 //go:embed embed
-var fsys embed.FS
+var embedded embed.FS
 
 func main() {
-	start := time.Now()
 	log := florist.NewLogger("example")
-	err := run(log)
-	elapsed := time.Since(start).Round(time.Millisecond)
-
-	if err != nil {
-		log.Error("", "exit", "failure", "error", err, "elapsed", elapsed)
-		os.Exit(1)
-	}
-	log.Info("", "exit", "success", "elapsed", elapsed)
+	os.Exit(installer.Main(log, prepare))
 }
 
-func run(log hclog.Logger) error {
-	fsys, err := fs.Sub(fsys, "embed")
+func prepare(log hclog.Logger) (*installer.Installer, error) {
+	files, err := fs.Sub(embedded, "embed/files")
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("prepare: %s", err)
+	}
+	secrets, err := fs.Sub(embedded, "embed/secrets")
+	if err != nil {
+		return nil, fmt.Errorf("prepare: %s", err)
 	}
 
 	// Create an installer.
-	inst := installer.New(log, florist.CacheValidityDefault, fsys)
+	inst, err := installer.New(log, florist.CacheValidity, files, secrets)
+	if err != nil {
+		return nil, err
+	}
+	inst.UseWorkdir()
 
-	// Create the sample flower.
-	flower := sample.Flower{Fruit: "strawberry"}
+	// Handle a flower without secrets
+	{
+		// Create the daisy flower.
+		flower := &daisy.Flower{Fruit: "strawberry"}
 
-	// Add a bouquet with a single flower.
-	if err := inst.AddFlower(&flower); err != nil {
-		return err
+		// Add a bouquet.
+		if err := inst.AddBouquet("mango", "a mango bouquet", flower); err != nil {
+			return nil, err
+		}
 	}
 
-	// Run the installer.
-	return inst.Run()
+	// Handle a flower with secrets
+	{
+		// FIXME WRITEME
+	}
+
+	// FIXME SO: Must clarify in my mind what is an instance and what is an image for a specific
+	// role (nothing to do with Ansible roles here!), how many bouquest can go on the
+	// same instance, wether it is optional or required that the executbale is build
+	// specifically for each instance and so on.
+
+	// Return the installer filled with bouquets.
+	return inst, nil
 }

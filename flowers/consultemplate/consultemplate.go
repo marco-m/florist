@@ -21,15 +21,13 @@ const (
 	BinDir       = "/usr/local/bin"
 
 	// relative to the Go embed FS
-	SrcDir          = "files/consul-template"
-	SrcConfigDir    = SrcDir + "/config"
-	SrcTemplatesDir = SrcDir + "/templates"
+	SrcConfigDir    = "config"
+	SrcTemplatesDir = "templates"
 )
 
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	fsys           fs.FS
 	Version        string
 	Hash           string
 	Configurations []string
@@ -38,15 +36,14 @@ type Flower struct {
 }
 
 func (fl *Flower) String() string {
-	return "consultemplate"
+	return "consul-template"
 }
 
 func (fl *Flower) Description() string {
 	return "install consul-template"
 }
 
-func (fl *Flower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *Flower) Init() error {
 	fl.log = florist.Log.ResetNamed("florist.flower.consultemplate")
 
 	if fl.Version == "" {
@@ -58,7 +55,7 @@ func (fl *Flower) Init(fsys fs.FS) error {
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
@@ -105,7 +102,7 @@ func (fl *Flower) Install() error {
 		src := path.Join(SrcConfigDir, cfg)
 		dst := path.Join(ConfigDir, cfg)
 		fl.log.Info("Install consul-template configuration file", "dst", dst)
-		if err := florist.CopyFileFromFs(fl.fsys, src, dst, 0640,
+		if err := florist.CopyFileFromFs(files, src, dst, 0640,
 			userConsulTemplate); err != nil {
 			return fmt.Errorf("%s: %s", fl.log.Name(), err)
 		}
@@ -115,7 +112,7 @@ func (fl *Flower) Install() error {
 		src := path.Join(SrcTemplatesDir, tmpl)
 		dst := path.Join(TemplatesDir, tmpl)
 		fl.log.Info("Install consul-template template file", "dst", dst)
-		if err := florist.CopyFileFromFs(fl.fsys, src, dst, 0640,
+		if err := florist.CopyFileFromFs(files, src, dst, 0640,
 			userConsulTemplate); err != nil {
 			return fmt.Errorf("%s: %s", fl.log.Name(), err)
 		}
@@ -123,10 +120,10 @@ func (fl *Flower) Install() error {
 
 	// files/consul-template/files/consul-template.service
 	unit := "consul-template.service"
-	src := path.Join(SrcDir, unit)
+	src := unit
 	dst := path.Join("/etc/systemd/system/", unit)
 	fl.log.Info("Install consul-template systemd unit file", "dst", dst)
-	if err := florist.CopyFileFromFs(fl.fsys, src, dst, 0644, root); err != nil {
+	if err := florist.CopyFileFromFs(files, src, dst, 0644, root); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
@@ -140,7 +137,7 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }
 

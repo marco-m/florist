@@ -93,12 +93,8 @@ func GopassToConfig(secretsPath string, prefix string, kv ...string) error {
 }
 
 // GopassToDir decrypts and exports to dstDir all the gopass secrets below srdDir.
-// If dstDir does not exist, it will create it.
+// If dstDir does not exist, GopassToDir will create it.
 // NOTE It is up to the caller to delete dstDir, the directory with exported secrets.
-// The idea is that the gopass secrets below SrcDir are all and only the needed secrets,
-// with the expected names by the corresponding florist Flowers. This is done on purpose
-// to have a 1:1 relationship between the secrets in gopass and the secrets expected by
-// the flowers (no need to build a translation table in your head).
 func GopassToDir(srcDir string, dstDir string) error {
 	keys, err := GopassLs(srcDir)
 	if err != nil {
@@ -110,8 +106,8 @@ func GopassToDir(srcDir string, dstDir string) error {
 
 	seen := make(map[string]bool)
 	for _, key := range keys {
-		// "a/b/k3" => "a/b", "k3"
 		dstFile := filepath.Join(dstDir, key)
+		// "a/b/k3" => "a/b", "k3"
 		dir, _ := path.Split(dstFile)
 		if dir != "" && !seen[dir] {
 			seen[dir] = true
@@ -137,7 +133,7 @@ func GopassToDir(srcDir string, dstDir string) error {
 }
 
 // GopassDelete removes key.
-// A non-existing key is not considered an error. To distinguish the case of a
+// Secret non-existing key is not considered an error. To distinguish the case of a
 // non-existent key, use [GopassGet].
 func GopassDelete(key string) error {
 	// --force is needed to avoid getting a prompt, but if the key doesn't exist,

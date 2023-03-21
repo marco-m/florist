@@ -14,17 +14,16 @@ import (
 )
 
 const (
-	PromptFileSrc = "files/fish/prompt_hostname.fish"
+	PromptFileSrc = "prompt_hostname.fish"
 	PromptFileDst = "/etc/fish/functions/prompt_hostname.fish"
 
-	ConfigFileSrc = "files/fish/config.fish"
+	ConfigFileSrc = "config.fish"
 	ConfigFileDst = "/etc/fish/config.fish"
 )
 
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	fsys      fs.FS
 	Usernames []string
 	// Using Fish as default shell breaks too many programs when they ssh :-(
 	SetAsDefault bool
@@ -39,8 +38,7 @@ func (fl *Flower) Description() string {
 	return "install and configure the Fish shell"
 }
 
-func (fl *Flower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
@@ -51,7 +49,7 @@ func (fl *Flower) Init(fsys fs.FS) error {
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
@@ -67,13 +65,13 @@ func (fl *Flower) Install() error {
 
 	fl.log.Info("Configure fish shell functions system-wide")
 	// # This provides the FQDN hostname in the prompt
-	if err := florist.CopyFileFromFs(fl.fsys, PromptFileSrc, PromptFileDst,
+	if err := florist.CopyFileFromFs(files, PromptFileSrc, PromptFileDst,
 		0644, root); err != nil {
 		return err
 	}
 
 	fl.log.Info("Configure fish shell system-wide")
-	if err := florist.CopyFileFromFs(fl.fsys, ConfigFileSrc, ConfigFileDst,
+	if err := florist.CopyFileFromFs(files, ConfigFileSrc, ConfigFileDst,
 		0644, root); err != nil {
 		return err
 	}
@@ -81,7 +79,7 @@ func (fl *Flower) Install() error {
 	found := 0
 	for _, username := range fl.Usernames {
 		if _, err := user.Lookup(username); err != nil {
-			fl.log.Debug("user.Lookup", "err", err)
+			fl.log.Debug("user.Get", "err", err)
 			continue
 		}
 		found++
@@ -102,6 +100,6 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }

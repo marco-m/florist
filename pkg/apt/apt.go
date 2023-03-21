@@ -36,6 +36,10 @@ func Update(cacheValidity time.Duration) error {
 
 func Install(pkg ...string) error {
 	log := florist.Log.Named("apt.Install")
+	log.Info("updating package cache")
+	if err := Update(florist.CacheValidity); err != nil {
+		return err
+	}
 	log.Info("installing", "packages", pkg)
 	args := []string{"install", "--no-install-recommends", "-y"}
 	args = append(args, pkg...)

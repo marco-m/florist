@@ -21,7 +21,6 @@ const (
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	fsys fs.FS
 	Lang string // the LANG of the locale.
 	log  hclog.Logger
 }
@@ -34,8 +33,7 @@ func (fl *Flower) Description() string {
 	return "setup locale"
 }
 
-func (fl *Flower) Init(fsys fs.FS) error {
-	fl.fsys = fsys
+func (fl *Flower) Init() error {
 	name := fmt.Sprintf("florist.flower.%s", fl)
 	fl.log = florist.Log.ResetNamed(name)
 
@@ -46,7 +44,7 @@ func (fl *Flower) Init(fsys fs.FS) error {
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
@@ -82,6 +80,6 @@ func (fl *Flower) Install() error {
 
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }

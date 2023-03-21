@@ -3,11 +3,10 @@ package main
 
 import (
 	"embed"
+	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"io/fs"
 	"os"
-	"time"
-
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/consul"
@@ -23,35 +22,35 @@ import (
 )
 
 //go:embed files
-var fsys embed.FS
+var embedded embed.FS
 
 func main() {
-	start := time.Now()
-	log := florist.NewLogger("florist-example")
-	err := run(log)
-	elapsed := time.Since(start).Round(time.Millisecond)
-
-	if err != nil {
-		log.Error("exit failure", "error", err, "elapsed", elapsed)
-		os.Exit(1)
-	}
-	log.Info("exit success", "elapsed", elapsed)
+	log := florist.NewLogger("example")
+	os.Exit(installer.Main(log, prepare))
 }
 
-func run(log hclog.Logger) error {
-	filesFS, err := fs.Sub(fsys, "files")
+func prepare(log hclog.Logger) (*installer.Installer, error) {
+	files, err := fs.Sub(embedded, "embed/files")
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("prepare: %s", err)
+	}
+	secrets, err := fs.Sub(embedded, "embed/secrets")
+	if err != nil {
+		return nil, fmt.Errorf("prepare: %s", err)
 	}
 
 	// Create an installer.
-	inst := installer.New(log, florist.CacheValidityDefault, filesFS)
+	inst, err := installer.New(log, florist.CacheValidity, files, secrets)
+	if err != nil {
+		return nil, err
+	}
 
 	//
 	// Add bouquets (bunches of flowers).
 	//
 
-	// A bouquet with multiple flowers:
+	// FIXME I removed the copyfilesFlower, so fix comment or fix code!!!
+	// Secret bouquet with multiple flowers:
 	// the first flower (copyfilesFlower) belongs to more than one bouquet,
 	// the second flower (consultemplate.Flower) is instantiated inline.
 	if err := inst.AddBouquet("all-you-need", "install everything",
@@ -59,7 +58,7 @@ func run(log hclog.Logger) error {
 			Version: "0.27.2",
 			Hash:    "d3d428ede8cb6e486d74b74deb9a7cdba6a6de293f3311f178cc147f1d1837e8",
 		}); err != nil {
-		return err
+		return nil, err
 	}
 
 	//
@@ -77,7 +76,7 @@ func run(log hclog.Logger) error {
 		},
 		&docker.Flower{},
 	); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := inst.AddBouquet("dev", "install a development environment",
@@ -89,7 +88,7 @@ func run(log hclog.Logger) error {
 				"build-essential",
 				"sntp",
 				"ripgrep",
-				"rsync", // Needed by Golang SSH run target.
+				"rsync", // Needed by Jetbrains Goland SSH run target.
 			},
 			Remove: []string{
 				"unattended-upgrades",
@@ -108,9 +107,9 @@ func run(log hclog.Logger) error {
 			SetAsDefault: true,
 		},
 	); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Run the installer.
-	return inst.Run()
+	return inst, nil
 }
