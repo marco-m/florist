@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 var _ florist.Flower = (*Flower)(nil)

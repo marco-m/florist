@@ -1,5 +1,5 @@
 // Package installer provides helper to write your own flower installer.
-package installer
+package provisioner
 
 import (
 	"fmt"
@@ -11,10 +11,10 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
-type Installer struct {
+type Provisioner struct {
 	log           hclog.Logger
 	cacheValidity time.Duration
 	bouquets      map[string]Bouquet
@@ -30,14 +30,14 @@ type Bouquet struct {
 }
 
 func New(log hclog.Logger, cacheValidity time.Duration, files fs.FS, secrets fs.FS,
-) (*Installer, error) {
+) (*Provisioner, error) {
 	florist.SetLogger(log)
 
 	stdlog.SetOutput(log.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
 	stdlog.SetPrefix("")
 	stdlog.SetFlags(0)
 
-	return &Installer{
+	return &Provisioner{
 		log:           log.Named("installer"),
 		cacheValidity: cacheValidity,
 		bouquets:      map[string]Bouquet{},
@@ -46,15 +46,15 @@ func New(log hclog.Logger, cacheValidity time.Duration, files fs.FS, secrets fs.
 	}, nil
 }
 
-func (inst *Installer) UseWorkdir() {
-	inst.root = florist.WorkDir
+func (prov *Provisioner) UseWorkdir() {
+	prov.root = florist.WorkDir
 }
 
-func (inst *Installer) Run() error {
+func (prov *Provisioner) Run() error {
 	var cli cli
 	ctx := kong.Parse(
 		&cli,
-		kong.Description("🌼 florist 🌺 - a simple installer"),
+		kong.Description("🌼 florist 🌺 - a simple provisioner"),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,
@@ -64,27 +64,27 @@ func (inst *Installer) Run() error {
 
 	// Invoke the Run method of the command passed on the command-line
 	// (see the [cli] type).
-	return ctx.Run(inst)
+	return ctx.Run(prov)
 }
 
 // Bouquets returns a list of the added bouquets, sorted by name.
-func (inst *Installer) Bouquets() []Bouquet {
+func (prov *Provisioner) Bouquets() []Bouquet {
 	// sort flowers in lexical order
-	sortedNames := make([]string, 0, len(inst.bouquets))
-	for name := range inst.bouquets {
+	sortedNames := make([]string, 0, len(prov.bouquets))
+	for name := range prov.bouquets {
 		sortedNames = append(sortedNames, name)
 	}
 	sort.Strings(sortedNames)
 
-	bouquets := make([]Bouquet, 0, len(inst.bouquets))
+	bouquets := make([]Bouquet, 0, len(prov.bouquets))
 	for _, name := range sortedNames {
-		bouquets = append(bouquets, inst.bouquets[name])
+		bouquets = append(bouquets, prov.bouquets[name])
 	}
 	return bouquets
 }
 
 // AddBouquet creates a bouquet with `name` and `description` and adds `flowers` to it.
-func (inst *Installer) AddBouquet(
+func (prov *Provisioner) AddBouquet(
 	name string,
 	description string,
 	flowers ...florist.Flower,
@@ -111,11 +111,11 @@ func (inst *Installer) AddBouquet(
 		}
 	}
 
-	if _, ok := inst.bouquets[name]; ok {
+	if _, ok := prov.bouquets[name]; ok {
 		return fmt.Errorf("AddBouquet: there is already a bouquet with name %s", name)
 	}
 
-	inst.bouquets[name] = Bouquet{
+	prov.bouquets[name] = Bouquet{
 		Name:        name,
 		Description: description,
 		Flowers:     flowers,

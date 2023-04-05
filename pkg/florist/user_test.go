@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 func TestUserAddSuccessVM(t *testing.T) {

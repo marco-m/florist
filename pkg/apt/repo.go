@@ -10,7 +10,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 // AddRepo securely adds an APT repo with corresponding PGP key.

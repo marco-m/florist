@@ -3,8 +3,8 @@ package apt_test
 import (
 	"testing"
 
-	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 func TestAptUpdateVM(t *testing.T) {

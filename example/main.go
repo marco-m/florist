@@ -1,18 +1,17 @@
-// Program "example" is a small florist installer.
-// For a bigger example, see program "installer", still in the florist module.
+// Program "one" is a small florist provisioner.
 package main
 
 import (
 	"embed"
 	"fmt"
-	"github.com/marco-m/florist/example/flowers/daisy"
 	"io/fs"
 	"os"
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/marco-m/florist"
-	"github.com/marco-m/florist/pkg/installer"
+	"github.com/marco-m/florist/example/flowers/daisy"
+	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 //go:embed embed
@@ -20,10 +19,10 @@ var embedded embed.FS
 
 func main() {
 	log := florist.NewLogger("example")
-	os.Exit(installer.Main(log, prepare))
+	os.Exit(provisioner.Main(log, prepare))
 }
 
-func prepare(log hclog.Logger) (*installer.Installer, error) {
+func prepare(log hclog.Logger) (*provisioner.Provisioner, error) {
 	files, err := fs.Sub(embedded, "embed/files")
 	if err != nil {
 		return nil, fmt.Errorf("prepare: %s", err)
@@ -33,12 +32,12 @@ func prepare(log hclog.Logger) (*installer.Installer, error) {
 		return nil, fmt.Errorf("prepare: %s", err)
 	}
 
-	// Create an installer.
-	inst, err := installer.New(log, florist.CacheValidity, files, secrets)
+	// Create a provisioner.
+	prov, err := provisioner.New(log, florist.CacheValidity, files, secrets)
 	if err != nil {
 		return nil, err
 	}
-	inst.UseWorkdir()
+	prov.UseWorkdir()
 
 	// Handle a flower without secrets
 	{
@@ -46,7 +45,7 @@ func prepare(log hclog.Logger) (*installer.Installer, error) {
 		flower := &daisy.Flower{Fruit: "strawberry"}
 
 		// Add a bouquet.
-		if err := inst.AddBouquet("mango", "a mango bouquet", flower); err != nil {
+		if err := prov.AddBouquet("mango", "a mango bouquet", flower); err != nil {
 			return nil, err
 		}
 	}
@@ -62,5 +61,5 @@ func prepare(log hclog.Logger) (*installer.Installer, error) {
 	// specifically for each instance and so on.
 
 	// Return the installer filled with bouquets.
-	return inst, nil
+	return prov, nil
 }

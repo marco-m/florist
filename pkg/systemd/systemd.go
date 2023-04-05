@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 func Enable(unit string) error {

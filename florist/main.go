@@ -1,14 +1,14 @@
-// Program example shows how to write a florist installer.
+// Program "florist" is the provisioner for the VM used to develop florist itself.
 package main
 
 import (
 	"embed"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"io/fs"
 	"os"
 
-	"github.com/marco-m/florist"
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/marco-m/florist/flowers/consul"
 	"github.com/marco-m/florist/flowers/consultemplate"
 	"github.com/marco-m/florist/flowers/docker"
@@ -18,18 +18,19 @@ import (
 	"github.com/marco-m/florist/flowers/nomad"
 	"github.com/marco-m/florist/flowers/ospackages"
 	"github.com/marco-m/florist/flowers/taskfile"
-	"github.com/marco-m/florist/pkg/installer"
+	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 )
 
-//go:embed files
+//go:embed embed
 var embedded embed.FS
 
 func main() {
-	log := florist.NewLogger("example")
-	os.Exit(installer.Main(log, prepare))
+	log := florist.NewLogger("florist-prov")
+	os.Exit(provisioner.Main(log, prepare))
 }
 
-func prepare(log hclog.Logger) (*installer.Installer, error) {
+func prepare(log hclog.Logger) (*provisioner.Provisioner, error) {
 	files, err := fs.Sub(embedded, "embed/files")
 	if err != nil {
 		return nil, fmt.Errorf("prepare: %s", err)
@@ -39,8 +40,8 @@ func prepare(log hclog.Logger) (*installer.Installer, error) {
 		return nil, fmt.Errorf("prepare: %s", err)
 	}
 
-	// Create an installer.
-	inst, err := installer.New(log, florist.CacheValidity, files, secrets)
+	// Create a provisioner.
+	prov, err := provisioner.New(log, florist.CacheValidity, files, secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -50,10 +51,9 @@ func prepare(log hclog.Logger) (*installer.Installer, error) {
 	//
 
 	// FIXME I removed the copyfilesFlower, so fix comment or fix code!!!
-	// Secret bouquet with multiple flowers:
 	// the first flower (copyfilesFlower) belongs to more than one bouquet,
 	// the second flower (consultemplate.Flower) is instantiated inline.
-	if err := inst.AddBouquet("all-you-need", "install everything",
+	if err := prov.AddBouquet("all-you-need", "install everything",
 		&consultemplate.Flower{
 			Version: "0.27.2",
 			Hash:    "d3d428ede8cb6e486d74b74deb9a7cdba6a6de293f3311f178cc147f1d1837e8",
@@ -65,7 +65,7 @@ func prepare(log hclog.Logger) (*installer.Installer, error) {
 	// Some other bouquets, to show the available flowers in florist.
 	//
 
-	if err := inst.AddBouquet("nomadconsulclients", "install Nomad and Consul clients",
+	if err := prov.AddBouquet("nomadconsulclients", "install Nomad and Consul clients",
 		&nomad.ClientFlower{
 			Version: "1.4.2",
 			Hash:    "6e24efd6dfba0ba2df31347753f615cae4d3632090e68fc90933e51e640f7afc",
@@ -79,7 +79,7 @@ func prepare(log hclog.Logger) (*installer.Installer, error) {
 		return nil, err
 	}
 
-	if err := inst.AddBouquet("dev", "install a development environment",
+	if err := prov.AddBouquet("dev", "install a development environment",
 		&locale.Flower{
 			Lang: locale.Lang_en_US_UTF8,
 		},
@@ -111,5 +111,5 @@ func prepare(log hclog.Logger) (*installer.Installer, error) {
 	}
 
 	// Run the installer.
-	return inst, nil
+	return prov, nil
 }

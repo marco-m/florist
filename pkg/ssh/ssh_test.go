@@ -1,10 +1,11 @@
 package ssh_test
 
 import (
-	"gotest.tools/v3/assert"
 	"testing"
 
-	"github.com/marco-m/florist"
+	"gotest.tools/v3/assert"
+
+	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/ssh"
 )
 

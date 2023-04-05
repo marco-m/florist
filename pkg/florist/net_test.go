@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marco-m/florist"
 	"gotest.tools/v3/assert"
+
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 func TestNetFetchMockSuccess(t *testing.T) {

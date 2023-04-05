@@ -9,8 +9,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/pkg/apt"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 const (
@@ -50,9 +50,6 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
-
 	fl.log.Info("Install packages")
 	if err := apt.Install("fish"); err != nil {
 		return err

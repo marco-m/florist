@@ -12,7 +12,7 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/systemd"
 )
 

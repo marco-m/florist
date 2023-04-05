@@ -1,4 +1,4 @@
-package installer_test
+package provisioner_test
 
 import (
 	"io/fs"
@@ -8,8 +8,8 @@ import (
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/cmp"
 
-	"github.com/marco-m/florist"
-	"github.com/marco-m/florist/pkg/installer"
+	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 type mockFlower struct {
@@ -42,7 +42,7 @@ func (fl *mockFlower) Configure(files fs.FS, finder florist.Finder) error {
 
 func TestInstallerAddBouquetSuccess(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst, err := installer.New(log, florist.CacheValidity, nil, nil)
+	inst, err := provisioner.New(log, florist.CacheValidity, nil, nil)
 	assert.NilError(t, err)
 
 	flowers := []florist.Flower{
@@ -55,7 +55,7 @@ func TestInstallerAddBouquetSuccess(t *testing.T) {
 	assert.NilError(t, err)
 
 	have := inst.Bouquets()
-	want := []installer.Bouquet{
+	want := []provisioner.Bouquet{
 		{
 			Name:        "goofy",
 			Description: "mickey's friend",
@@ -106,7 +106,7 @@ func TestInstallerAddBouquetFailure(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			inst, err := installer.New(log, florist.CacheValidity, nil, nil)
+			inst, err := provisioner.New(log, florist.CacheValidity, nil, nil)
 			assert.NilError(t, err)
 
 			err = inst.AddBouquet(tc.bname, tc.bdescription, tc.bouquet...)
@@ -118,7 +118,7 @@ func TestInstallerAddBouquetFailure(t *testing.T) {
 
 func TestInstallerDuplicateBouquetName(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst, err := installer.New(log, florist.CacheValidity, nil, nil)
+	inst, err := provisioner.New(log, florist.CacheValidity, nil, nil)
 	assert.NilError(t, err)
 
 	bname := "pippo"

@@ -1,7 +1,6 @@
 package daisy_test
 
 import (
-	"github.com/marco-m/florist/example/flowers/daisy"
 	"io/fs"
 	"os"
 	"path"
@@ -12,8 +11,10 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"gotest.tools/v3/assert"
 
-	"github.com/marco-m/florist"
-	"github.com/marco-m/florist/pkg/installer"
+	"github.com/marco-m/florist/example/flowers/daisy"
+
+	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 func TestSampleInstall(t *testing.T) {
@@ -32,7 +33,7 @@ func TestSampleInstall(t *testing.T) {
 
 	t.Run("install runs successfully", func(t *testing.T) {
 		log := hclog.NewNullLogger()
-		inst, err := installer.New(log, florist.CacheValidity, fsys, fsys)
+		inst, err := provisioner.New(log, florist.CacheValidity, fsys, fsys)
 		assert.NilError(t, err)
 		assert.NilError(t, inst.AddBouquet("name", "desc", flower))
 
@@ -60,7 +61,7 @@ func TestSampleInstall(t *testing.T) {
 }
 
 func listFiles(files, secrets fs.FS) string {
-	s, _ := installer.ListFs(files, secrets)
+	s, _ := provisioner.ListFs(files, secrets)
 	return s
 }
 
@@ -85,7 +86,7 @@ func TestSampleConfigure(t *testing.T) {
 
 	t.Run("configure runs successfully", func(t *testing.T) {
 		log := hclog.NewNullLogger()
-		inst, err := installer.New(log, florist.CacheValidity, files, secrets)
+		inst, err := provisioner.New(log, florist.CacheValidity, files, secrets)
 		assert.NilError(t, err)
 		assert.NilError(t, inst.AddBouquet("name", "desc", flower))
 

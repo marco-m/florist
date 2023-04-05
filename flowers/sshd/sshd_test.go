@@ -11,8 +11,8 @@ import (
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/cmp"
 
-	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/sshd"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 //go:embed files

@@ -8,8 +8,8 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"github.com/marco-m/florist"
 	"github.com/marco-m/florist/flowers/consul"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 //go:embed files

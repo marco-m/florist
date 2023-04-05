@@ -28,11 +28,11 @@ tasks:
         silent: true
       - go build -o bin/example ./example
 
-  build:installer:
-    desc: Build the installer
+  build:provisioner:
+    desc: Build the provisioner
     cmds:
-      - go build -o bin/installer ./installer
-      - GOOS=linux go build -o bin/linux/installer ./installer
+      - go build -o bin/florist ./florist
+      - GOOS=linux go build -o bin/linux/florist ./florist
 
   test:all:
     desc: Run all the unit tests; makes sense only if invoking from the VM.
@@ -69,7 +69,7 @@ tasks:
   vm:init:
     desc: Create a VM from scratch, provision and take a snapshot. Use `vm:restore` to restore the snapshot to pristine state.
     cmds:
-    - task: build:installer
+    - task: build:provisioner
     - vagrant destroy --force
     - vagrant up
     # Generate a SSH configuration file
@@ -79,8 +79,8 @@ tasks:
     - sed -i "" 's/LogLevel FATAL//' ssh.config.vagrant
     # Mark this VM as a target for destructive tests.
     - ssh -F ssh.config.vagrant florist-dev sudo mkdir -p /opt/florist/disposable
-    # Provision the dev flower 🌼
-    - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/installer install dev"
+    # Provision the VM with the "dev" bouquet.
+    - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/florist install dev"
     # Install other deps. I am unsure this is the best approach...
     - ssh -F ssh.config.vagrant florist-dev "GOBIN=/usr/local/bin sudo --preserve-env=GOBIN task -d florist install-deps"
       # Take snapshot, name `pristine`

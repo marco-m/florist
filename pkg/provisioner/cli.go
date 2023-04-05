@@ -1,15 +1,17 @@
-package installer
+package provisioner
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-hclog"
-	"github.com/marco-m/florist"
 	"io/fs"
 	"os"
 	"path"
 	"strings"
-	"tailscale.com/util/multierr"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+	"tailscale.com/util/multierr"
+
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 type cli struct {
@@ -23,7 +25,7 @@ type InstallCmd struct {
 	Bouquet string `arg:"" help:"Bouquet to install"`
 }
 
-func (cmd *InstallCmd) Run(inst *Installer) error {
+func (cmd *InstallCmd) Run(inst *Provisioner) error {
 	if _, err := florist.Init(); err != nil {
 		return err
 	}
@@ -62,7 +64,7 @@ type ConfigureCmd struct {
 	Bouquet string `arg:"" help:"Bouquet to configure (assumes that the same bouquet is installed on the image"`
 }
 
-func (cmd *ConfigureCmd) Run(inst *Installer) error {
+func (cmd *ConfigureCmd) Run(inst *Provisioner) error {
 	if _, err := florist.Init(); err != nil {
 		return err
 	}
@@ -112,7 +114,7 @@ func (cmd *ConfigureCmd) Run(inst *Installer) error {
 type ListCmd struct {
 }
 
-func (cmd *ListCmd) Run(inst *Installer) error {
+func (cmd *ListCmd) Run(inst *Provisioner) error {
 	fmt.Println("Available bouquets:")
 	for _, bouquet := range inst.Bouquets() {
 		fmt.Printf("%-20s %s\n", bouquet.Name, bouquet.Description)
@@ -126,7 +128,7 @@ func (cmd *ListCmd) Run(inst *Installer) error {
 
 type EmbedListCmd struct{}
 
-func (cmd *EmbedListCmd) Run(inst *Installer) error {
+func (cmd *EmbedListCmd) Run(inst *Provisioner) error {
 	list, err := ListFs(inst.files, inst.secrets)
 	fmt.Println(list)
 	return err
@@ -158,7 +160,7 @@ func ListFs(files fs.FS, secrets fs.FS) (string, error) {
 }
 
 // PrepareFn is the function signature to pass to [Main].
-type PrepareFn func(log hclog.Logger) (*Installer, error)
+type PrepareFn func(log hclog.Logger) (*Provisioner, error)
 
 // Main is a ready-made function for the main() of your installer.
 // Usage:

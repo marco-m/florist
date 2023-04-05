@@ -1,10 +1,12 @@
 package florist_test
 
 import (
-	"github.com/marco-m/florist"
-	"gotest.tools/v3/assert"
 	"testing"
 	"testing/fstest"
+
+	"gotest.tools/v3/assert"
+
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 var fsys = fstest.MapFS{

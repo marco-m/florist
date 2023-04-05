@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 func Update(cacheValidity time.Duration) error {

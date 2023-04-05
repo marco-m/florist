@@ -1,6 +1,6 @@
 # 🌼 florist 🌺
 
-A bare-bones and opinionated Go package to create a **non idempotent**, one-file-contains-everything installer and configurer.
+A bare-bones and opinionated Go package to create a **non idempotent**, one-file-contains-everything provisioner (install and configure).
 
 ## Status
 
@@ -97,7 +97,7 @@ For a real-world example, see the orsolabs project (FIXME ADD LINK)
 
 ```
 $ ./example-florist -h
-🌼 florist 🌺 - a simple installer
+🌼 florist 🌺 - a simple provisioner
 
 Usage: example-florist <command> [<args>]
 

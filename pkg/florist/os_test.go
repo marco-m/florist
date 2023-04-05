@@ -10,7 +10,7 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"github.com/marco-m/florist"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 func TestUnderstandTemplate(t *testing.T) {
