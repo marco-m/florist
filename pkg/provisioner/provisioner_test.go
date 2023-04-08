@@ -1,8 +1,10 @@
 package provisioner_test
 
 import (
+	"fmt"
 	"io/fs"
 	"testing"
+	"testing/fstest"
 
 	"github.com/hashicorp/go-hclog"
 	"gotest.tools/v3/assert"
@@ -14,7 +16,6 @@ import (
 
 type mockFlower struct {
 	Name string
-	Log  hclog.Logger
 }
 
 func (fl *mockFlower) String() string {
@@ -26,9 +27,6 @@ func (fl *mockFlower) Description() string {
 }
 
 func (fl *mockFlower) Init() error {
-	if fl.Log == nil {
-		fl.Log = hclog.NewNullLogger()
-	}
 	return nil
 }
 
@@ -40,9 +38,10 @@ func (fl *mockFlower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }
 
-func TestInstallerAddBouquetSuccess(t *testing.T) {
+func TestProvisionerAddBouquetSuccess(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst, err := provisioner.New(log, florist.CacheValidity, nil, nil)
+	fsys := fstest.MapFS{}
+	inst, err := provisioner.New(log, florist.CacheValidity, fsys, fsys)
 	assert.NilError(t, err)
 
 	flowers := []florist.Flower{
@@ -65,8 +64,9 @@ func TestInstallerAddBouquetSuccess(t *testing.T) {
 	assert.Assert(t, cmp.DeepEqual(have, want))
 }
 
-func TestInstallerAddBouquetFailure(t *testing.T) {
+func TestProvisionerAddBouquetFailure(t *testing.T) {
 	log := hclog.NewNullLogger()
+	fsys := fstest.MapFS{}
 
 	flowers := []florist.Flower{
 		&mockFlower{Name: "a"},
@@ -106,7 +106,7 @@ func TestInstallerAddBouquetFailure(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			inst, err := provisioner.New(log, florist.CacheValidity, nil, nil)
+			inst, err := provisioner.New(log, florist.CacheValidity, fsys, fsys)
 			assert.NilError(t, err)
 
 			err = inst.AddBouquet(tc.bname, tc.bdescription, tc.bouquet...)
@@ -116,9 +116,10 @@ func TestInstallerAddBouquetFailure(t *testing.T) {
 	}
 }
 
-func TestInstallerDuplicateBouquetName(t *testing.T) {
+func TestProvisionerDuplicateBouquetName(t *testing.T) {
 	log := hclog.NewNullLogger()
-	inst, err := provisioner.New(log, florist.CacheValidity, nil, nil)
+	fsys := fstest.MapFS{}
+	inst, err := provisioner.New(log, florist.CacheValidity, fsys, fsys)
 	assert.NilError(t, err)
 
 	bname := "pippo"
@@ -131,4 +132,73 @@ func TestInstallerDuplicateBouquetName(t *testing.T) {
 
 	err = inst.AddBouquet(bname, "clarabella", bouquet2...)
 	assert.ErrorContains(t, err, wantErr)
+}
+
+type spyFlower struct {
+	kv map[string]string
+}
+
+func (fl *spyFlower) String() string {
+	return "spy"
+}
+
+func (fl *spyFlower) Description() string {
+	return "I am a spy flower"
+}
+
+func (fl *spyFlower) Init() error {
+	fl.kv = make(map[string]string)
+	return nil
+}
+
+func (fl *spyFlower) Install(files fs.FS, finder florist.Finder) error {
+	return nil
+}
+
+func (fl *spyFlower) Configure(files fs.FS, finder florist.Finder) error {
+	keys, err := finder.Keys()
+	if err != nil {
+		return fmt.Errorf("spy.Configure: %s", err)
+	}
+	for _, k := range keys {
+		fl.kv[k] = finder.Get(k)
+	}
+	return nil
+}
+
+func TestProvisionerConfigure(t *testing.T) {
+	log := florist.NewLogger("test")
+	files := fstest.MapFS{"debug/dummyFile": {Data: []byte("A")}}
+	secrets := fstest.MapFS{
+		"base/unique": {Data: []byte("unique from base")},
+		"base/f1":     {Data: []byte("f1 from base")},
+		//
+		"flowers/spy/f1": {Data: []byte("f1 from flowers")},
+		"flowers/spy/f2": {Data: []byte("f2 from flowers")},
+		"flowers/spy/f3": {Data: []byte("f3 from flowers")},
+		//
+		"nodes/x/spy/f2": {Data: []byte("f2 from nodes")},
+		"nodes/x/spy/f4": {Data: []byte("f4 from nodes")},
+	}
+
+	want := map[string]string{
+		"unique": "unique from base",
+		"f1":     "f1 from flowers",
+		"f2":     "f2 from nodes",
+		"f3":     "f3 from flowers",
+		"f4":     "f4 from nodes",
+	}
+
+	prov, err := provisioner.New(log, florist.CacheValidity, files, secrets)
+	assert.NilError(t, err)
+
+	prov.UseWorkdir()
+	spy := &spyFlower{}
+	err = prov.AddBouquet("x", "Stuff for node x", spy)
+	assert.NilError(t, err)
+
+	err = prov.Run([]string{"configure", "x"})
+	assert.NilError(t, err)
+
+	assert.DeepEqual(t, want, spy.kv)
 }

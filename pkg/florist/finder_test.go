@@ -75,6 +75,16 @@ func TestFsFinderGetMultipleFailure(t *testing.T) {
 	assert.ErrorContains(t, err, "multiple errors")
 }
 
+func TestFsFinder_Keys(t *testing.T) {
+	finder := florist.NewFsFinder(fsys)
+
+	have, err := finder.Keys()
+	want := []string{"d/f2", "f1"}
+
+	assert.NilError(t, err)
+	assert.DeepEqual(t, have, want)
+}
+
 var fsysA = fstest.MapFS{
 	"f1": {Data: []byte("1")}, // Overrides entry in fsysB
 }
@@ -111,4 +121,16 @@ func TestUnionFinderFailure(t *testing.T) {
 	have, err := finder.Lookup("x")
 	assert.Equal(t, have, "")
 	assert.Error(t, err, "FsFinder.Get: open x: file does not exist")
+}
+
+func TestUnionFinder_Keys(t *testing.T) {
+	finderA := florist.NewFsFinder(fsysA)
+	finderB := florist.NewFsFinder(fsysB)
+	finder := florist.NewUnionFinder(finderA, finderB)
+
+	have, err := finder.Keys()
+	want := []string{"d/f2", "f1"}
+
+	assert.NilError(t, err)
+	assert.DeepEqual(t, have, want)
 }

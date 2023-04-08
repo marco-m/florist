@@ -1,0 +1,49 @@
+#
+# main help
+#
+exec provisioner1 -h
+! stderr .
+stdout 'Usage: provisioner1 <command>\n'
+
+#
+# install help
+#
+exec provisioner1 install -h
+! stderr .
+stdout 'Usage: provisioner1 install <bouquet>\n'
+
+#
+# configure help
+#
+exec provisioner1 configure -h
+! stderr .
+stdout 'Usage: provisioner1 configure <bouquet>'
+
+#
+# list
+#
+exec provisioner1 list
+! stderr .
+stdout 'Available bouquets:\n'
+stdout 'x                    stuff for node x\n'
+stdout '    smoke                \(I am a smoke flower\)\n'
+
+#
+# embed-list not empty
+#
+exec provisioner1 embed-list
+! stderr .
+stdout 'files:\n'
+stdout 'smoke/smoke1\n'
+stdout 'secrets:\n'
+stdout 'base/base1\n'
+stdout 'flowers/smoke/flower1\n'
+stdout 'nodes/x/smoke/node1\n'
+
+#
+# embed-list empty (at least tests that it exits 0)
+#
+exec provisioner2 embed-list
+! stderr .
+stdout 'files:\n'
+stdout 'secrets:\n'

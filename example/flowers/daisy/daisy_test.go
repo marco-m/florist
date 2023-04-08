@@ -37,8 +37,7 @@ func TestSampleInstall(t *testing.T) {
 		assert.NilError(t, err)
 		assert.NilError(t, inst.AddBouquet("name", "desc", flower))
 
-		os.Args = []string{"sut", "install", "name"}
-		err = inst.Run()
+		err = inst.Run([]string{"install", "name"})
 		assert.NilError(t, err, "\n%s", listFiles(fsys, fsys))
 	})
 
@@ -90,8 +89,7 @@ func TestSampleConfigure(t *testing.T) {
 		assert.NilError(t, err)
 		assert.NilError(t, inst.AddBouquet("name", "desc", flower))
 
-		os.Args = []string{"sut", "configure", "name"}
-		err = inst.Run()
+		err = inst.Run([]string{"configure", "name"})
 		assert.NilError(t, err, "\n%s", listFiles(files, secrets))
 	})
 

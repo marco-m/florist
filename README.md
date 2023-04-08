@@ -90,6 +90,37 @@ Secrets handling in Florist depend on how deep you are bootstrapping your infras
   - the florist executable, together with the files containing the secrets (that have been embedded), are deleted from the local host just after the `terraform apply` (also in case of failure!)
   - all this means that you need to drive all this sequence from a build script carefully written.
 
+When using `florist configure`, the secrets are made available to the various flowers depending both on the flower identity and on the node identity, according to this layout:
+
+```
+PROJECT/
+├── dev-USER/
+│   ├── florist/
+│   │   ├── base/
+│   │   │   └── ...
+│   │   ├── flowers/
+│   │   │   ├── FLOWER-A/
+│   │   │   │   └── ...
+│   │   │   └── FLOWER-B/
+│   │   │       └── ...
+│   │   └── nodes/
+│   │       ├── NODE-X/
+│   │       │   └── FLOWER-A/
+│   │       │       └── ...
+│   │       └── NODE-Y/
+│   │           └── FLOWER-A/
+│   │               └── ...
+│   └── unexported/            ← Secrets that are never made available to florist.
+│       └── ...
+├── prod/
+│   └── ...
+```
+
+Assuming that we are provisioning flower FLOWER-A on node NODE-X, secrets are merged as follows:
+- Keys with prefix "base" are made available to the flower, without the prefix.
+- Keys with prefix "flower/FLOWER-A" override the keys in prefix "base" and are made available to the flower, without the prefix.
+- Keys with prefix "nodes/NODE-X/FLOWER-A" override the keys in the two previous prefixes and are made available to the flower, without the prefix.
+  
 For a real-world example, see the orsolabs project (FIXME ADD LINK)
 
 
