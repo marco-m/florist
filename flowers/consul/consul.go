@@ -21,6 +21,10 @@ const (
 	ConsulBin  = "/usr/local/bin"
 )
 
+type dynamic struct {
+	Workspace string
+}
+
 var _ florist.Flower = (*ServerFlower)(nil)
 
 // WARNING: Do NOT install alongside a Consul client.
@@ -59,19 +63,12 @@ func (fl *ServerFlower) Install(files fs.FS, finder florist.Finder) error {
 	}
 
 	fl.log.Info("Add system user 'consul'")
-	userConsulServer, err := florist.UserSystemAdd("consul", ConsulHome)
+	_, err = florist.UserSystemAdd("consul", ConsulHome)
 	if err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	if err := installConsulExe(fl.log, fl.Version, fl.Hash, root); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
-	consulCfg := path.Join(ConsulHome, "consul.server.hcl")
-	fl.log.Info("Install consul server configuration file", "dst", consulCfg)
-	if err := florist.CopyFileFromFs(files, "consul.server.hcl",
-		consulCfg, 0640, userConsulServer); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -94,6 +91,27 @@ func (fl *ServerFlower) Install(files fs.FS, finder florist.Finder) error {
 }
 
 func (fl *ServerFlower) Configure(files fs.FS, finder florist.Finder) error {
+	log := fl.log.Named("configure")
+
+	log.Debug("loading dynamic configuration")
+	data := dynamic{
+		Workspace: finder.Get("Workspace"),
+	}
+	if err := finder.Error(); err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
+	userConsulServer, err := user.Lookup("consul")
+	if err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
+	consulCfgDst := path.Join(ConsulHome, "consul.server.hcl")
+	fl.log.Info("Install consul server configuration file", "dst", consulCfgDst)
+	if err := florist.CopyTemplateFromFs(files,
+		"consul.server.hcl.tpl", consulCfgDst, 0640, userConsulServer,
+		data, "<<", ">>"); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
+	}
+
 	return nil
 }
 
@@ -137,28 +155,13 @@ func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	// FIXME do we need any?
-	// fl.log.Info("Install packages needed by Consul client")
-	// if err := apt.Install(
-	// 	"ethtool",
-	// ); err != nil {
-	// 	return fmt.Errorf("%s: %s", fl, err)
-	// }
-
 	fl.log.Info("Add system user 'consul'")
-	userConsulClient, err := florist.UserSystemAdd("consul", ConsulHome)
+	_, err = florist.UserSystemAdd("consul", ConsulHome)
 	if err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	if err := installConsulExe(fl.log, fl.Version, fl.Hash, root); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
-	consulCfg := path.Join(ConsulHome, "consul.client.hcl")
-	fl.log.Info("Install consul client configuration file", "dst", consulCfg)
-	if err := florist.CopyFileFromFs(files, "consul.client.hcl",
-		consulCfg, 0640, userConsulClient); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -181,6 +184,27 @@ func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
 }
 
 func (fl *ClientFlower) Configure(files fs.FS, finder florist.Finder) error {
+	log := fl.log.Named("configure")
+
+	log.Debug("loading dynamic configuration")
+	data := dynamic{
+		Workspace: finder.Get("Workspace"),
+	}
+	if err := finder.Error(); err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
+	userConsulClient, err := user.Lookup("consul")
+	if err != nil {
+		return fmt.Errorf("%s.configure: %s", fl, err)
+	}
+	consulCfgDst := path.Join(ConsulHome, "consul.client.hcl")
+	fl.log.Info("Install consul client configuration file", "dst", consulCfgDst)
+	if err := florist.CopyTemplateFromFs(files,
+		"consul.client.hcl.tpl", consulCfgDst, 0640, userConsulClient,
+		data, "<<", ">>"); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
+	}
+
 	return nil
 }
 

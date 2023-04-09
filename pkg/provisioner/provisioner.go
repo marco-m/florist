@@ -216,6 +216,7 @@ func (cmd *ConfigureCmd) Run(prov *Provisioner) error {
 		finderFlowers := florist.NewFsFinder(secretsPerFlower)
 		finderBase := florist.NewFsFinder(secretsBase)
 		finder := florist.NewUnionFinder(finderNodes, finderFlowers, finderBase)
+
 		if err := flower.Configure(filesPerFlower, finder); err != nil {
 			return err
 		}
