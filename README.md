@@ -52,12 +52,7 @@ It is also possible to download files at runtime, using `florist.NetFetch` and t
 
 ## Text templates
 
-Florist supports [Go text templates] as follows.
-
-- Each exported field of a `Flower` is available as template field.
-- Template processing is done in one of the functions `florist.CopyFileTemplate`,`florist.CopyFileTemplateFromFs`. Just pass the flower as the tmplData parameter.
-
-Since the template data is a struct (as opposed to a map), any template field error will result in an error.
+Florist supports [Go text templates] with the function `florist.CopyTemplateFromFs`. It also supports custom delimiters (instead of the default `{{`, `}}`). 
 
 See `os_test.go` for an example.
 

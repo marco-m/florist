@@ -69,31 +69,21 @@ func CopyFileFromFs(
 	return copyfile(srcFs, srcPath, dstPath, mode, owner)
 }
 
-// CopyTemplate copies file srcPath to dstPath, with mode and owner, performing Go
-// text template processing based on the fields in tmplData. The source and destination
-// files reside in the "real" filesystem.
-// Notes:
-// - If dstPath exists, it will be overwritten.
-// - Setting an owner different that the current user requires elevated privileges.
-func CopyTemplate(
-	srcPath string, dstPath string,
-	mode os.FileMode, owner *user.User, tmplData any,
-) error {
-	return copytemplate(nil, srcPath, dstPath, mode, owner, tmplData)
-}
-
 // CopyTemplateFromFs copies file srcPath to dstPath, with mode and owner, performing
 // Go text template processing based on the fields in tmplData. The source file resides
 // in the srcFs filesystem (for example, via go:embed), while the destination file
 // resides in the "real" filesystem.
 // Notes:
-// - If dstPath exists, it will be overwritten.
-// - Setting an owner different that the current user requires elevated privileges.
+//   - If dstPath exists, it will be overwritten.
+//   - Setting an owner different that the current user requires elevated privileges.
+//   - Template delimiters delimL, delimR allow to easily support templates that contain
+//     themselves the default delimiters {{, }}. Passing the empty delimiters stand for
+//     the default.
 func CopyTemplateFromFs(
 	srcFs fs.FS, srcPath string, dstPath string,
-	mode os.FileMode, owner *user.User, tmplData any,
+	mode os.FileMode, owner *user.User, tmplData any, delimL, delimR string,
 ) error {
-	return copytemplate(srcFs, srcPath, dstPath, mode, owner, tmplData)
+	return copytemplate(srcFs, srcPath, dstPath, mode, owner, tmplData, delimL, delimR)
 }
 
 // Does not read the whole file in memory.
@@ -140,22 +130,16 @@ func copyfile(
 // Reads the whole file in memory, since it must do text template processing.
 func copytemplate(
 	srcFs fs.FS, srcPath string, dstPath string,
-	mode os.FileMode, owner *user.User, tmplData any,
+	mode os.FileMode, owner *user.User, tmplData any, delimL, delimR string,
 ) error {
-	var buf []byte
-	var err error
-	if srcFs != nil {
-		buf, err = fs.ReadFile(srcFs, srcPath)
-	} else {
-		buf, err = os.ReadFile(srcPath)
-	}
+	buf, err := fs.ReadFile(srcFs, srcPath)
 	if err != nil {
-		return fmt.Errorf("florist.copyfile: %s", err)
+		return fmt.Errorf("florist.copytemplate: %s", err)
 	}
 
-	tmpl, err := template.New(path.Base(srcPath)).Parse(string(buf))
+	tmpl, err := template.New(path.Base(srcPath)).Delims(delimL, delimR).Parse(string(buf))
 	if err != nil {
-		return fmt.Errorf("florist.copyfile: %s", err)
+		return fmt.Errorf("florist.copytemplate: %s", err)
 	}
 	// When looking up keys in a map, error out on missing key, as is the case for
 	// struct missing field.
@@ -168,18 +152,18 @@ func copytemplate(
 
 	dst, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
-		return fmt.Errorf("florist.copyfile: %s", err)
+		return fmt.Errorf("florist.copytemplate: %s", err)
 	}
 	defer dst.Close()
 
 	uid, _ := strconv.Atoi(owner.Uid)
 	gid, _ := strconv.Atoi(owner.Gid)
 	if err := os.Chown(dstPath, uid, gid); err != nil {
-		return fmt.Errorf("florist.copyfile: %s", err)
+		return fmt.Errorf("florist.copytemplate: %s", err)
 	}
 
 	if err := tmpl.Execute(dst, tmplData); err != nil {
-		return fmt.Errorf("florist.copyfile: %s", err)
+		return fmt.Errorf("florist.copytemplate: %s", err)
 	}
 
 	return nil

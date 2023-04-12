@@ -84,7 +84,7 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	log.Info("installing sshd configuration file")
 	data := map[string]any{"Port": fl.Port}
 	if err := florist.CopyTemplateFromFs(files, SshdConfig.Src, SshdConfig.Dst,
-		0644, root, data); err != nil {
+		0644, root, data, "", ""); err != nil {
 		return fmt.Errorf("%s.install: %s", fl, err)
 	}
 
@@ -125,18 +125,20 @@ func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 
 	log.Info("adding SSH host key, private")
 	if err := florist.CopyTemplateFromFs(files,
-		SshHostEd25519Key.Src, SshHostEd25519Key.Dst, 0400, root, data); err != nil {
+		SshHostEd25519Key.Src, SshHostEd25519Key.Dst, 0400, root,
+		data, "", ""); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	log.Info("adding SSH host key, public")
 	if err := florist.CopyTemplateFromFs(files,
-		SshHostEd25519KeyPub.Src, SshHostEd25519KeyPub.Dst, 0400, root, data); err != nil {
+		SshHostEd25519KeyPub.Src, SshHostEd25519KeyPub.Dst, 0400, root,
+		data, "", ""); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	log.Info("adding SSH host key, certificate")
 	if err := florist.CopyTemplateFromFs(files,
-		SshHostEd25519KeyCertPub.Src, SshHostEd25519KeyCertPub.Dst,
-		0400, root, data); err != nil {
+		SshHostEd25519KeyCertPub.Src, SshHostEd25519KeyCertPub.Dst, 0400, root,
+		data, "", ""); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 

@@ -6,6 +6,7 @@ import (
 	"os/user"
 	"path"
 	"testing"
+	"testing/fstest"
 	"text/template"
 
 	"gotest.tools/v3/assert"
@@ -42,23 +43,66 @@ func TestUnderstandTemplateFailure(t *testing.T) {
 		"template: name:1:2: executing \"name\" at <.Banana>: can't evaluate field Banana in type florist_test.Inventory")
 }
 
-func TestCopyFileTemplate(t *testing.T) {
+func TestCopyTemplateFromFs(t *testing.T) {
 	type FruitBox struct {
 		Amount int
 		Fruit  string
 	}
-	tmpDir := t.TempDir()
-	tmplFilePath := path.Join(tmpDir, "fruits.txt.tmpl")
-	renderedFilePath := path.Join(tmpDir, "fruits.txt")
-	tmplContents := "{{.Amount}} kg of {{.Fruit}}"
-	assert.NilError(t, os.WriteFile(tmplFilePath, []byte(tmplContents), 0640))
-	box := &FruitBox{Amount: 42, Fruit: "bananas"}
-	currUser, err := user.Current()
-	assert.NilError(t, err)
+	type testCase struct {
+		name        string
+		tplContents string
+		sepL, sepR  string
+		want        string
+	}
 
-	assert.NilError(t, florist.CopyTemplate(tmplFilePath, renderedFilePath, 0640, currUser, box))
+	run := func(t *testing.T, tc testCase) {
+		tmpDir := t.TempDir()
+		srcPath := "fruits.txt.tpl"
+		dstPath := path.Join(tmpDir, "fruits.txt")
+		fruitBox := &FruitBox{Amount: 42, Fruit: "bananas"}
+		currUser, err := user.Current()
+		assert.NilError(t, err)
+		fsys := fstest.MapFS{
+			srcPath: &fstest.MapFile{Data: []byte(tc.tplContents)},
+		}
 
-	renderedContents, err := os.ReadFile(renderedFilePath)
-	assert.NilError(t, err)
-	assert.Equal(t, string(renderedContents), "42 kg of bananas")
+		err = florist.CopyTemplateFromFs(fsys, srcPath, dstPath, 0640, currUser,
+			fruitBox, tc.sepL, tc.sepR)
+		assert.NilError(t, err)
+
+		rendered, err := os.ReadFile(dstPath)
+		assert.NilError(t, err)
+		have := string(rendered)
+		assert.Equal(t, have, tc.want)
+	}
+
+	testCases := []testCase{
+		{
+			name:        "default separators",
+			tplContents: "{{.Amount}} kg of {{.Fruit}}",
+			sepL:        "",
+			sepR:        "",
+			want:        "42 kg of bananas",
+		},
+		{
+			name:        "custom separators",
+			tplContents: "<<.Amount>> kg of <<.Fruit>>",
+			sepL:        "<<",
+			sepR:        ">>",
+			want:        "42 kg of bananas",
+		},
+		{
+			name:        "custom separators, preserves default",
+			tplContents: "<<.Amount>> kg {{ of <<.Fruit>>",
+			sepL:        "<<",
+			sepR:        ">>",
+			want:        "42 kg {{ of bananas",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }

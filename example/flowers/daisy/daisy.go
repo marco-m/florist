@@ -94,7 +94,7 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	log.Debug("installing file (templated)",
 		"src", InstallTplFileSrc, "dst", dstPath2)
 	if err := florist.CopyTemplateFromFs(
-		files, InstallTplFileSrc, dstPath2, 0600, fl.user, data); err != nil {
+		files, InstallTplFileSrc, dstPath2, 0600, fl.user, data, "", ""); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -116,7 +116,7 @@ func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	dstPath := filepath.Join(fl.DstDir, ConfigTplFileDst)
 	log.Debug("installing file (templated)", "src", ConfigTplFileSrc, "dst", dstPath)
 	if err := florist.CopyTemplateFromFs(
-		files, ConfigTplFileSrc, dstPath, 0600, fl.user, data); err != nil {
+		files, ConfigTplFileSrc, dstPath, 0600, fl.user, data, "", ""); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
