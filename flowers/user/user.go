@@ -4,7 +4,6 @@ package user
 import (
 	"fmt"
 	"io/fs"
-	"os"
 	"os/user"
 
 	"github.com/hashicorp/go-hclog"
@@ -51,10 +50,28 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	}
 
 	log.Info("adding user")
-	localUser, err := florist.UserAdd(fl.User)
+	_, err := florist.UserAdd(fl.User)
 	if err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
+
+	sudoersDst := "/etc/sudoers.d/user-" + fl.User
+	log.Info("installing sudoers", "dst", sudoersDst)
+	root, _ := user.Current()
+	if err := florist.Mkdir("/etc/sudoers.d", root, 0755); err != nil {
+		return fmt.Errorf("%s: %s", log.Name(), err)
+	}
+	if err := florist.CopyTemplateFromFs(files,
+		"sudoers.tpl", sudoersDst, 0644, root,
+		fl, "", ""); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
+	}
+
+	return nil
+}
+
+func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
+	log := fl.log.Named("configure")
 
 	log.Debug("loading secrets")
 	content := finder.Get(AuthorizedKeys)
@@ -62,25 +79,15 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
+	userinfo, err := user.Lookup(fl.User)
+	if err != nil {
+		return fmt.Errorf("user: lookup: %s", err)
+	}
+
 	log.Info("adding SSH authorized_keys")
-	if err := ssh.AddAuthorizedKeys(localUser, content); err != nil {
+	if err := ssh.AddAuthorizedKeys(userinfo, content); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	// FIXME passwordless sudo has user "ops" hardcoded
-	log.Info("enabling passwordless sudo")
-	root, _ := user.Current()
-	if err := florist.Mkdir("/etc/sudoers.d", root, 0755); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
-	}
-	if err := os.WriteFile("/etc/sudoers.d/user-ops",
-		[]byte("ops ALL=(ALL) NOPASSWD: ALL\n"), 0644); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
-	}
-
-	return nil
-}
-
-func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	return nil
 }
