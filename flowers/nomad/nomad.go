@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"os/user"
 	"path"
 	"time"
 
@@ -55,14 +54,6 @@ func (fl *ServerFlower) Init() error {
 }
 
 func (fl *ServerFlower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
-
-	root, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
 	fl.log.Info("Install packages needed by Nomad server")
 	if err := apt.Install(
 		"ethtool", // Used by Nomad
@@ -71,26 +62,25 @@ func (fl *ServerFlower) Install(files fs.FS, finder florist.Finder) error {
 	}
 
 	fl.log.Info("Add system user 'nomad-server'")
-	userNomad, err := florist.UserSystemAdd("nomad-server", NomadServerHome)
-	if err != nil {
+	if err := florist.UserSystemAdd("nomad-server", NomadServerHome); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	if err := installNomadExe(fl.log, fl.Version, fl.Hash, root); err != nil {
+	if err := installNomadExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadCfg := path.Join(NomadServerHome, "nomad.server.hcl")
 	fl.log.Info("Install nomad server configuration file", "dst", nomadCfg)
-	if err := florist.CopyFileFromFs(files, "nomad.server.hcl",
-		nomadCfg, 0640, userNomad); err != nil {
+	if err := florist.CopyFileFs(files, "nomad.server.hcl",
+		nomadCfg, 0640, "nomad-server"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-server.service")
 	fl.log.Info("Install nomad server systemd unit file", "dst", nomadUnit)
-	if err := florist.CopyFileFromFs(files, "nomad-server.service",
-		nomadUnit, 0644, root); err != nil {
+	if err := florist.CopyFileFs(files, "nomad-server.service",
+		nomadUnit, 0644, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -142,14 +132,6 @@ func (fl *ClientFlower) Init() error {
 }
 
 func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
-
-	root, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
 	fl.log.Info("Install packages needed by Nomad client")
 	if err := apt.Install(
 		"apparmor", // Needed by Nomad for the Docker driver
@@ -161,26 +143,25 @@ func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
 	// FIXME we add the user but we don't use it, because we need to run the
 	// nomad client as root
 	fl.log.Info("Add system user 'nomad-client'")
-	_, err = florist.UserSystemAdd("nomad-client", NomadClientHome)
-	if err != nil {
+	if err := florist.UserSystemAdd("nomad-client", NomadClientHome); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	if err := installNomadExe(fl.log, fl.Version, fl.Hash, root); err != nil {
+	if err := installNomadExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadCfg := path.Join(NomadClientHome, "nomad.client.hcl")
 	fl.log.Info("Install nomad client configuration file", "dst", nomadCfg)
-	if err := florist.CopyFileFromFs(files, "nomad.client.hcl",
-		nomadCfg, 0640, root); err != nil {
+	if err := florist.CopyFileFs(files, "nomad.client.hcl",
+		nomadCfg, 0640, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	nomadUnit := path.Join("/etc/systemd/system/", "nomad-client.service")
 	fl.log.Info("Install nomad client systemd unit file", "dst", nomadUnit)
-	if err := florist.CopyFileFromFs(files, "nomad-client.service",
-		nomadUnit, 0644, root); err != nil {
+	if err := florist.CopyFileFs(files, "nomad-client.service",
+		nomadUnit, 0644, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -204,7 +185,7 @@ func installNomadExe(
 	log hclog.Logger,
 	version string,
 	hash string,
-	root *user.User,
+	owner string,
 ) error {
 	log.Info("Download Nomad package")
 	url := fmt.Sprintf(
@@ -227,7 +208,7 @@ func installNomadExe(
 
 	exe := path.Join(NomadBin, "nomad")
 	log.Info("Install nomad", "dst", exe)
-	if err := florist.CopyFile(extracted, exe, 0755, root); err != nil {
+	if err := florist.CopyFile(extracted, exe, 0755, owner); err != nil {
 		return err
 	}
 

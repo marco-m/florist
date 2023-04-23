@@ -4,7 +4,6 @@ package user
 import (
 	"fmt"
 	"io/fs"
-	"os/user"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -50,19 +49,17 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	}
 
 	log.Info("adding user")
-	_, err := florist.UserAdd(fl.User)
-	if err != nil {
+	if err := florist.UserAdd(fl.User); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
 	sudoersDst := "/etc/sudoers.d/user-" + fl.User
 	log.Info("installing sudoers", "dst", sudoersDst)
-	root, _ := user.Current()
-	if err := florist.Mkdir("/etc/sudoers.d", root, 0755); err != nil {
+	if err := florist.Mkdir("/etc/sudoers.d", "root", 0755); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
-	if err := florist.CopyTemplateFromFs(files,
-		"sudoers.tpl", sudoersDst, 0644, root,
+	if err := florist.CopyTemplateFs(files,
+		"sudoers.tpl", sudoersDst, 0644, "root",
 		fl, "", ""); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -79,13 +76,8 @@ func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	userinfo, err := user.Lookup(fl.User)
-	if err != nil {
-		return fmt.Errorf("user: lookup: %s", err)
-	}
-
 	log.Info("adding SSH authorized_keys")
-	if err := ssh.AddAuthorizedKeys(userinfo, content); err != nil {
+	if err := ssh.AddAuthorizedKeys(fl.User, content); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 

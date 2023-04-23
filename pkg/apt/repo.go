@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/user"
 	"path"
 	"time"
 
@@ -69,9 +68,8 @@ func AddRepo(
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 
-	root, _ := user.Current()
 	repoListDir := "/etc/apt/sources.list.d/"
-	if err := florist.Mkdir(repoListDir, root, 0755); err != nil {
+	if err := florist.Mkdir(repoListDir, "root", 0755); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}
 	repoLine := fmt.Sprintf("deb [arch=%s signed-by=%s] %s %s stable\n",

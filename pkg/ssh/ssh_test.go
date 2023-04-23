@@ -11,11 +11,12 @@ import (
 
 func TestSshAddAuthorizedKeysVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
+	username := "ssh-user"
 
-	user, err := florist.UserAdd("ssh-user")
+	err := florist.UserAdd(username)
 	assert.NilError(t, err)
 
 	content := "hello"
-	err = ssh.AddAuthorizedKeys(user, content)
+	err = ssh.AddAuthorizedKeys(username, content)
 	assert.NilError(t, err)
 }

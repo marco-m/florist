@@ -66,7 +66,7 @@ func TestCopyTemplateFromFs(t *testing.T) {
 			srcPath: &fstest.MapFile{Data: []byte(tc.tplContents)},
 		}
 
-		err = florist.CopyTemplateFromFs(fsys, srcPath, dstPath, 0640, currUser,
+		err = florist.CopyTemplateFs(fsys, srcPath, dstPath, 0640, currUser.Username,
 			fruitBox, tc.sepL, tc.sepR)
 		assert.NilError(t, err)
 

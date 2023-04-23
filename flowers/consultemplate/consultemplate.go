@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"os/user"
 	"path"
 	"time"
 
@@ -59,24 +58,18 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	fl.log.Info("begin")
 	defer fl.log.Info("end")
 
-	root, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
-	}
-
 	fl.log.Info("Add system user 'consul-template'")
-	userConsulTemplate, err := florist.UserSystemAdd("consul-template", HomeDir)
-	if err != nil {
+	if err := florist.UserSystemAdd("consul-template", HomeDir); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
 	fl.log.Info("Create consul-template configuration dir", "dir", ConfigDir)
-	if err := florist.Mkdir(ConfigDir, userConsulTemplate, 0755); err != nil {
+	if err := florist.Mkdir(ConfigDir, "consul-template", 0755); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
 	fl.log.Info("Create consul-template templates dir", "dir", TemplatesDir)
-	if err := florist.Mkdir(TemplatesDir, userConsulTemplate,
+	if err := florist.Mkdir(TemplatesDir, "consul-template",
 		0755); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
@@ -85,16 +78,12 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	//
 	// For the time being we run consul-template as root :-(
 	//
-	// We should add a dedicated user, consul-template, and then give it, via
-	// Linux CAP, "only" the capabilities to write files, doing chown and
-	// sending signals to other processes.
-	// Actually writing files is so powerful that probably this protection would
-	// be useless? :-(
-	//
-	// Could be a better approach to use sudo and dedicated sudoers entries...
-	userConsulTemplate = root
+	// Talking with MA, the proper way to use consul-template is to use it in
+	// supervisor mode for each service that needs it (so for each service, the systemd
+	// unit file instead of starting the service, starts a dedicated consul-template),
+	// so that we can avoid having it running as root!
 
-	if err := installExe(fl.log, fl.Version, fl.Hash, root); err != nil {
+	if err := installExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
@@ -102,8 +91,7 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 		src := path.Join(SrcConfigDir, cfg)
 		dst := path.Join(ConfigDir, cfg)
 		fl.log.Info("Install consul-template configuration file", "dst", dst)
-		if err := florist.CopyFileFromFs(files, src, dst, 0640,
-			userConsulTemplate); err != nil {
+		if err := florist.CopyFileFs(files, src, dst, 0640, "root"); err != nil {
 			return fmt.Errorf("%s: %s", fl.log.Name(), err)
 		}
 	}
@@ -112,8 +100,7 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 		src := path.Join(SrcTemplatesDir, tmpl)
 		dst := path.Join(TemplatesDir, tmpl)
 		fl.log.Info("Install consul-template template file", "dst", dst)
-		if err := florist.CopyFileFromFs(files, src, dst, 0640,
-			userConsulTemplate); err != nil {
+		if err := florist.CopyFileFs(files, src, dst, 0640, "root"); err != nil {
 			return fmt.Errorf("%s: %s", fl.log.Name(), err)
 		}
 	}
@@ -123,7 +110,7 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	src := unit
 	dst := path.Join("/etc/systemd/system/", unit)
 	fl.log.Info("Install consul-template systemd unit file", "dst", dst)
-	if err := florist.CopyFileFromFs(files, src, dst, 0644, root); err != nil {
+	if err := florist.CopyFileFs(files, src, dst, 0644, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fl.log.Name(), err)
 	}
 
@@ -145,7 +132,7 @@ func installExe(
 	log hclog.Logger,
 	version string,
 	hash string,
-	root *user.User,
+	owner string,
 ) error {
 	log.Info("Download consul-template package")
 	url := fmt.Sprintf("https://releases.hashicorp.com/consul-template/%s/consul-template_%s_linux_amd64.zip", version, version)
@@ -165,7 +152,7 @@ func installExe(
 
 	exe := path.Join(BinDir, "consul-template")
 	log.Info("Install consul-template", "dst", exe)
-	if err := florist.CopyFile(extracted, exe, 0755, root); err != nil {
+	if err := florist.CopyFile(extracted, exe, 0755, owner); err != nil {
 		return err
 	}
 

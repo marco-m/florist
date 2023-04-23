@@ -32,7 +32,7 @@ func Init() (*user.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("florist.Init: %s", err)
 	}
-	if err := Mkdir(WorkDir, currUser, 0755); err != nil {
+	if err := Mkdir(WorkDir, currUser.Username, 0755); err != nil {
 		return currUser, fmt.Errorf("florist.Init: %s", err)
 	}
 	log.Info("success")

@@ -13,11 +13,21 @@ import (
 )
 
 // Mkdir creates the directory path with associated owner and permissions.
+// If owner is empty, it means the current user.
 // If the directory already exists it does nothing.
-func Mkdir(path string, owner *user.User, perm fs.FileMode) error {
+func Mkdir(path string, owner string, perm fs.FileMode) error {
 	log := Log.Named("Mkdir").With("path", path)
 
-	_, err := os.Stat(path)
+	var ownerUser *user.User
+	var err error
+	if owner != "" {
+		ownerUser, err = user.Lookup(owner)
+		if err != nil {
+			return fmt.Errorf("florist.Mkdir: %s", err)
+		}
+	}
+
+	_, err = os.Stat(path)
 	if err == nil {
 		log.Debug("directory exists")
 		return nil
@@ -32,10 +42,10 @@ func Mkdir(path string, owner *user.User, perm fs.FileMode) error {
 		return fmt.Errorf("florist.Mkdir: %s", err)
 	}
 
-	if owner != nil {
-		uid, _ := strconv.Atoi(owner.Uid)
-		gid, _ := strconv.Atoi(owner.Gid)
-		log.Debug("chowning directory", "owner", owner.Username)
+	if ownerUser != nil {
+		uid, _ := strconv.Atoi(ownerUser.Uid)
+		gid, _ := strconv.Atoi(ownerUser.Gid)
+		log.Debug("chowning directory", "owner", owner)
 		if err := os.Chown(path, uid, gid); err != nil {
 			return fmt.Errorf("florist.Mkdir: %s", err)
 		}
@@ -51,25 +61,25 @@ func Mkdir(path string, owner *user.User, perm fs.FileMode) error {
 // - Setting an owner different that the current user requires elevated privileges.
 func CopyFile(
 	srcPath string, dstPath string,
-	mode os.FileMode, owner *user.User,
+	mode os.FileMode, owner string,
 ) error {
 	return copyfile(nil, srcPath, dstPath, mode, owner)
 }
 
-// CopyFileFromFs copies file srcPath to dstPath, with mode and owner. The source
+// CopyFileFs copies file srcPath to dstPath, with mode and owner. The source
 // file resides in the srcFs filesystem (for example, via go:embed), while the
 // destination file resides in the "real" filesystem.
 // Notes:
 // - If dstPath exists, it will be overwritten.
 // - Setting an owner different that the current user requires elevated privileges.
-func CopyFileFromFs(
+func CopyFileFs(
 	srcFs fs.FS, srcPath string, dstPath string,
-	mode os.FileMode, owner *user.User,
+	mode os.FileMode, owner string,
 ) error {
 	return copyfile(srcFs, srcPath, dstPath, mode, owner)
 }
 
-// CopyTemplateFromFs copies file srcPath to dstPath, with mode and owner, performing
+// CopyTemplateFs copies file srcPath to dstPath, with mode and owner, performing
 // Go text template processing based on the fields in tmplData. The source file resides
 // in the srcFs filesystem (for example, via go:embed), while the destination file
 // resides in the "real" filesystem.
@@ -79,9 +89,9 @@ func CopyFileFromFs(
 //   - Template delimiters delimL, delimR allow to easily support templates that contain
 //     themselves the default delimiters {{, }}. Passing the empty delimiters stand for
 //     the default.
-func CopyTemplateFromFs(
+func CopyTemplateFs(
 	srcFs fs.FS, srcPath string, dstPath string,
-	mode os.FileMode, owner *user.User, tmplData any, delimL, delimR string,
+	mode os.FileMode, owner string, tmplData any, delimL, delimR string,
 ) error {
 	return copytemplate(srcFs, srcPath, dstPath, mode, owner, tmplData, delimL, delimR)
 }
@@ -89,10 +99,14 @@ func CopyTemplateFromFs(
 // Does not read the whole file in memory.
 func copyfile(
 	srcFs fs.FS, srcPath string, dstPath string,
-	mode os.FileMode, owner *user.User,
+	mode os.FileMode, owner string,
 ) error {
+	ownerUser, err := user.Lookup(owner)
+	if err != nil {
+		return fmt.Errorf("florist.copyfile: %s", err)
+	}
+
 	var src fs.File
-	var err error
 	if srcFs != nil {
 		src, err = srcFs.Open(srcPath)
 	} else {
@@ -114,8 +128,8 @@ func copyfile(
 	}
 	defer dst.Close()
 
-	uid, _ := strconv.Atoi(owner.Uid)
-	gid, _ := strconv.Atoi(owner.Gid)
+	uid, _ := strconv.Atoi(ownerUser.Uid)
+	gid, _ := strconv.Atoi(ownerUser.Gid)
 	if err := os.Chown(dstPath, uid, gid); err != nil {
 		return fmt.Errorf("florist.copyfile: %s", err)
 	}
@@ -130,8 +144,13 @@ func copyfile(
 // Reads the whole file in memory, since it must do text template processing.
 func copytemplate(
 	srcFs fs.FS, srcPath string, dstPath string,
-	mode os.FileMode, owner *user.User, tmplData any, delimL, delimR string,
+	mode os.FileMode, owner string, tmplData any, delimL, delimR string,
 ) error {
+	ownerUser, err := user.Lookup(owner)
+	if err != nil {
+		return fmt.Errorf("florist.copytemplate: %s", err)
+	}
+
 	buf, err := fs.ReadFile(srcFs, srcPath)
 	if err != nil {
 		return fmt.Errorf("florist.copytemplate: %s", err)
@@ -156,8 +175,8 @@ func copytemplate(
 	}
 	defer dst.Close()
 
-	uid, _ := strconv.Atoi(owner.Uid)
-	gid, _ := strconv.Atoi(owner.Gid)
+	uid, _ := strconv.Atoi(ownerUser.Uid)
+	gid, _ := strconv.Atoi(ownerUser.Gid)
 	if err := os.Chown(dstPath, uid, gid); err != nil {
 		return fmt.Errorf("florist.copytemplate: %s", err)
 	}

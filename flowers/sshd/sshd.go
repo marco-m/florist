@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os/exec"
-	"os/user"
 
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
@@ -76,15 +75,10 @@ func (fl *Flower) Init() error {
 func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	log := fl.log.Named("install")
 
-	root, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("%s.install: %s", fl, err)
-	}
-
 	log.Info("installing sshd configuration file")
 	data := map[string]any{"Port": fl.Port}
-	if err := florist.CopyTemplateFromFs(files, SshdConfig.Src, SshdConfig.Dst,
-		0644, root, data, "", ""); err != nil {
+	if err := florist.CopyTemplateFs(files, SshdConfig.Src, SshdConfig.Dst,
+		0644, "root", data, "", ""); err != nil {
 		return fmt.Errorf("%s.install: %s", fl, err)
 	}
 
@@ -93,11 +87,6 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 
 func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	log := fl.log.Named("configure")
-
-	root, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("%s.configure: %s", fl, err)
-	}
 
 	// FIXME This is dangerous when developing. Is it worthwhile?
 	// log.Info("Remove SSH keys already present")
@@ -124,20 +113,20 @@ func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 	}
 
 	log.Info("adding SSH host key, private")
-	if err := florist.CopyTemplateFromFs(files,
-		SshHostEd25519Key.Src, SshHostEd25519Key.Dst, 0400, root,
+	if err := florist.CopyTemplateFs(files,
+		SshHostEd25519Key.Src, SshHostEd25519Key.Dst, 0400, "root",
 		data, "", ""); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	log.Info("adding SSH host key, public")
-	if err := florist.CopyTemplateFromFs(files,
-		SshHostEd25519KeyPub.Src, SshHostEd25519KeyPub.Dst, 0400, root,
+	if err := florist.CopyTemplateFs(files,
+		SshHostEd25519KeyPub.Src, SshHostEd25519KeyPub.Dst, 0400, "root",
 		data, "", ""); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 	log.Info("adding SSH host key, certificate")
-	if err := florist.CopyTemplateFromFs(files,
-		SshHostEd25519KeyCertPub.Src, SshHostEd25519KeyCertPub.Dst, 0400, root,
+	if err := florist.CopyTemplateFs(files,
+		SshHostEd25519KeyCertPub.Src, SshHostEd25519KeyCertPub.Dst, 0400, "root",
 		data, "", ""); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}

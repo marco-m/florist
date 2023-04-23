@@ -11,12 +11,12 @@ import (
 // Do nothing if user already present.
 // If groups not empty, add the user to the supplementary groups.
 // Password login is disabled (use SSH public key or use passwd)
-func UserAdd(username string, groups ...string) (*user.User, error) {
+func UserAdd(username string, groups ...string) error {
 	log := Log.Named("UserAdd").With("user", username)
 
-	if userinfo, err := user.Lookup(username); err == nil {
+	if _, err := user.Lookup(username); err == nil {
 		log.Debug("user already present")
-		return userinfo, nil
+		return nil
 	}
 	// Here we should check for the specific user.UnknownUserError
 	// but we err on optimist and keep going; in any case adduser will fail
@@ -28,20 +28,20 @@ func UserAdd(username string, groups ...string) (*user.User, error) {
 		"--disabled-password",
 		username)
 	if err := CmdRun(log, cmd); err != nil {
-		return nil, fmt.Errorf("user: add: %s", err)
+		return fmt.Errorf("user: add: %s", err)
 	}
 	log.Debug("user added")
 
 	if err := SupplementaryGroups(username, groups...); err != nil {
-		return nil, err
+		return err
 	}
 
-	userinfo, err := user.Lookup(username)
+	_, err := user.Lookup(username)
 	if err != nil {
-		return nil, fmt.Errorf("user: lookup: %s", err)
+		return fmt.Errorf("user: lookup: %s", err)
 	}
 
-	return userinfo, nil
+	return nil
 }
 
 // if username is present, then add it to the supplementary groups
@@ -65,12 +65,12 @@ func SupplementaryGroups(username string, groups ...string) error {
 	return nil
 }
 
-func UserSystemAdd(username string, homedir string) (*user.User, error) {
+func UserSystemAdd(username string, homedir string) error {
 	log := Log.Named("UserSystemAdd").With("user", username)
 
-	if userinfo, err := user.Lookup(username); err == nil {
+	if _, err := user.Lookup(username); err == nil {
 		log.Debug("user already present")
-		return userinfo, nil
+		return nil
 	}
 
 	cmd := exec.Command(
@@ -80,16 +80,16 @@ func UserSystemAdd(username string, homedir string) (*user.User, error) {
 		"--gecos", fmt.Sprintf("'user %s'", username),
 		username)
 	if err := CmdRun(log, cmd); err != nil {
-		return nil, fmt.Errorf("user: add: %s", err)
+		return fmt.Errorf("user: add: %s", err)
 	}
 	log.Debug("user added")
 
-	userinfo, err := user.Lookup(username)
+	_, err := user.Lookup(username)
 	if err != nil {
-		return nil, fmt.Errorf("user: lookup: %s", err)
+		return fmt.Errorf("user: lookup: %s", err)
 	}
 
-	return userinfo, nil
+	return nil
 }
 
 func GroupSystemAdd(groupname string) error {

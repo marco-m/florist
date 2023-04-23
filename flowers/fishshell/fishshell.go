@@ -55,21 +55,16 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 		return err
 	}
 
-	root, err := user.Current()
-	if err != nil {
-		return err
-	}
-
 	fl.log.Info("Configure fish shell functions system-wide")
 	// # This provides the FQDN hostname in the prompt
-	if err := florist.CopyFileFromFs(files, PromptFileSrc, PromptFileDst,
-		0644, root); err != nil {
+	if err := florist.CopyFileFs(files, PromptFileSrc, PromptFileDst,
+		0644, "root"); err != nil {
 		return err
 	}
 
 	fl.log.Info("Configure fish shell system-wide")
-	if err := florist.CopyFileFromFs(files, ConfigFileSrc, ConfigFileDst,
-		0644, root); err != nil {
+	if err := florist.CopyFileFs(files, ConfigFileSrc, ConfigFileDst,
+		0644, "root"); err != nil {
 		return err
 	}
 

@@ -11,11 +11,16 @@ import (
 )
 
 // This overwrites !
-func AddAuthorizedKeys(owner *user.User, contents string) error {
-	log := florist.Log.Named("ssh.AddAuthorizedKeys").With("user", owner.Username)
+func AddAuthorizedKeys(owner string, contents string) error {
+	log := florist.Log.Named("ssh.AddAuthorizedKeys").With("user", owner)
+
+	ownerUser, err := user.Lookup(owner)
+	if err != nil {
+		return fmt.Errorf("florist.copyfile: %s", err)
+	}
 
 	// If $HOME/.ssh doesn't exist, create it, correct owner and permissions.
-	sshDir := filepath.Join(owner.HomeDir, ".ssh")
+	sshDir := filepath.Join(ownerUser.HomeDir, ".ssh")
 	if err := florist.Mkdir(sshDir, owner, 0700); err != nil {
 		return fmt.Errorf("AddAuthorizedKeys: %s", err)
 	}
@@ -26,8 +31,8 @@ func AddAuthorizedKeys(owner *user.User, contents string) error {
 		return fmt.Errorf("AddAuthorizedKeys: %s", err)
 	}
 	defer f.Close()
-	uid, _ := strconv.Atoi(owner.Uid)
-	gid, _ := strconv.Atoi(owner.Gid)
+	uid, _ := strconv.Atoi(ownerUser.Uid)
+	gid, _ := strconv.Atoi(ownerUser.Gid)
 	if err := os.Chown(authorizedKeysPath, uid, gid); err != nil {
 		return fmt.Errorf("AddAuthorizedKeys: %s", err)
 	}

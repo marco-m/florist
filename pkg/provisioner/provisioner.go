@@ -355,7 +355,7 @@ func customizeMotd(log hclog.Logger, op string, root string) error {
 	name := path.Join(root, "/etc/motd")
 	log.Debug("customizeMotd", "target", name, "operation", op)
 
-	if err := florist.Mkdir(path.Dir(name), nil, 0755); err != nil {
+	if err := florist.Mkdir(path.Dir(name), "", 0755); err != nil {
 		return err
 	}
 

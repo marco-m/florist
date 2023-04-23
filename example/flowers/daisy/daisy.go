@@ -45,7 +45,7 @@ type Flower struct {
 	Fruit string `default:"banana"`
 
 	log  hclog.Logger
-	user *user.User
+	user string
 }
 
 func (fl *Flower) String() string {
@@ -64,10 +64,11 @@ func (fl *Flower) Init() error {
 	}
 
 	var err error
-	fl.user, err = user.Current()
+	curUser, err := user.Current()
 	if err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
+	fl.user = curUser.Username
 
 	return nil
 }
@@ -82,7 +83,7 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	dstPath1 := filepath.Join(fl.DstDir, InstallStaticFileDst)
 	log.Debug("installing file (static)",
 		"src", InstallStaticFileSrc, "dst", dstPath1)
-	if err := florist.CopyFileFromFs(
+	if err := florist.CopyFileFs(
 		files, InstallStaticFileSrc, dstPath1, 0600, fl.user); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -93,7 +94,7 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	dstPath2 := filepath.Join(fl.DstDir, InstallTmplFileDst)
 	log.Debug("installing file (templated)",
 		"src", InstallTplFileSrc, "dst", dstPath2)
-	if err := florist.CopyTemplateFromFs(
+	if err := florist.CopyTemplateFs(
 		files, InstallTplFileSrc, dstPath2, 0600, fl.user, data, "", ""); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
@@ -115,7 +116,7 @@ func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
 
 	dstPath := filepath.Join(fl.DstDir, ConfigTplFileDst)
 	log.Debug("installing file (templated)", "src", ConfigTplFileSrc, "dst", dstPath)
-	if err := florist.CopyTemplateFromFs(
+	if err := florist.CopyTemplateFs(
 		files, ConfigTplFileSrc, dstPath, 0600, fl.user, data, "", ""); err != nil {
 		return fmt.Errorf("%s: %s", log.Name(), err)
 	}

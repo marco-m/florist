@@ -1,8 +1,9 @@
 package florist_test
 
 import (
-	"strings"
 	"testing"
+
+	"gotest.tools/v3/assert"
 
 	"github.com/marco-m/florist/pkg/florist"
 )
@@ -10,11 +11,9 @@ import (
 func TestUserAddSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
-	_, err := florist.UserAdd("beppe")
+	err := florist.UserAdd("beppe")
 
-	if err != nil {
-		t.Fatalf("\nhave: %s\nwant: <no error>", err)
-	}
+	assert.NilError(t, err)
 }
 
 func TestSupplementaryGroupsFailureVM(t *testing.T) {
@@ -22,22 +21,13 @@ func TestSupplementaryGroupsFailureVM(t *testing.T) {
 
 	err := florist.SupplementaryGroups("beppe", "banana")
 
-	wantErr := "group 'banana' does not exist"
-	if err == nil {
-		t.Fatalf("\nhave: <no error>\nwant: %s", wantErr)
-	}
-	have := err.Error()
-	if !strings.Contains(have, wantErr) {
-		t.Fatalf("\nhave: %s\nwant: contains: %s", have, wantErr)
-	}
+	assert.ErrorContains(t, err, "group 'banana' does not exist")
 }
 
 func TestUserSystemAddSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
-	_, err := florist.UserSystemAdd("maniglia", "/opt/maniglia")
+	err := florist.UserSystemAdd("maniglia", "/opt/maniglia")
 
-	if err != nil {
-		t.Fatalf("\nhave: %s\nwant: <no error>", err)
-	}
+	assert.NilError(t, err)
 }
