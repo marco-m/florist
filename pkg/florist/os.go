@@ -11,6 +11,23 @@ import (
 	"text/template"
 )
 
+func WriteFile(name string, data string, perm os.FileMode) error {
+	currUser, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("florist.WriteFile: %s", err)
+	}
+
+	if err = Mkdir(path.Dir(name), currUser.Username, 0700); err != nil {
+		return fmt.Errorf("florist.WriteFile: %s", err)
+	}
+
+	if err := os.WriteFile(name, []byte(data), perm); err != nil {
+		return fmt.Errorf("florist.WriteFile: %s", err)
+	}
+
+	return nil
+}
+
 // Mkdir creates the directory path with associated owner and permissions.
 // If owner is empty, it means the current user.
 // If the directory already exists it does nothing.

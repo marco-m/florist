@@ -162,6 +162,8 @@ func GopassGet(key string) (string, error) {
 		}
 		return "", err
 	}
+	// Sigh.
+	// return strings.TrimSpace(out), nil
 	return out, nil
 }
 
