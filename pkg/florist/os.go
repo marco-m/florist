@@ -1,7 +1,6 @@
 package florist
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -16,7 +15,7 @@ import (
 // If owner is empty, it means the current user.
 // If the directory already exists it does nothing.
 func Mkdir(path string, owner string, perm fs.FileMode) error {
-	log := Log.Named("Mkdir").With("path", path)
+	log := Log.Named("Mkdir").With("path", path).With("owner", owner)
 
 	var ownerUser *user.User
 	var err error
@@ -27,18 +26,8 @@ func Mkdir(path string, owner string, perm fs.FileMode) error {
 		}
 	}
 
-	_, err = os.Stat(path)
-	if err == nil {
-		log.Debug("directory exists")
-		return nil
-	}
-	if !errors.Is(err, fs.ErrNotExist) {
-		// Some other error
-		return fmt.Errorf("florist.Mkdir: %s", err)
-	}
-	// Directory doesn't exist, let's create it
-	log.Debug("creating directory", "dir", path, "perm", perm)
-	if err := os.Mkdir(path, perm); err != nil {
+	log.Debug("creating directory", "perm", perm)
+	if err := os.MkdirAll(path, perm); err != nil {
 		return fmt.Errorf("florist.Mkdir: %s", err)
 	}
 
