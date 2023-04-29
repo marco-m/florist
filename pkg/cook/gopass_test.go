@@ -1,9 +1,10 @@
-// Running gopass tests requires too much user-specific setup (for example, PGP key).
-// I could protect these tests with florist.SkipIfNotDisposableHost(t) but also in that
-// case I would have to set up everything and I don't have time now.
+// Running gopass tests requires too much user-specific setup (for example, PGP
+// key). We could protect these tests with florist.SkipIfNotDisposableHost(t)
+// but also in that case we would have to set up everything and I don't have
+// time now.
 //
-// Instead, we run these tests only if we find gopass already installed on the host.
-// Not perfect but good enough.
+// Instead, we run these tests only if we find gopass already installed on the
+// host. Not perfect but good enough.
 //
 // gopass init --storage fs --crypto age
 
