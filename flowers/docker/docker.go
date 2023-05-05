@@ -4,12 +4,14 @@ package docker
 import (
 	"fmt"
 	"io/fs"
+	"os"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/systemd"
 )
 
 var _ florist.Flower = (*Flower)(nil)
@@ -35,9 +37,6 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
-
 	fl.log.Info("Add Docker upstream APT repository")
 	// https://docs.docker.com/engine/install/debian/
 	if err := apt.AddRepo(
@@ -59,6 +58,22 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 		"docker-ce-cli",
 		"containerd.io",
 	); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
+	}
+
+	fl.log.Info("Enable IPv6 for the Docker daemon")
+	// https://github.com/docker/hub-feedback/issues/2165#issuecomment-1173017573
+	conf := `
+{
+  "registry-mirrors": [
+    "https://registry.ipv6.docker.com"
+  ]
+}`
+	if err := os.WriteFile("/etc/docker/daemon.json", []byte(conf), 0644); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
+	}
+	fl.log.Info("Restart the Docker daemon")
+	if err := systemd.Restart("docker"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
