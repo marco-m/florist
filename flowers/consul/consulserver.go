@@ -16,8 +16,10 @@ import (
 )
 
 const (
-	ConsulHome = "/opt/consul"
-	ConsulBin  = "/usr/local/bin"
+	consulHomeDir  = "/opt/consul"
+	consulCfgDir   = "/opt/consul/config"
+	consulBin      = "/usr/local/bin"
+	consulUsername = "consul"
 )
 
 type dynamic struct {
@@ -54,13 +56,20 @@ func (fl *ServerFlower) Init() error {
 }
 
 func (fl *ServerFlower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("Add system user 'consul'")
-	if err := florist.UserSystemAdd("consul", ConsulHome); err != nil {
+	log := fl.log.Named("install")
+
+	log.Info("Add system user", "user", consulUsername)
+	if err := florist.UserSystemAdd(consulUsername, consulHomeDir); err != nil {
 		return fmt.Errorf("consulserver.install: %s", err)
 	}
 
-	if err := installConsulExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
+	if err := installConsulExe(log, fl.Version, fl.Hash, "root"); err != nil {
 		return fmt.Errorf("consulserver.install: %s", err)
+	}
+
+	log.Info("Create cfg dir", "dst", consulCfgDir)
+	if err := florist.Mkdir(consulCfgDir, consulUsername, 0755); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	return nil
@@ -77,27 +86,25 @@ func (fl *ServerFlower) Configure(files fs.FS, finder florist.Finder) error {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	consulCfgDst := path.Join(ConsulHome, "consul.server.hcl")
-	fl.log.Info("Install consul server configuration file", "dst", consulCfgDst)
-	if err := florist.CopyTemplateFs(files,
-		"consul.server.hcl.tpl", consulCfgDst, 0640, "consul",
-		data, "<<", ">>"); err != nil {
+	consulCfgDst := path.Join(consulCfgDir, "consul.server.hcl")
+	log.Info("Install consul server configuration file", "dst", consulCfgDst)
+	if err := florist.CopyTemplateFs(files, "consul.server.hcl.tpl",
+		consulCfgDst, 0640, consulUsername, data, "<<", ">>"); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	consulUnit := path.Join("/etc/systemd/system/", "consul-server.service")
-	fl.log.Info("Install consul server systemd unit file", "dst", consulUnit)
+	consulUnitDst := path.Join("/etc/systemd/system/", "consul-server.service")
+	log.Info("Install consul server systemd unit file", "dst", consulUnitDst)
 	if err := florist.CopyFileFs(files, "consul-server.service",
-		consulUnit, 0644, "root"); err != nil {
+		consulUnitDst, 0644, "root"); err != nil {
 		return fmt.Errorf("consulserver.configure: %s", err)
 	}
 
-	fl.log.Info("Enable consul server to start at boot")
+	log.Info("Enable consul server to start at boot")
 	if err := systemd.Enable("consul-server.service"); err != nil {
 		return fmt.Errorf("consulserver.configure: %s", err)
 	}
-
-	fl.log.Info("Start consul server")
+	log.Info("Restart consul server")
 	if err := systemd.Restart("consul-server.service"); err != nil {
 		return fmt.Errorf("consulserver.configure: %s", err)
 	}
@@ -107,7 +114,9 @@ func (fl *ServerFlower) Configure(files fs.FS, finder florist.Finder) error {
 
 func installConsulExe(log hclog.Logger, version, hash, owner string) error {
 	log.Info("Download Consul package")
-	url := fmt.Sprintf("https://releases.hashicorp.com/consul/%s/consul_%s_linux_amd64.zip", version, version)
+	url := fmt.Sprintf(
+		"https://releases.hashicorp.com/consul/%s/consul_%s_linux_amd64.zip",
+		version, version)
 	client := &http.Client{Timeout: 30 * time.Second}
 	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash, florist.WorkDir)
 	if err != nil {
@@ -120,7 +129,7 @@ func installConsulExe(log hclog.Logger, version, hash, owner string) error {
 		return err
 	}
 
-	exe := path.Join(ConsulBin, "consul")
+	exe := path.Join(consulBin, "consul")
 	log.Info("Install consul", "dst", exe)
 	if err := florist.CopyFile(extracted, exe, 0755, owner); err != nil {
 		return err

@@ -43,12 +43,17 @@ func (fl *ClientFlower) Init() error {
 }
 
 func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("Add system user 'consul'")
-	if err := florist.UserSystemAdd("consul", ConsulHome); err != nil {
+	fl.log.Info("Add system user", "user", consulUsername)
+	if err := florist.UserSystemAdd(consulUsername, consulHomeDir); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	if err := installConsulExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
+		return fmt.Errorf("%s: %s", fl, err)
+	}
+
+	fl.log.Info("Create cfg dir", "dst", consulCfgDir)
+	if err := florist.Mkdir(consulCfgDir, consulUsername, 0755); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -66,11 +71,10 @@ func (fl *ClientFlower) Configure(files fs.FS, finder florist.Finder) error {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	consulCfgDst := path.Join(ConsulHome, "consul.client.hcl")
+	consulCfgDst := path.Join(consulCfgDir, "consul.client.hcl")
 	fl.log.Info("Install consul client configuration file", "dst", consulCfgDst)
-	if err := florist.CopyTemplateFs(files,
-		"consul.client.hcl.tpl", consulCfgDst, 0640, "consul",
-		data, "<<", ">>"); err != nil {
+	if err := florist.CopyTemplateFs(files, "consul.client.hcl.tpl",
+		consulCfgDst, 0640, consulUsername, data, "<<", ">>"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -85,10 +89,9 @@ func (fl *ClientFlower) Configure(files fs.FS, finder florist.Finder) error {
 	if err := systemd.Enable("consul-client.service"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
-
-	fl.log.Info("Start consul client")
+	fl.log.Info("Restart consul client")
 	if err := systemd.Restart("consul-client.service"); err != nil {
-		return fmt.Errorf("consulclient.configure: %s", err)
+		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	return nil
