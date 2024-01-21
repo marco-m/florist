@@ -1,6 +1,6 @@
 # 🌼 florist 🌺
 
-A bare-bones and opinionated Go package to create a **non idempotent**, one-file-contains-everything provisioner (install and configure).
+A bare-bones and opinionated Go package to create a **non-idempotent**, one-file-contains-everything provisioner (install and configure).
 
 ## Status
 
@@ -21,9 +21,12 @@ A bare-bones and opinionated Go package to create a **non idempotent**, one-file
 
 ## Non-goals
 
-- Idempotency. If you need idempotency, use Ansible.
-- Completeness. If you need completeness, use Ansible.
+- Idempotency.
+- Completeness.
+- Mutable infrastructure / configuration management.
 - Cover OSes or distributions that I don't use. Testing would become brittle and maintaining would become too time-consuming, I am sorry.
+
+If you need any of these, then consider Ansible, SaltStack or similar.
 
 ## Terminology
 
@@ -35,7 +38,7 @@ A bare-bones and opinionated Go package to create a **non idempotent**, one-file
     - use some ready-made flowers in this module.
 - **bouquet** a target for the `install` subcommand, made of one or more flowers. You can list the installable bouquets with the `list` subcommand.
 
-## The install and configure subcommands.
+## The install and configure subcommands
 
 - Use `install` when building the image with Packer.
 - Use `configure` when deploying the image with Terraform.
