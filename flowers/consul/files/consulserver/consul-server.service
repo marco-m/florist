@@ -4,7 +4,7 @@ Documentation=https://www.consul.io/
 Wants=network-online.target
 After=network-online.target
 StartLimitBurst=15
-StartLimitInterval=30
+StartLimitIntervalSec=30
 
 [Service]
 # Notify requires more thinking, see
