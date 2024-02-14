@@ -13,14 +13,17 @@ import (
 
 func Update(cacheValidity time.Duration) error {
 	log := florist.Log.Named("apt.Update")
-	mTime, err := modTime("/var/lib/apt/lists")
+	// Sigh. No method is robust :-/
+	// /var/lib/apt/lists
+	// /var/cache/apt/pkgcache.bin
+	cacheModTime, err := modTime("/var/lib/apt/periodic/update-success-stamp")
 	if err != nil {
 		return fmt.Errorf("apt.Update: %s", err)
 	}
 
-	now := time.Now()
-	log.Debug("cache info", "cacheValidity", cacheValidity, "lastTime", mTime, "now", now)
-	if mTime.Add(cacheValidity).After(now) {
+	cacheAge := time.Since(cacheModTime).Truncate(time.Second)
+	log.Debug("cache-info", "cache-validity", cacheValidity, "cache-age", cacheAge)
+	if cacheAge < cacheValidity {
 		log.Debug("", "cache", "valid")
 		return nil
 	}
