@@ -2,68 +2,89 @@
 package fishshell
 
 import (
+	"embed"
 	"fmt"
 	"io/fs"
 	"os/exec"
 	"os/user"
 
-	"github.com/hashicorp/go-hclog"
+	"github.com/creasty/defaults"
 
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
 )
 
+//go:embed embedded
+var embedded embed.FS
+
 const (
-	PromptFileSrc = "prompt_hostname.fish"
+	PromptFileSrc = "embedded/prompt_hostname.fish"
 	PromptFileDst = "/etc/fish/functions/prompt_hostname.fish"
 
-	ConfigFileSrc = "config.fish"
+	ConfigFileSrc = "embedded/config.fish"
 	ConfigFileDst = "/etc/fish/config.fish"
 )
+
+const Name = "fish-shell"
 
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
+	Inst
+	Conf
+}
+
+type Inst struct {
 	Usernames []string
 	// Using Fish as default shell breaks too many programs when they ssh :-(
 	SetAsDefault bool
-	log          hclog.Logger
+	Fsys         fs.FS
 }
 
+type Conf struct{}
+
 func (fl *Flower) String() string {
-	return "fishshell"
+	return Name
 }
 
 func (fl *Flower) Description() string {
 	return "install and configure the Fish shell"
 }
 
+func (fl *Flower) Embedded() []string {
+	return florist.ListFs(fl.Fsys)
+}
+
 func (fl *Flower) Init() error {
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
-
-	if len(fl.Usernames) == 0 {
-		return fmt.Errorf("%s.new: missing usernames", name)
+	if fl.Fsys == nil {
+		fl.Fsys = embedded
 	}
-
+	if err := defaults.Set(fl); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
+	if len(fl.Usernames) == 0 {
+		return fmt.Errorf("%s.new: missing usernames", Name)
+	}
 	return nil
 }
 
-func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("Install packages")
+func (fl *Flower) Install() error {
+	log := florist.Log.ResetNamed(Name + ".install")
+
+	log.Info("Install packages")
 	if err := apt.Install("fish"); err != nil {
 		return err
 	}
 
-	fl.log.Info("Configure fish shell functions system-wide")
+	log.Info("Configure fish shell functions system-wide")
 	// # This provides the FQDN hostname in the prompt
-	if err := florist.CopyFileFs(files, PromptFileSrc, PromptFileDst,
+	if err := florist.CopyFileFs(fl.Fsys, PromptFileSrc, PromptFileDst,
 		0644, "root"); err != nil {
 		return err
 	}
 
-	fl.log.Info("Configure fish shell system-wide")
-	if err := florist.CopyFileFs(files, ConfigFileSrc, ConfigFileDst,
+	log.Info("Configure fish shell system-wide")
+	if err := florist.CopyFileFs(fl.Fsys, ConfigFileSrc, ConfigFileDst,
 		0644, "root"); err != nil {
 		return err
 	}
@@ -71,27 +92,29 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	found := 0
 	for _, username := range fl.Usernames {
 		if _, err := user.Lookup(username); err != nil {
-			fl.log.Debug("user.Get", "err", err)
+			log.Debug("user.Get", "err", err)
 			continue
 		}
 		found++
 
 		if fl.SetAsDefault {
-			fl.log.Info("set fish shell", "user", username)
+			log.Info("set fish shell", "user", username)
 			cmd := exec.Command("chsh", "-s", "/usr/bin/fish", username)
-			if err := florist.CmdRun(fl.log, cmd); err != nil {
+			if err := florist.CmdRun(log, cmd); err != nil {
 				return err
 			}
 		}
 	}
 	if found == 0 {
-		return fmt.Errorf("%s: could not find any users (%s)", fl.log.Name(),
+		return fmt.Errorf("%s: could not find any users (%s)", Name,
 			fl.Usernames)
 	}
 
 	return nil
 }
 
-func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
+func (fl *Flower) Configure() error {
+	log := florist.Log.ResetNamed(Name + ".configure")
+	log.Debug("nothing-to-do")
 	return nil
 }

@@ -1,0 +1,24 @@
+[Unit]
+Description=Nomad Client
+Documentation=https://nomadproject.io/
+Wants=network-online.target
+After=network-online.target
+#After=consul.service
+StartLimitBurst=15
+StartLimitIntervalSec=30
+
+[Service]
+WorkingDirectory=/opt/nomad
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/usr/local/bin/nomad agent -config /opt/nomad/config
+KillMode=process
+KillSignal=SIGINT
+LimitNOFILE=infinity
+LimitNPROC=infinity
+Restart=on-failure
+# time to sleep before restarting the service
+RestartSec=2
+TasksMax=infinity
+
+[Install]
+WantedBy=multi-user.target

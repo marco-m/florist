@@ -1,11 +1,14 @@
-package nomad
+// Package nomadclient contains a flower to install a Nomad client.
+package nomadclient
 
 import (
+	"embed"
 	"fmt"
 	"io/fs"
 	"path"
+	"path/filepath"
 
-	"github.com/hashicorp/go-hclog"
+	"github.com/creasty/defaults"
 
 	"github.com/marco-m/florist/flowers/nomad"
 	"github.com/marco-m/florist/pkg/apt"
@@ -13,123 +16,149 @@ import (
 	"github.com/marco-m/florist/pkg/systemd"
 )
 
-var _ florist.Flower = (*ClientFlower)(nil)
+//go:embed embedded
+var embedded embed.FS
 
-type dynamicclient struct {
-	Workspace string
-	//
-	NomadAgentCaPub         string
-	GlobalClientNomadKeyPub string
-	GlobalClientNomadKey    string
+const (
+	Name = "nomadclient"
+
+	ConfigFile       = "embedded/nomad.client.hcl"
+	UnitFile         = "embedded/nomad-client.service"
+	CaKeyPubFile     = "embedded/CaKeyPub"
+	ClientKeyFile    = "embedded/ClientKey"
+	ClientKeyPubFile = "embedded/ClientKeyPub"
+)
+
+var _ florist.Flower = (*Flower)(nil)
+
+// WARNING: Do NOT install alongside a Nomad server.
+type Flower struct {
+	Inst
+	Conf
 }
 
-type ClientFlower struct {
+type Inst struct {
 	Version string
 	Hash    string
-	log     hclog.Logger
+	Fsys    fs.FS
 }
 
-func (fl *ClientFlower) String() string {
-	return "nomadclient"
+type Conf struct {
+	Environment string
+	//
+
+	// Apply to client and servers.
+	NomadCaPub string
+	// Apply only to clients.
+	NomadClientKey    string
+	NomadClientKeyPub string
 }
 
-func (fl *ClientFlower) Description() string {
+func (fl *Flower) String() string {
+	return Name
+}
+
+func (fl *Flower) Description() string {
 	return "install a Nomad client (incompatible with a Nomad server)"
 }
 
-func (fl *ClientFlower) Init() error {
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
+func (fl *Flower) Embedded() []string {
+	return florist.ListFs(fl.Fsys)
+}
 
+func (fl *Flower) Init() error {
+	if fl.Fsys == nil {
+		fl.Fsys = embedded
+	}
+	if err := defaults.Set(fl); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
 	if fl.Version == "" {
-		return fmt.Errorf("%s.new: missing version", name)
+		return fmt.Errorf("%s.init: %s", Name, "missing version")
 	}
 	if fl.Hash == "" {
-		return fmt.Errorf("%s.new: missing hash", name)
+		return fmt.Errorf("%s.init: %s", Name, "missing hash")
 	}
 
 	return nil
 }
 
-func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("Install packages needed by Nomad client")
+func (fl *Flower) Install() error {
+	log := florist.Log.ResetNamed(Name + ".install")
+
+	log.Info("Install packages needed by Nomad client")
 	if err := apt.Install(
-		"apparmor", // Needed by Nomad for the Docker driver
-		"ethtool",  // Used by Nomad
+		"apparmor",
+		"ethtool",
+		"dmidecode", // https://developer.hashicorp.com/nomad/docs/concepts/cpu#virtual-cpu-fingerprinting
 	); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	fl.log.Info("The nomad client (contrary to the server) must run as root, so not adding any dedicated user")
+	//log.Info("The nomad client (contrary to the server) must run as root, so not adding any dedicated user")
 
-	if err := nomad.InstallNomadExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
+	if err := nomad.CommonInstall(log, fl.Version, fl.Hash); err != nil {
+		return fmt.Errorf("%s.install: %s", Name, err)
 	}
-
-	fl.log.Info("Create cfg dir", "dst", nomad.NomadCfgDir)
-	if err := florist.Mkdir(nomad.NomadCfgDir, "root", 0755); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
 	return nil
 }
 
-func (fl *ClientFlower) Configure(files fs.FS, finder florist.Finder) error {
-	log := fl.log.Named("configure")
+func (fl *Flower) Configure() error {
+	log := florist.Log.ResetNamed(Name + ".configure")
 
-	log.Debug("loading dynamic configuration")
-	data := dynamicclient{
-		Workspace: finder.Get("Workspace"),
-		//
-		NomadAgentCaPub:         finder.Get("NomadAgentCaPub"),
-		GlobalClientNomadKeyPub: finder.Get("GlobalClientNomadKeyPub"),
-		GlobalClientNomadKey:    finder.Get("GlobalClientNomadKey"),
+	dst := path.Join(nomad.CfgDir, filepath.Base(ConfigFile))
+	log.Info("Install nomad client configuration file", "dst", dst)
+	rendered, err := florist.TemplateFromFsWithDelims(fl.Fsys, ConfigFile, fl)
+	if err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
-	if err := finder.Error(); err != nil {
-		return fmt.Errorf("%s.configure: %s", fl, err)
+	if err := florist.WriteFile(dst, rendered, 0640, nomad.Username); err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
 
-	nomadCfgDst := path.Join(nomad.NomadCfgDir, "nomad.client.hcl")
-	log.Info("Install nomad client configuration file", "dst", nomadCfgDst)
-	if err := florist.CopyTemplateFs(files, "nomad.client.hcl.tpl",
-		nomadCfgDst, 0640, "root", data, "<<", ">>"); err != nil {
+	dst = path.Join(nomad.CfgDir, filepath.Base(CaKeyPubFile))
+	log.Info("Install", "dst", dst)
+	rendered, err = florist.TemplateFromFs(fl.Fsys, CaKeyPubFile, fl)
+	if err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
+	}
+	if err := florist.WriteFile(dst, rendered, 0640, nomad.Username); err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
+	}
+
+	dst = path.Join(nomad.CfgDir, filepath.Base(ClientKeyFile))
+	log.Info("Install", "dst", dst)
+	rendered, err = florist.TemplateFromFs(fl.Fsys, ClientKeyFile, fl)
+	if err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
+	}
+	if err := florist.WriteFile(dst, rendered, 0640, nomad.Username); err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
+	}
+
+	dst = path.Join(nomad.CfgDir, filepath.Base(ClientKeyPubFile))
+	log.Info("Install", "dst", dst)
+	rendered, err = florist.TemplateFromFs(fl.Fsys, ClientKeyPubFile, fl)
+	if err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
+	}
+	if err := florist.WriteFile(dst, rendered, 0640, nomad.Username); err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
+	}
+
+	dst = path.Join("/etc/systemd/system/", filepath.Base(UnitFile))
+	log.Info("Install nomad client systemd unit file", "dst", dst)
+	if err := florist.CopyFileFs(fl.Fsys, UnitFile,
+		dst, 0644, "root"); err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
+	}
+
+	log.Info("Enable nomad client service to start at boot")
+	if err := systemd.Enable(filepath.Base(UnitFile)); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
-
-	nomadAgentCaPubDst := path.Join(nomad.NomadCfgDir, "NomadAgentCaPub")
-	log.Info("Install", "dst", nomadAgentCaPubDst)
-	if err := florist.CopyTemplateFs(files, "NomadAgentCaPub.tpl",
-		nomadAgentCaPubDst, 0640, "root", data, "", ""); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
-	globalClientNomadKeyPubDst := path.Join(nomad.NomadCfgDir, "GlobalClientNomadKeyPub")
-	log.Info("Install", "dst", globalClientNomadKeyPubDst)
-	if err := florist.CopyTemplateFs(files, "GlobalClientNomadKeyPub.tpl",
-		globalClientNomadKeyPubDst, 0640, "root", data, "", ""); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
-	globalClientNomadKeyDst := path.Join(nomad.NomadCfgDir, "GlobalClientNomadKey")
-	log.Info("Install", "dst", globalClientNomadKeyDst)
-	if err := florist.CopyTemplateFs(files, "GlobalClientNomadKey.tpl",
-		globalClientNomadKeyDst, 0640, "root", data, "", ""); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
-	nomadUnit := path.Join("/etc/systemd/system/", "nomad-client.service")
-	log.Info("Install nomad client systemd unit file", "dst", nomadUnit)
-	if err := florist.CopyFileFs(files, "nomad-client.service",
-		nomadUnit, 0644, "root"); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
-	log.Info("Enable nomad client to start at boot")
-	if err := systemd.Enable("nomad-client.service"); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-	log.Info("Restart nomad client")
-	if err := systemd.Restart("nomad-client.service"); err != nil {
+	log.Info("Restart nomad client service")
+	if err := systemd.Restart(filepath.Base(UnitFile)); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 

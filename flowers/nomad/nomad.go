@@ -1,8 +1,10 @@
+// Package nomad should NOT be imported by client code.
+// Instead, use packages nomadclient and nomadserver.
 package nomad
 
 import (
-	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"time"
 
@@ -12,19 +14,44 @@ import (
 )
 
 const (
-	NomadHomeDir  = "/opt/nomad"
-	NomadCfgDir   = "/opt/nomad/config"
-	NomadBin      = "/usr/local/bin"
-	NomadUsername = "nomad"
+	HomeDir  = "/opt/nomad"
+	CfgDir   = "/opt/nomad/config"
+	BinDir   = "/usr/local/bin"
+	Username = "nomad"
 )
 
-func InstallNomadExe(log hclog.Logger, version, hash, owner string) error {
+// CommonInstall performs the installation steps common to the client and the server.
+func CommonInstall(log hclog.Logger, version string, hash string) error {
+	// The nomad client (contrary to the server) must run as root, so we leave
+	// to the consulserver flower the care of adding a dedicated user.
+	// Contrast with [consul.CommonInstall].
+
+	log.Info("Add system user", "user", Username)
+	if err := florist.UserSystemAdd(Username, HomeDir); err != nil {
+		return err
+	}
+
+	if err := installNomadExe(log, version, hash); err != nil {
+		return err
+	}
+
+	log.Info("Create cfg dir", "dst", CfgDir)
+	if err := florist.Mkdir(CfgDir, Username, 0755); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func installNomadExe(log hclog.Logger, version string, hash string) error {
 	log.Info("Download Nomad package")
-	url := fmt.Sprintf(
-		"https://releases.hashicorp.com/nomad/%s/nomad_%s_linux_amd64.zip",
-		version, version)
+	uri, err := url.JoinPath("https://releases.hashicorp.com/nomad",
+		version, "nomad_"+version+"_linux_amd64.zip")
+	if err != nil {
+		return err
+	}
 	client := &http.Client{Timeout: 30 * time.Second}
-	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash, florist.WorkDir)
+	zipPath, err := florist.NetFetch(client, uri, florist.SHA256, hash, florist.WorkDir)
 	if err != nil {
 		return err
 	}
@@ -35,9 +62,9 @@ func InstallNomadExe(log hclog.Logger, version, hash, owner string) error {
 		return err
 	}
 
-	exe := path.Join(NomadBin, "nomad")
-	log.Info("Install nomad", "dst", exe)
-	if err := florist.CopyFile(extracted, exe, 0755, owner); err != nil {
+	exeDst := path.Join(BinDir, "nomad")
+	log.Info("Install nomad executbale", "dst", exeDst)
+	if err := florist.CopyFile(extracted, exeDst, 0755, "root"); err != nil {
 		return err
 	}
 

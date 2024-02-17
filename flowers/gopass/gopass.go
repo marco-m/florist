@@ -3,69 +3,87 @@ package gopass
 
 import (
 	"fmt"
-	"io/fs"
 	"net/http"
+	url2 "net/url"
 	"os"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
+	"github.com/creasty/defaults"
 
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
 )
 
+const Name = "gopass"
+
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	fsys    fs.FS
+	Inst
+	Conf
+}
+
+type Inst struct {
 	Version string
 	Hash    string
-	log     hclog.Logger
+}
+
+type Conf struct {
 }
 
 func (fl *Flower) String() string {
-	return "gopass"
+	return Name
 }
 
 func (fl *Flower) Description() string {
-	return "install gopass"
+	return "install " + Name
+}
+
+func (fl *Flower) Embedded() []string {
+	return nil
 }
 
 func (fl *Flower) Init() error {
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
-
+	if err := defaults.Set(fl); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
 	if fl.Version == "" {
-		return fmt.Errorf("%s.new: missing version", name)
+		return fmt.Errorf("%s.init: %s", Name, "missing version")
 	}
 	if fl.Hash == "" {
-		return fmt.Errorf("%s.new: missing hash", name)
+		return fmt.Errorf("%s.init: %s", Name, "missing hash")
 	}
 
 	return nil
 }
 
-func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
+func (fl *Flower) Install() error {
+	log := florist.Log.ResetNamed(Name + ".install")
 
-	fl.log.Info("Installing dependencies for gopass")
-	if err := apt.Install("git", "gnupg", "rng-tools"); err != nil {
-		return err
+	log.Info("Installing dependencies for gopass")
+	if err := apt.Install(
+		"git",
+		"gnupg",
+		"rng-tools",
+	); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
-	fl.log.Info("Download gopass package")
-	url := fmt.Sprintf(
-		"https://github.com/gopasspw/gopass/releases/download/v%s/gopass_%s_linux_amd64.deb",
-		fl.Version, fl.Version)
+	log.Info("Download gopass package")
+	uri, err := url2.JoinPath("https://github.com/gopasspw/gopass/releases/download",
+		"v"+fl.Version,
+		"gopass_"+fl.Version+"_linux_amd64.deb")
+	if err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
 	client := &http.Client{Timeout: 30 * time.Second}
-	pkgPath, err := florist.NetFetch(client, url, florist.SHA256, fl.Hash,
+	pkgPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash,
 		florist.WorkDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	if err := apt.DpkgInstall(pkgPath); err != nil {
-		return err
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 	os.Remove(pkgPath)
 
@@ -73,6 +91,6 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 
 }
 
-func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
+func (fl *Flower) Configure() error {
 	return nil
 }

@@ -3,41 +3,56 @@ package docker
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
+	"github.com/creasty/defaults"
 
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/systemd"
 )
 
+const Name = "docker"
+
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
+	Inst
+	Conf
+}
+
+type Inst struct {
 	// Users to add to the docker supplementary group.
 	Users []string
-	log   hclog.Logger
+}
+
+type Conf struct {
 }
 
 func (fl *Flower) String() string {
-	return "docker"
+	return Name
 }
 
 func (fl *Flower) Description() string {
-	return "install Docker"
+	return "install " + Name
 }
 
-func (fl *Flower) Init() error {
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
+func (fl *Flower) Embedded() []string {
 	return nil
 }
 
-func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("Add Docker upstream APT repository")
+func (fl *Flower) Init() error {
+	if err := defaults.Set(fl); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
+	return nil
+}
+
+func (fl *Flower) Install() error {
+	log := florist.Log.ResetNamed(Name + ".install")
+
+	log.Info("Add Docker upstream APT repository")
 	// https://docs.docker.com/engine/install/debian/
 	if err := apt.AddRepo(
 		"docker",
@@ -47,12 +62,12 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	); err != nil {
 		return err
 	}
-	fl.log.Info("Update APT repos (needed since we just added one)")
+	log.Info("Update APT repos (needed since we just added one)")
 	if err := apt.Update(0 * time.Second); err != nil {
 		return err
 	}
 
-	fl.log.Info("Install packages needed by Docker upstream")
+	log.Info("Install packages needed by Docker upstream")
 	if err := apt.Install(
 		"docker-ce",
 		"docker-ce-cli",
@@ -61,7 +76,7 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	fl.log.Info("Enable IPv6 for the Docker daemon")
+	log.Info("Enable IPv6 for the Docker daemon")
 	// https://github.com/docker/hub-feedback/issues/2165#issuecomment-1173017573
 	conf := `
 {
@@ -72,13 +87,14 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	if err := os.WriteFile("/etc/docker/daemon.json", []byte(conf), 0644); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
-	fl.log.Info("Restart the Docker daemon")
+
+	log.Info("Restart the Docker daemon")
 	if err := systemd.Restart("docker"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
 	for _, username := range fl.Users {
-		fl.log.Info("adding user to 'docker' supplementary group", "user", username)
+		log.Info("adding user to 'docker' supplementary group", "user", username)
 		if err := florist.SupplementaryGroups(username, "docker"); err != nil {
 			return fmt.Errorf("%s: %s", fl, err)
 		}
@@ -87,6 +103,6 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	return nil
 }
 
-func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
+func (fl *Flower) Configure() error {
 	return nil
 }

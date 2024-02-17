@@ -1,17 +1,13 @@
-package florist_test
+package florist
 
 import (
 	"bytes"
-	"os"
-	"os/user"
-	"path"
 	"testing"
 	"testing/fstest"
 	"text/template"
 
+	"github.com/go-quicktest/qt"
 	"gotest.tools/v3/assert"
-
-	"github.com/marco-m/florist/pkg/florist"
 )
 
 func TestUnderstandTemplate(t *testing.T) {
@@ -21,12 +17,13 @@ func TestUnderstandTemplate(t *testing.T) {
 	}
 	sweaters := Inventory{Material: "wool", Count: 17}
 	tmpl, err := template.New("name").Parse("{{.Count}} items are made of {{.Material}}")
-	assert.NilError(t, err)
+	qt.Assert(t, qt.IsNil(err))
 
 	var buf bytes.Buffer
-	assert.NilError(t, tmpl.Execute(&buf, sweaters))
+	err = tmpl.Execute(&buf, sweaters)
+	qt.Assert(t, qt.IsNil(err))
 
-	assert.Equal(t, buf.String(), "17 items are made of wool")
+	qt.Assert(t, qt.Equals(buf.String(), "17 items are made of wool"))
 }
 
 func TestUnderstandTemplateFailure(t *testing.T) {
@@ -36,14 +33,14 @@ func TestUnderstandTemplateFailure(t *testing.T) {
 	}
 	sweaters := Inventory{Material: "wool", Count: 17}
 	tmpl, err := template.New("name").Parse("{{.Banana}} items are made of {{.Material}}")
-	assert.NilError(t, err)
+	qt.Assert(t, qt.IsNil(err))
 
 	var buf bytes.Buffer
-	assert.Error(t, tmpl.Execute(&buf, sweaters),
-		"template: name:1:2: executing \"name\" at <.Banana>: can't evaluate field Banana in type florist_test.Inventory")
+	err = tmpl.Execute(&buf, sweaters)
+	qt.Assert(t, qt.ErrorMatches(err, `template: name:1:2: executing "name" at <.Banana>: can't evaluate field Banana in type florist.Inventory`))
 }
 
-func TestCopyTemplateFromFs(t *testing.T) {
+func TestRenderTemplate(t *testing.T) {
 	type FruitBox struct {
 		Amount int
 		Fruit  string
@@ -56,24 +53,17 @@ func TestCopyTemplateFromFs(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		tmpDir := t.TempDir()
 		srcPath := "fruits.txt.tpl"
-		dstPath := path.Join(tmpDir, "fruits.txt")
 		fruitBox := &FruitBox{Amount: 42, Fruit: "bananas"}
-		currUser, err := user.Current()
-		assert.NilError(t, err)
 		fsys := fstest.MapFS{
 			srcPath: &fstest.MapFile{Data: []byte(tc.tplContents)},
 		}
 
-		err = florist.CopyTemplateFs(fsys, srcPath, dstPath, 0640, currUser.Username,
-			fruitBox, tc.sepL, tc.sepR)
-		assert.NilError(t, err)
+		rendered, err := rendertemplate(fsys, srcPath, fruitBox, tc.sepL, tc.sepR)
 
-		rendered, err := os.ReadFile(dstPath)
 		assert.NilError(t, err)
-		have := string(rendered)
-		assert.Equal(t, have, tc.want)
+		qt.Assert(t, qt.Equals(rendered, tc.want))
+
 	}
 
 	testCases := []testCase{

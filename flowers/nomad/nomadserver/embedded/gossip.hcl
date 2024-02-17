@@ -1,0 +1,3 @@
+server {
+  encrypt = "{{.NomadServerGossipKey}}"
+}

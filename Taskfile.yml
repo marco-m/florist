@@ -3,36 +3,24 @@
 version: '3'
 
 vars:
-  GOTESTSUM_VERSION: v1.8.2
+  GOTESTSUM_VERSION: v1.11.0
 
 tasks:
-  build:example:install:
-    desc: Build the example installer for the install step, so without secrets.
+  build:example:
+    desc: Build the example provisioner.
     cmds:
       - go build -o bin/example ./example
 
-  build:example:configure:
-    desc: Build the example installer for the configure step, so _with_ secrets.
-      It is very important to remove the secrets also in case of failure, which we
-      obtain with the Task "defer" keyword.
+  build:dev:
+    desc: Build the provisioner for the project
     cmds:
-      - defer: rm -r ./example/embed/secrets
-      - cmd: mkdir -p ./example/embed/secrets/flowers/daisy
-      - cmd: mkdir -p ./example/embed/secrets/flowers/oleander
-      - cmd: mkdir -p ./example/embed/secrets/nodes/controller/daisy
-      - cmd: echo -n "the base secret value" > ./example/embed/secrets/flowers/daisy/secret
-        silent: true
-      - cmd: echo -n "the overridden secret value" > ./example/embed/secrets/nodes/controller/daisy/secret
-        silent: true
-      - cmd: echo -n "the custom value" > ./example/embed/secrets/flowers/daisy/custom
-        silent: true
-      - go build -o bin/example ./example
+      - go build -o bin/dev ./florist/roles/dev
+      - GOOS=linux go build -o bin/linux/dev ./florist/roles/dev
 
-  build:provisioner:
-    desc: Build the provisioner
+  build:
+    desc: Test successful build.
     cmds:
-      - go build -o bin/florist ./florist
-      - GOOS=linux go build -o bin/linux/florist ./florist
+      - go build ./...
 
   test:all:
     desc: Run all the unit tests; makes sense only if invoking from the VM.
@@ -69,18 +57,18 @@ tasks:
   vm:init:
     desc: Create a VM from scratch, provision and take a snapshot. Use `vm:restore` to restore the snapshot to pristine state.
     cmds:
-    - task: build:provisioner
+    - task: build:dev
     - vagrant destroy --force
     - vagrant up
     # Generate a SSH configuration file
     - vagrant ssh-config > ssh.config.vagrant
-    # For some reasons, vagrant adds "LogLevel FATAL" to the generated file.
+    # For some reason, vagrant adds "LogLevel FATAL" to the generated file.
     # We want the default logging level instead.
     - sed -i "" 's/LogLevel FATAL//' ssh.config.vagrant
     # Mark this VM as a target for destructive tests.
     - ssh -F ssh.config.vagrant florist-dev sudo mkdir -p /opt/florist/disposable
     # Provision the VM with the "dev" bouquet.
-    - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/florist install dev"
+    - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/dev install"
     # Install other deps. I am unsure this is the best approach...
     - ssh -F ssh.config.vagrant florist-dev "GOBIN=/usr/local/bin sudo --preserve-env=GOBIN task -d florist install-deps"
       # Take snapshot, name `pristine`

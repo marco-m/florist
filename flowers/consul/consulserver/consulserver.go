@@ -1,100 +1,117 @@
-// Package consul contains a flower to install a Consul client and a flower to
-// install a Consul server.
+// Package consulserver contains a flower to install a Consul server.
 package consulserver
 
 import (
+	"embed"
 	"fmt"
 	"io/fs"
 	"path"
+	"path/filepath"
 
-	"github.com/hashicorp/go-hclog"
+	"github.com/creasty/defaults"
 
 	"github.com/marco-m/florist/flowers/consul"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/systemd"
 )
 
-var _ florist.Flower = (*ServerFlower)(nil)
+//go:embed embedded
+var embedded embed.FS
 
-type ServerFlower struct {
+const (
+	Name = "consulserver"
+
+	ConfigFile = "embedded/consul.server.hcl"
+	UnitFile   = "embedded/consul-server.service"
+)
+
+var _ florist.Flower = (*Flower)(nil)
+
+// WARNING: Do NOT install alongside a Consul client.
+type Flower struct {
+	Inst
+	Conf
+}
+
+type Inst struct {
 	Version string
 	Hash    string
-	log     hclog.Logger
+	Fsys    fs.FS
 }
 
-func (fl *ServerFlower) String() string {
-	return "consulserver"
+type Conf struct {
+	Environment string
+	DataCenter  string
+	//
+	ConsulNumServers string
+	//
 }
 
-func (fl *ServerFlower) Description() string {
+func (fl *Flower) String() string {
+	return Name
+}
+
+func (fl *Flower) Description() string {
 	return "install a Consul server (incompatible with a Consul client)"
 }
 
-func (fl *ServerFlower) Init() error {
-	fl.log = florist.Log.ResetNamed("consulserver")
+func (fl *Flower) Embedded() []string {
+	return florist.ListFs(fl.Fsys)
+}
 
+func (fl *Flower) Init() error {
+	if fl.Fsys == nil {
+		fl.Fsys = embedded
+	}
+	if err := defaults.Set(fl); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
 	if fl.Version == "" {
-		return fmt.Errorf("consulserver.init: missing version")
+		return fmt.Errorf("%s.init: %s", Name, "missing version")
 	}
 	if fl.Hash == "" {
-		return fmt.Errorf("consulserver.init: missing hash")
+		return fmt.Errorf("%s.init: %s", Name, "missing hash")
 	}
 
 	return nil
 }
 
-func (fl *ServerFlower) Install(files fs.FS, finder florist.Finder) error {
-	log := fl.log.Named("install")
+func (fl *Flower) Install() error {
+	log := florist.Log.ResetNamed(Name + ".install")
 
-	log.Info("Add system user", "user", consul.ConsulUsername)
-	if err := florist.UserSystemAdd(consul.ConsulUsername, consul.ConsulHomeDir); err != nil {
-		return fmt.Errorf("consulserver.install: %s", err)
+	if err := consul.CommonInstall(log, fl.Version, fl.Hash); err != nil {
+		return fmt.Errorf("%s.install: %s", Name, err)
 	}
-
-	if err := consul.InstallConsulExe(log, fl.Version, fl.Hash, "root"); err != nil {
-		return fmt.Errorf("consulserver.install: %s", err)
-	}
-
-	log.Info("Create cfg dir", "dst", consul.ConsulCfgDir)
-	if err := florist.Mkdir(consul.ConsulCfgDir, consul.ConsulUsername, 0755); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
-
 	return nil
 }
 
-func (fl *ServerFlower) Configure(files fs.FS, finder florist.Finder) error {
-	log := fl.log.Named("configure")
+func (fl *Flower) Configure() error {
+	log := florist.Log.ResetNamed(Name + ".configure")
 
-	log.Debug("loading dynamic configuration")
-	data := consul.Dynamic{
-		Workspace: finder.Get("Workspace"),
+	dst := path.Join(consul.CfgDir, filepath.Base(ConfigFile))
+	log.Info("Install consul server configuration file", "dst", dst)
+	rendered, err := florist.TemplateFromFsWithDelims(fl.Fsys, ConfigFile, fl)
+	if err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
-	if err := finder.Error(); err != nil {
-		return fmt.Errorf("%s.configure: %s", fl, err)
-	}
-
-	consulCfgDst := path.Join(consul.ConsulCfgDir, "consul.server.hcl")
-	log.Info("Install consul server configuration file", "dst", consulCfgDst)
-	if err := florist.CopyTemplateFs(files, "consul.server.hcl.tpl",
-		consulCfgDst, 0640, consul.ConsulUsername, data, "<<", ">>"); err != nil {
-		return fmt.Errorf("%s.configure: %s", fl, err)
+	if err := florist.WriteFile(dst, rendered, 0640, consul.Username); err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
 
-	consulUnitDst := path.Join("/etc/systemd/system/", "consul-server.service")
-	log.Info("Install consul server systemd unit file", "dst", consulUnitDst)
-	if err := florist.CopyFileFs(files, "consul-server.service",
-		consulUnitDst, 0644, "root"); err != nil {
-		return fmt.Errorf("consulserver.configure: %s", err)
+	dst = path.Join("/etc/systemd/system/", filepath.Base(UnitFile))
+	log.Info("Install consul server systemd unit file", "dst", dst)
+	if err := florist.CopyFileFs(fl.Fsys, UnitFile,
+		dst, 0644, "root"); err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
 
 	log.Info("Enable consul server to start at boot")
-	if err := systemd.Enable("consul-server.service"); err != nil {
-		return fmt.Errorf("consulserver.configure: %s", err)
+	if err := systemd.Enable(filepath.Base(UnitFile)); err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
 	log.Info("Restart consul server")
-	if err := systemd.Restart("consul-server.service"); err != nil {
-		return fmt.Errorf("consulserver.configure: %s", err)
+	if err := systemd.Restart(filepath.Base(UnitFile)); err != nil {
+		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
 
 	return nil

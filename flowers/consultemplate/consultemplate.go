@@ -1,17 +1,23 @@
 package consultemplate
 
 import (
+	"embed"
 	"fmt"
 	"io/fs"
 	"net/http"
 	"path"
+	"path/filepath"
 	"time"
 
+	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/systemd"
 )
+
+//go:embed embedded
+var embedded embed.FS
 
 const (
 	HomeDir      = "/opt/consul-template"
@@ -20,58 +26,76 @@ const (
 	BinDir       = "/usr/local/bin"
 
 	// relative to the Go embed FS
-	SrcConfigDir    = "config"
-	SrcTemplatesDir = "templates"
+	ConfigDirSrc    = "embedded/config"
+	TemplatesDirSrc = "embedded/templates"
+	UnitFile        = "embedded/consul-template.service"
 )
+
+const Name = "consul-template"
 
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	Version        string
-	Hash           string
-	Configurations []string
-	Templates      []string
-	log            hclog.Logger
+	Inst
+	Conf
+}
+
+type Inst struct {
+	Version            string
+	Hash               string
+	ConfigurationFiles []string
+	TemplateFiles      []string
+	Fsys               fs.FS
+}
+
+type Conf struct {
 }
 
 func (fl *Flower) String() string {
-	return "consul-template"
+	return Name
 }
 
 func (fl *Flower) Description() string {
-	return "install consul-template"
+	return "install " + Name
+}
+
+func (fl *Flower) Embedded() []string {
+	return nil
 }
 
 func (fl *Flower) Init() error {
-	fl.log = florist.Log.ResetNamed("florist.flower.consultemplate")
-
+	if fl.Fsys == nil {
+		fl.Fsys = embedded
+	}
+	if err := defaults.Set(fl); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
 	if fl.Version == "" {
-		return fmt.Errorf("%s: %s", fl.log.Name(), "Version cannot be empty")
+		return fmt.Errorf("%s: %s", Name, "Version cannot be empty")
 	}
 	if fl.Hash == "" {
-		return fmt.Errorf("%s: %s", fl.log.Name(), "Hash cannot be empty")
+		return fmt.Errorf("%s: %s", Name, "Hash cannot be empty")
 	}
 	return nil
 }
 
-func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
+func (fl *Flower) Install() error {
+	log := florist.Log.ResetNamed(Name + ".install")
 
-	fl.log.Info("Add system user 'consul-template'")
+	log.Info("Add system user 'consul-template'")
 	if err := florist.UserSystemAdd("consul-template", HomeDir); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	fl.log.Info("Create consul-template configuration dir", "dir", ConfigDir)
+	log.Info("Create consul-template configuration dir", "dir", ConfigDir)
 	if err := florist.Mkdir(ConfigDir, "consul-template", 0755); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	fl.log.Info("Create consul-template templates dir", "dir", TemplatesDir)
+	log.Info("Create consul-template templates dir", "dir", TemplatesDir)
 	if err := florist.Mkdir(TemplatesDir, "consul-template",
 		0755); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	// FIXME SECURITY TODO
@@ -83,40 +107,37 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	// unit file instead of starting the service, starts a dedicated consul-template),
 	// so that we can avoid having it running as root!
 
-	if err := installExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+	if err := installExe(log, fl.Version, fl.Hash, "root"); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	for _, cfg := range fl.Configurations {
-		src := path.Join(SrcConfigDir, cfg)
+	for _, cfg := range fl.ConfigurationFiles {
+		src := path.Join(ConfigDirSrc, cfg)
 		dst := path.Join(ConfigDir, cfg)
-		fl.log.Info("Install consul-template configuration file", "dst", dst)
-		if err := florist.CopyFileFs(files, src, dst, 0640, "root"); err != nil {
-			return fmt.Errorf("%s: %s", fl.log.Name(), err)
+		log.Info("Install consul-template configuration file", "dst", dst)
+		if err := florist.CopyFileFs(fl.Fsys, src, dst, 0640, "root"); err != nil {
+			return fmt.Errorf("%s: %s", Name, err)
 		}
 	}
 
-	for _, tmpl := range fl.Templates {
-		src := path.Join(SrcTemplatesDir, tmpl)
+	for _, tmpl := range fl.TemplateFiles {
+		src := path.Join(TemplatesDirSrc, tmpl)
 		dst := path.Join(TemplatesDir, tmpl)
-		fl.log.Info("Install consul-template template file", "dst", dst)
-		if err := florist.CopyFileFs(files, src, dst, 0640, "root"); err != nil {
-			return fmt.Errorf("%s: %s", fl.log.Name(), err)
+		log.Info("Install consul-template template file", "dst", dst)
+		if err := florist.CopyFileFs(fl.Fsys, src, dst, 0640, "root"); err != nil {
+			return fmt.Errorf("%s: %s", Name, err)
 		}
 	}
 
-	// files/consul-template/files/consul-template.service
-	unit := "consul-template.service"
-	src := unit
-	dst := path.Join("/etc/systemd/system/", unit)
-	fl.log.Info("Install consul-template systemd unit file", "dst", dst)
-	if err := florist.CopyFileFs(files, src, dst, 0644, "root"); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+	dst := path.Join("/etc/systemd/system/", filepath.Base(UnitFile))
+	log.Info("Install consul-template systemd unit file", "dst", dst)
+	if err := florist.CopyFileFs(fl.Fsys, UnitFile, dst, 0644, "root"); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	fl.log.Info("Enable service to start at boot", "unit", unit)
-	if err := systemd.Enable(unit); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+	log.Info("Enable service to start at boot", "unit", filepath.Base(UnitFile))
+	if err := systemd.Enable(filepath.Base(UnitFile)); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	// We do not start the service at Packer time because it is not needed.
@@ -124,7 +145,7 @@ func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
 	return nil
 }
 
-func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
+func (fl *Flower) Configure() error {
 	return nil
 }
 

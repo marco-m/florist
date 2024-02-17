@@ -1,8 +1,10 @@
+// Package consul should NOT be imported by client code.
+// Instead, use packages consulclient and consulserver.
 package consul
 
 import (
-	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"time"
 
@@ -12,23 +14,40 @@ import (
 )
 
 const (
-	ConsulHomeDir  = "/opt/consul"
-	ConsulCfgDir   = "/opt/consul/config"
-	ConsulBin      = "/usr/local/bin"
-	ConsulUsername = "consul"
+	HomeDir  = "/opt/consul"
+	CfgDir   = "/opt/consul/config"
+	BinDir   = "/usr/local/bin"
+	Username = "consul"
 )
 
-type Dynamic struct {
-	Workspace string
+// CommonInstall performs the install steps common to the client and the server.
+func CommonInstall(log hclog.Logger, version string, hash string) error {
+	log.Info("Add system user", "user", Username)
+	if err := florist.UserSystemAdd(Username, HomeDir); err != nil {
+		return err
+	}
+
+	if err := installConsulExe(log, version, hash); err != nil {
+		return err
+	}
+
+	log.Info("Create cfg dir", "dst", CfgDir)
+	if err := florist.Mkdir(CfgDir, Username, 0755); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func InstallConsulExe(log hclog.Logger, version, hash, owner string) error {
+func installConsulExe(log hclog.Logger, version string, hash string) error {
 	log.Info("Download Consul package")
-	url := fmt.Sprintf(
-		"https://releases.hashicorp.com/consul/%s/consul_%s_linux_amd64.zip",
-		version, version)
+	uri, err := url.JoinPath("https://releases.hashicorp.com/consul",
+		version, "consul_"+version+"_linux_amd64.zip")
+	if err != nil {
+		return err
+	}
 	client := &http.Client{Timeout: 30 * time.Second}
-	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash, florist.WorkDir)
+	zipPath, err := florist.NetFetch(client, uri, florist.SHA256, hash, florist.WorkDir)
 	if err != nil {
 		return err
 	}
@@ -39,9 +58,9 @@ func InstallConsulExe(log hclog.Logger, version, hash, owner string) error {
 		return err
 	}
 
-	exe := path.Join(ConsulBin, "consul")
-	log.Info("Install consul", "dst", exe)
-	if err := florist.CopyFile(extracted, exe, 0755, owner); err != nil {
+	exeDst := path.Join(BinDir, "consul")
+	log.Info("Install consul executable", "dst", exeDst)
+	if err := florist.CopyFile(extracted, exeDst, 0755, "root"); err != nil {
 		return err
 	}
 
@@ -62,7 +81,7 @@ func InstallConsulExe(log hclog.Logger, version, hash, owner string) error {
 
 	// log.Info("Install consul shell autocomplete")
 	// cmd := exec.Command(exe, "-autocomplete-install")
-	// if err := cmd.Run(); err != nil {
+	// if err := cmd.Install(); err != nil {
 	// 	return err
 	// }
 

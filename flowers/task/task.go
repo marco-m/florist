@@ -1,102 +1,124 @@
-// Package taskfile installs the Task utility
-package taskfile
+// Package task installs the Task utility
+package task
 
 import (
 	"fmt"
-	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"time"
 
+	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/florist"
 )
 
+const Name = "task"
+
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
-	fsys    fs.FS
+	Inst
+	Conf
+}
+
+type Inst struct {
 	Version string
 	Hash    string
-	log     hclog.Logger
 }
 
-func (fl Flower) String() string {
-	return "taskfile"
+type Conf struct {
 }
 
-func (fl Flower) Description() string {
+func (fl *Flower) String() string {
+	return Name
+}
+
+func (fl *Flower) Description() string {
 	return "install the Task (simpler make alternative) utility"
 }
 
-func (fl *Flower) Init() error {
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
+func (fl *Flower) Embedded() []string {
+	return nil
+}
 
+func (fl *Flower) Init() error {
+	if err := defaults.Set(fl); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
 	if fl.Version == "" {
-		return fmt.Errorf("%s.new: missing version", name)
+		return fmt.Errorf("%s: missing Version", Name)
 	}
 	if fl.Hash == "" {
-		return fmt.Errorf("%s.new: missing hash", name)
+		return fmt.Errorf("%s: missing Hash", Name)
 	}
 	return nil
 }
 
-func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("begin")
-	defer fl.log.Info("end")
+func (fl *Flower) Install() error {
+	log := florist.Log.ResetNamed(Name + ".install")
 
-	taskexe := "/usr/local/bin/task"
-	if foundTaskVersion :=
-		maybeTaskfileVersion(fl.log, taskexe); foundTaskVersion == fl.Version {
-		fl.log.Debug("Task already installed with matching version", "version",
+	taskDst := "/usr/local/bin/task"
+	if installedTaskVersion(log, taskDst) == fl.Version {
+		log.Debug("Task already installed with matching version", "version",
 			fl.Version)
 		return nil
 	}
 
-	fl.log.Info("Download task package", "version", fl.Version)
+	log.Info("downloading Task", "version", fl.Version)
 	// https://github.com/go-task/task/releases/download/v3.9.0/task_linux_amd64.tar.gz
-	url := fmt.Sprintf("https://github.com/go-task/task/releases/download/v%s/task_linux_amd64.tar.gz", fl.Version)
-	client := &http.Client{Timeout: 30 * time.Second}
-	tgzPath, err := florist.NetFetch(client, url, florist.SHA256, fl.Hash, florist.WorkDir)
+	uri, err := url.JoinPath("https://github.com/go-task/task/releases/download/",
+		"v"+fl.Version, "task_linux_amd64.tar.gz")
 	if err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+		return fmt.Errorf("%s: %s", Name, err)
+	}
+	client := &http.Client{Timeout: 30 * time.Second}
+	tgzPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash,
+		florist.WorkDir)
+	if err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	fl.log.Debug("extracting Task")
-	if err := os.RemoveAll(path.Join(florist.WorkDir, "task")); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+	dstDir, err := os.MkdirTemp(florist.WorkDir, Name)
+	if err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
-	dst := path.Join(florist.WorkDir, "task")
-	if err := os.Mkdir(dst, 0755); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
-	}
+	log.Debug("extracting Task", "dir", dstDir)
 	cmd := exec.Command("tar", "xzf", tgzPath)
-	cmd.Dir = dst
-	if err := florist.CmdRun(fl.log, cmd); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+	cmd.Dir = dstDir
+	if err := florist.CmdRun(log, cmd); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	fl.log.Debug("Moving Task into place")
-	if err := os.Rename(path.Join(florist.WorkDir, "task", "task"), taskexe); err != nil {
-		return fmt.Errorf("%s: %s", fl.log.Name(), err)
+	log.Debug("Moving Task into place")
+	taskSrc := path.Join(dstDir, "task")
+	if err := os.Rename(taskSrc, taskDst); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
-	fl.log.Info("Installed Task", "path", taskexe)
+	log.Info("Installed Task", "path", taskDst)
+
+	// We remove the tmpdir only on success; in case of failure we leave
+	// it around, it can be useful to troubleshoot.
+	if err := os.RemoveAll(dstDir); err != nil {
+		log.Info("removing tmpdir", "dir", dstDir, "err", err)
+	}
 
 	return nil
 }
 
-func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
+func (fl *Flower) Configure() error {
+	log := florist.Log.ResetNamed(Name + ".configure")
+	log.Debug("nothing to do")
 	return nil
 }
 
-// maybeGoVersion returns the version such as "1.17.2" if found, or the empty
+// installedTaskVersion returns the version such as "1.17.2" if found, or the empty
 // string if not found.
-func maybeTaskfileVersion(log hclog.Logger, taskexe string) string {
+func installedTaskVersion(log hclog.Logger, taskexe string) string {
 	log = log.With("path", taskexe)
 	taskexe, err := exec.LookPath(taskexe)
 	if err != nil {

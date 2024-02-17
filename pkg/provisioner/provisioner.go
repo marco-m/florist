@@ -1,15 +1,12 @@
-// Package provisioner provides helper to write your own florist provisioner.
+// Package provisioner provides helpers to write your own florist provisioner.
 package provisioner
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
 	stdlog "log"
 	"os"
 	"path"
-	"sort"
-	"strings"
+	"path/filepath"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -22,19 +19,13 @@ import (
 type Provisioner struct {
 	log           hclog.Logger
 	cacheValidity time.Duration
-	bouquets      map[string]Bouquet
-	files         fs.FS
-	secrets       fs.FS
+	flowers       map[string]florist.Flower
+	ordered       []string
 	root          string
+	errs          []string
 }
 
-type Bouquet struct {
-	Name        string
-	Description string
-	Flowers     []florist.Flower
-}
-
-func New(log hclog.Logger, cacheValidity time.Duration, files fs.FS, secrets fs.FS,
+func New(log hclog.Logger, cacheValidity time.Duration,
 ) (*Provisioner, error) {
 	florist.SetLogger(log)
 
@@ -42,138 +33,71 @@ func New(log hclog.Logger, cacheValidity time.Duration, files fs.FS, secrets fs.
 	stdlog.SetPrefix("")
 	stdlog.SetFlags(0)
 
-	if files == nil {
-		return nil, errors.New("provisioner.New: nil files")
-	}
-	if secrets == nil {
-		return nil, errors.New("provisioner.New: nil secrets")
-	}
-
 	return &Provisioner{
 		log:           log.Named("provisioner"),
 		cacheValidity: cacheValidity,
-		bouquets:      map[string]Bouquet{},
-		files:         files,
-		secrets:       secrets,
+		flowers:       make(map[string]florist.Flower),
 	}, nil
 }
 
+// FIXME what is this doing????
 func (prov *Provisioner) UseWorkdir() {
 	prov.root = florist.WorkDir
 }
 
-func (prov *Provisioner) Run(args []string) error {
-	var cli cli
-	parser, err := kong.New(&cli,
-		kong.Description("🌼 florist 🌺 - a simple provisioner"),
-		kong.UsageOnError(),
-		kong.ConfigureHelp(kong.HelpOptions{
-			Compact: true,
-			Summary: true,
-		}),
-	)
-	if err != nil {
-		panic(err)
-	}
-	ctx, err := parser.Parse(args)
-	parser.FatalIfErrorf(err)
-
-	// Invoke the Run method of the command passed on the command-line
-	// (see the [cli] type).
-	return ctx.Run(prov)
+// Flowers returns
+func (prov *Provisioner) Flowers() map[string]florist.Flower {
+	return prov.flowers
 }
 
-// Bouquets returns a list of the added bouquets, sorted by name.
-func (prov *Provisioner) Bouquets() []Bouquet {
-	// sort flowers in lexical order
-	sortedNames := make([]string, 0, len(prov.bouquets))
-	for name := range prov.bouquets {
-		sortedNames = append(sortedNames, name)
+func (prov *Provisioner) AddFlowers(flowers ...florist.Flower) error {
+	if len(prov.flowers) > 0 {
+		return fmt.Errorf("Provisioner.AddFlowers: cannot call more than once")
 	}
-	sort.Strings(sortedNames)
-
-	bouquets := make([]Bouquet, 0, len(prov.bouquets))
-	for _, name := range sortedNames {
-		bouquets = append(bouquets, prov.bouquets[name])
-	}
-	return bouquets
-}
-
-// AddBouquet creates a bouquet with `name` and `description` and adds `flowers` to it.
-func (prov *Provisioner) AddBouquet(
-	name string,
-	description string,
-	flowers ...florist.Flower,
-) error {
-	if name == "" {
-		return fmt.Errorf("AddBouquet: name cannot be empty")
-	}
-	if description == "" {
-		return fmt.Errorf("AddBouquet %s: description cannot be empty", name)
-	}
-	if len(flowers) == 0 {
-		return fmt.Errorf("AddBouquet %s: bouquet cannot be empty", name)
-	}
-	for i, fl := range flowers {
-		if fl.String() == "" {
-			return fmt.Errorf("AddBouquet %s: flower at position %d has empty name",
-				name, i)
+	for i, flower := range flowers {
+		if flower.String() == "" {
+			return fmt.Errorf("Provisioner.AddFlowers: flower %d has empty name", i)
 		}
-		if fl.Description() == "" {
-			return fmt.Errorf("AddBouquet %s: flower %s has empty description", name, fl)
+		if flower.Description() == "" {
+			return fmt.Errorf("Provisioner.AddFlowers: flower %s has empty description",
+				flower)
 		}
-		if err := fl.Init(); err != nil {
-			return fmt.Errorf("AddBouquet %s: flower %s: %s", name, fl, err)
+		if _, found := prov.flowers[flower.String()]; found {
+			return fmt.Errorf("Provisioner.AddFlowers: flower with same name already exists: %s", flower)
 		}
+		prov.ordered = append(prov.ordered, flower.String())
+		prov.flowers[flower.String()] = flower
 	}
-
-	if _, ok := prov.bouquets[name]; ok {
-		return fmt.Errorf("AddBouquet: there is already a bouquet with name %s", name)
-	}
-
-	prov.bouquets[name] = Bouquet{
-		Name:        name,
-		Description: description,
-		Flowers:     flowers,
-	}
-
 	return nil
 }
 
 type cli struct {
-	Install   InstallCmd   `cmd:"" help:"install a bouquet"`
-	Configure ConfigureCmd `cmd:"" help:"configure a bouquet"`
-	List      ListCmd      `cmd:"" help:"list the available bouquets"`
-	EmbedList EmbedListCmd `cmd:"" help:"list the embedded FS"`
+	Install   InstallCmd   `cmd:"" help:"install the ${role} role"`
+	Configure ConfigureCmd `cmd:"" help:"configure the ${role} role"`
+	List      ListCmd      `cmd:"" help:"list the flowers and their files"`
 }
 
-type InstallCmd struct {
-	Bouquet string `arg:"" help:"Bouquet to install"`
-}
+type InstallCmd struct{}
 
-func (cmd *InstallCmd) Run(prov *Provisioner) error {
+func (cmd *InstallCmd) Run(ctx *context) error {
 	if err := florist.Init(); err != nil {
 		return err
 	}
-
-	bouquet, ok := prov.bouquets[cmd.Bouquet]
-	if !ok {
-		return fmt.Errorf("install: unknown bouquet %s", cmd.Bouquet)
+	prov, err := ctx.setup(ctx.log)
+	if err != nil {
+		return fmt.Errorf("install: %s", err)
 	}
 
-	prov.log.Info("installing", "bouquet", cmd.Bouquet,
-		"size", len(bouquet.Flowers), "flowers", bouquet.Flowers)
+	prov.log.Info("installing", "flower-size", len(prov.flowers),
+		"flowers", prov.ordered)
 
-	for _, flower := range bouquet.Flowers {
-		prov.log.Info("Installing", "flower", flower.String())
-		filesPerFlower, _, secretsPerFlower, _, err :=
-			subFS(prov.log, flower.String(), cmd.Bouquet, prov.files, prov.secrets)
-		if err != nil {
+	for _, k := range prov.ordered {
+		fl := prov.flowers[k]
+		prov.log.Info("Installing", "flower", fl.String())
+		if err := fl.Init(); err != nil {
 			return fmt.Errorf("install: %s", err)
 		}
-		finderFlowers := florist.NewFsFinder(secretsPerFlower)
-
-		if err := flower.Install(filesPerFlower, finderFlowers); err != nil {
+		if err := fl.Install(); err != nil {
 			return err
 		}
 	}
@@ -182,162 +106,116 @@ func (cmd *InstallCmd) Run(prov *Provisioner) error {
 }
 
 type ConfigureCmd struct {
-	Bouquet string `arg:"" help:"Bouquet to configure (assumes that the same bouquet is installed on the image"`
+	Settings []string `help:"Settings and secrets file(s) (JSON)"`
 }
 
-func (cmd *ConfigureCmd) Run(prov *Provisioner) error {
+func (cmd *ConfigureCmd) Run(ctx *context) error {
 	if err := florist.Init(); err != nil {
-		return err
+		return fmt.Errorf("configure: %s", err)
 	}
 
-	bouquet, ok := prov.bouquets[cmd.Bouquet]
-	if !ok {
-		return fmt.Errorf("configure: unknown bouquet %s", cmd.Bouquet)
+	config, err := florist.NewConfig(cmd.Settings)
+	if err != nil {
+		return fmt.Errorf("configure: %s", err)
 	}
 
-	prov.log.Info("configuring", "bouquet", cmd.Bouquet,
-		"size", len(bouquet.Flowers), "flowers", bouquet.Flowers)
+	prov, err := ctx.setup(ctx.log)
+	if err != nil {
+		return fmt.Errorf("configure: %s", err)
+	}
+	if err := ctx.configure(prov, config); err != nil {
+		return fmt.Errorf("configure: %s", err)
+	}
+	if err := config.Errors(); err != nil {
+		return fmt.Errorf("configure: %s", err)
+	}
 
-	for _, flower := range bouquet.Flowers {
-		prov.log.Info("configuring", "flower", flower.String())
-		filesPerFlower, secretsBase, secretsPerFlower, secretsPerNode, err :=
-			subFS(prov.log, flower.String(), cmd.Bouquet, prov.files, prov.secrets)
-		if err != nil {
+	prov.log.Info("configuring", "flowers-size", len(prov.flowers),
+		"flowers", prov.ordered)
+
+	for _, k := range prov.ordered {
+		fl := prov.flowers[k]
+		prov.log.Info("configuring", "flower", fl.String())
+		if err := fl.Init(); err != nil {
 			return fmt.Errorf("configure: %s", err)
 		}
-
-		// secrets can be in three places:
-		// flowers/FLOWER/k1
-		// nodes/NODE/FLOWER/k2
-		// base/
-		// where node overrides flower, flower overrides base.
-
-		finderNodes := florist.NewFsFinder(secretsPerNode)
-		finderFlowers := florist.NewFsFinder(secretsPerFlower)
-		finderBase := florist.NewFsFinder(secretsBase)
-		finder := florist.NewUnionFinder(finderNodes, finderFlowers, finderBase)
-
-		if err := flower.Configure(filesPerFlower, finder); err != nil {
-			return err
+		if err := fl.Configure(); err != nil {
+			return fmt.Errorf("configure: %s", err)
 		}
 	}
 
-	return customizeMotd(prov.log, "configured", prov.root)
-}
-
-func subFS(log hclog.Logger, flower string, node string, files, secrets fs.FS,
-) (
-	filesPerFlower, secretsBase, secretsPerFlower, secretsPerNode fs.FS, err error,
-) {
-	log.Debug("subFS: contents before", "flower", flower, "node", node,
-		"allFiles", describeFS(files),
-		"allSecrets", describeFS(secrets))
-
-	subdir := flower
-	log.Debug("filesPerFlower", "subdir", subdir)
-	filesPerFlower, err = fs.Sub(files, subdir)
-	if err != nil {
-		return nil, nil, nil, nil, err
+	if err := customizeMotd(prov.log, "configured", prov.root); err != nil {
+		return fmt.Errorf("configure: %s", err)
 	}
-
-	subdir = "base"
-	log.Debug("secretsBase", "subdir", subdir)
-	secretsBase, err = fs.Sub(secrets, subdir)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	subdir = path.Join("flowers", flower)
-	log.Debug("secretsPerFlower", "subdir", subdir)
-	secretsPerFlower, err = fs.Sub(secrets, subdir)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	subdir = path.Join("nodes", node, flower)
-	log.Debug("secretsPerNode", "subdir", subdir)
-	secretsPerNode, err = fs.Sub(secrets, subdir)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	log.Debug("subFS: contents after", "flower", flower, "node", node,
-		"base", describeFS(secretsBase),
-		"filesPerFlower", describeFS(filesPerFlower),
-		"secretsPerFlower", describeFS(secretsPerFlower),
-		"secretsPerNode", describeFS(secretsPerNode))
-
-	return filesPerFlower, secretsBase, secretsPerFlower, secretsPerNode, nil
+	return nil
 }
 
 type ListCmd struct {
 }
 
-func (cmd *ListCmd) Run(inst *Provisioner) error {
-	fmt.Println("Available bouquets:")
-	for _, bouquet := range inst.Bouquets() {
-		fmt.Printf("%-20s %s\n", bouquet.Name, bouquet.Description)
-		for _, fl := range bouquet.Flowers {
-			fmt.Printf("    %-20s (%s)\n", fl.String(), fl.Description())
+func (cmd *ListCmd) Run(ctx *context) error {
+	prov, err := ctx.setup(ctx.log)
+	if err != nil {
+		return fmt.Errorf("list: %s", err)
+	}
+
+	for _, k := range prov.ordered {
+		v := prov.flowers[k]
+		if err := v.Init(); err != nil {
+			return err
 		}
-		fmt.Println()
+		fmt.Printf("%s -- %s\n", v, v.Description())
+		for _, fi := range v.Embedded() {
+			fmt.Printf("  %s\n", fi)
+		}
 	}
 	return nil
 }
 
-type EmbedListCmd struct{}
-
-func (cmd *EmbedListCmd) Run(inst *Provisioner) error {
-	list, err := ListFs(inst.files, inst.secrets)
-	fmt.Println(list)
-	return err
+type context struct {
+	log       hclog.Logger
+	setup     SetupFn
+	configure ConfigureFn
 }
 
-func ListFs(files fs.FS, secrets fs.FS) (string, error) {
-	var bld strings.Builder
+// SetupFn is the function signature to pass to [Main].
+type SetupFn func(log hclog.Logger) (*Provisioner, error)
 
-	fn := func(dePath string, de fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !de.IsDir() {
-			fmt.Fprintln(&bld, dePath)
-		}
-		return nil
-	}
-
-	// Ignore errors.
-	fmt.Fprintln(&bld, "files:")
-	fs.WalkDir(files, ".", fn)
-	fmt.Fprintln(&bld, "secrets:")
-	fs.WalkDir(secrets, ".", fn)
-
-	return bld.String(), nil
-}
-
-// PrepareFn is the function signature to pass to [Main].
-type PrepareFn func(log hclog.Logger) (*Provisioner, error)
+// ConfigureFn is the function signature to pass to [Main].
+type ConfigureFn func(prov *Provisioner, config *florist.Config) error
 
 // Main is a ready-made function for the main() of your installer.
 // Usage:
 //
 //	func main() {
 //		log := florist.NewLogger("example")
-//		os.Exit(installer.Main(log, prepare))
+//		os.Exit(installer.Main(log, os.Args, setup, configure))
 //	}
 //
 // If you don't want to use it, just copy it and modify as you see fit.
-func Main(log hclog.Logger, prepare PrepareFn) int {
-	log.Info("starting", "invocation", os.Args)
-	start := time.Now()
-	steps := func() error {
-		inst, err := prepare(log)
-		if err != nil {
-			return err
-		}
-		return inst.Run(os.Args[1:])
+func Main(log hclog.Logger, setup SetupFn, configure ConfigureFn) int {
+	var cli cli
+	parser, err := kong.New(&cli,
+		kong.Description("🌼 florist 🌺 - a simple provisioner"),
+		kong.UsageOnError(),
+		kong.ConfigureHelp(kong.HelpOptions{
+			Compact: true,
+			Summary: true,
+		},
+		),
+		kong.Vars{
+			"role": filepath.Base(os.Args[0]),
+		},
+	)
+	if err != nil {
+		panic(err)
 	}
-	err := steps()
+	ctx, err := parser.Parse(os.Args[1:])
+	parser.FatalIfErrorf(err)
+
+	start := time.Now()
+	log.Info("starting", "invocation", os.Args)
+	err = ctx.Run(&context{log: log, setup: setup, configure: configure})
 	elapsed := time.Since(start).Round(time.Millisecond)
 
 	if err != nil {
@@ -349,13 +227,13 @@ func Main(log hclog.Logger, prepare PrepareFn) int {
 }
 
 // root is a hack to ease testing.
-func customizeMotd(log hclog.Logger, op string, root string) error {
+func customizeMotd(log hclog.Logger, op string, rootDir string) error {
 	now := time.Now().Round(time.Second)
 	line := fmt.Sprintf("%s System %s by 🌼 florist 🌺\n", now, op)
-	name := path.Join(root, "/etc/motd")
+	name := path.Join(rootDir, "/etc/motd")
 	log.Debug("customizeMotd", "target", name, "operation", op)
 
-	if err := florist.Mkdir(path.Dir(name), "", 0755); err != nil {
+	if err := florist.Mkdir(path.Dir(name), florist.User().Username, 0755); err != nil {
 		return err
 	}
 
@@ -367,9 +245,4 @@ func customizeMotd(log hclog.Logger, op string, root string) error {
 	_, errWrite := f.WriteString(line)
 	errClose := f.Close()
 	return multierr.New(errWrite, errClose)
-}
-
-func describeFS(fsys fs.FS) string {
-	matches, _ := fs.Glob(fsys, "*")
-	return strings.Join(matches, ",")
 }

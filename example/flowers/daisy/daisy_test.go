@@ -1,102 +1,101 @@
 package daisy_test
 
 import (
-	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
 
-	"github.com/hashicorp/go-hclog"
-	"gotest.tools/v3/assert"
+	"github.com/go-quicktest/qt"
 
 	"github.com/marco-m/florist/example/flowers/daisy"
-
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/florist/pkg/provisioner"
 )
 
-func TestSampleInstall(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+// TODO: test install all defaults.
 
-	flower := &daisy.Flower{}
+func TestDaisyInstall(t *testing.T) {
+	// WARNING: In this case we do not call
+	// florist.SkipIfNotDisposableHost(t)
+	// because this is a special flower!
 
 	fsys := fstest.MapFS{
-		path.Join(flower.String(), daisy.InstallStaticFileSrc): {
-			Data: []byte("Nel mezzo del cammin di nostra vita"),
+		daisy.InstallPlainFileSrc: {
+			Data: []byte("Johnny Stecchino"),
 		},
-		path.Join(flower.String(), daisy.InstallTplFileSrc): {
-			Data: []byte("Nel mezzo del {{.Fruit}} di nostra vita"),
+		daisy.InstallTmplFileSrc: {
+			Data: []byte("{{.PetalColor}}"),
 		},
 	}
 
-	t.Run("install runs successfully", func(t *testing.T) {
-		log := hclog.NewNullLogger()
-		inst, err := provisioner.New(log, florist.CacheValidity, fsys, fsys)
-		assert.NilError(t, err)
-		assert.NilError(t, inst.AddBouquet("name", "desc", flower))
+	fl := &daisy.Flower{
+		Inst: daisy.Inst{Fsys: fsys},
+		Conf: daisy.Conf{},
+	}
+	err := fl.Init()
+	qt.Assert(t, qt.IsNil(err))
 
-		err = inst.Run([]string{"install", "name"})
-		assert.NilError(t, err, "\n%s", listFiles(fsys, fsys))
+	t.Run("install runs successfully", func(t *testing.T) {
+		err := florist.Init()
+		qt.Assert(t, qt.IsNil(err))
+		//florist.SetLogger(florist.NewLogger("test"))
+
+		err = fl.Install()
+		qt.Assert(t, qt.IsNil(err))
 	})
 
 	t.Run("read back what install wrote", func(t *testing.T) {
 		// File 1
 		{
-			path := filepath.Join(flower.DstDir, daisy.InstallStaticFileDst)
-			have, err := os.ReadFile(path)
-			assert.NilError(t, err)
-			assert.Equal(t, string(have), "Nel mezzo del cammin di nostra vita")
+			fpath := filepath.Join(fl.Inst.DstDir, daisy.InstallPlainFileDst)
+			have, err := os.ReadFile(fpath)
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.Equals(string(have), "Johnny Stecchino"))
 		}
 		// File 2
 		{
-			path := filepath.Join(flower.DstDir, daisy.InstallTmplFileDst)
-			have, err := os.ReadFile(path)
-			assert.NilError(t, err)
-			assert.Equal(t, string(have), "Nel mezzo del banana di nostra vita")
+			fpath := filepath.Join(fl.Inst.DstDir, daisy.InstallTmplFileDst)
+			have, err := os.ReadFile(fpath)
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.Equals(string(have), "white"))
 		}
 	})
 }
 
-func listFiles(files, secrets fs.FS) string {
-	s, _ := provisioner.ListFs(files, secrets)
-	return s
-}
+func TestDaisyConfigure(t *testing.T) {
+	// WARNING: In this case we do not call
+	// florist.SkipIfNotDisposableHost(t)
+	// because this is a special flower!
 
-func TestSampleConfigure(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
-
-	flower := &daisy.Flower{Fruit: "cammin"}
-
-	files := fstest.MapFS{
-		path.Join(flower.String(), daisy.ConfigTplFileSrc): {
-			Data: []byte(`Nel {{.Secret}} del {{.Fruit}} di nostra {{.Custom}}`),
+	fsys := fstest.MapFS{
+		daisy.ConfigTmplFileSrc: {
+			Data: []byte(`{{.PetalColor}} {{.Environment}} {{.GossipKey}}`),
 		},
 	}
-	secrets := fstest.MapFS{
-		path.Join("flowers", flower.String(), "secret"): {
-			Data: []byte("mezzo"),
-		},
-		path.Join("flowers", flower.String(), "custom"): {
-			Data: []byte("vita"),
+
+	fl := &daisy.Flower{
+		Inst: daisy.Inst{Fsys: fsys},
+		Conf: daisy.Conf{
+			Environment: "dev",
+			GossipKey:   "sesamo",
 		},
 	}
+	err := fl.Init()
+	qt.Assert(t, qt.IsNil(err))
 
 	t.Run("configure runs successfully", func(t *testing.T) {
-		log := hclog.NewNullLogger()
-		inst, err := provisioner.New(log, florist.CacheValidity, files, secrets)
-		assert.NilError(t, err)
-		assert.NilError(t, inst.AddBouquet("name", "desc", flower))
+		err := florist.Init()
+		qt.Assert(t, qt.IsNil(err))
 
-		err = inst.Run([]string{"configure", "name"})
-		assert.NilError(t, err, "\n%s", listFiles(files, secrets))
+		err = fl.Configure()
+		qt.Assert(t, qt.IsNil(err))
 	})
 
 	t.Run("read back what configure wrote", func(t *testing.T) {
-		path := filepath.Join(flower.DstDir, daisy.ConfigTplFileDst)
-		have, err := os.ReadFile(path)
-		assert.NilError(t, err)
-		assert.Equal(t, string(have), "Nel mezzo del cammin di nostra vita")
+		fpath := filepath.Join(fl.Inst.DstDir, daisy.ConfigTmplFileDst)
+		have, err := os.ReadFile(fpath)
+
+		qt.Assert(t, qt.IsNil(err))
+		qt.Assert(t, qt.Equals(string(have), "white dev sesamo"))
 	})
 }

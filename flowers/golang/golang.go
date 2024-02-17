@@ -3,14 +3,15 @@ package golang
 
 import (
 	"fmt"
-	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"time"
 
+	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/envpath"
@@ -18,98 +19,116 @@ import (
 )
 
 const (
-	Goroot = "/usr/local/go"
+	GOROOT = "/usr/local/go"
 )
+
+const Name = "golang"
 
 var _ florist.Flower = (*Flower)(nil)
 
 type Flower struct {
+	Inst
+	Conf
+}
+
+type Inst struct {
 	Version string
 	Hash    string
-	log     hclog.Logger
+}
+
+type Conf struct {
 }
 
 func (fl *Flower) String() string {
-	return "golang"
+	return Name
 }
 
 func (fl *Flower) Description() string {
 	return "install the Go programming language"
 }
 
-func (fl *Flower) Init() error {
-	name := fmt.Sprintf("florist.flower.%s", fl)
-	fl.log = florist.Log.ResetNamed(name)
-
-	if fl.Version == "" {
-		return fmt.Errorf("%s.new: missing version", name)
-	}
-	if fl.Hash == "" {
-		return fmt.Errorf("%s.new: missing hash", name)
-	}
-
+func (fl *Flower) Embedded() []string {
 	return nil
 }
 
-func (fl *Flower) Install(files fs.FS, finder florist.Finder) error {
-	goexe := path.Join(Goroot, "bin/go")
-	if foundGoVersion := maybeGoVersion(fl.log, goexe); foundGoVersion == fl.Version {
-		fl.log.Debug("Go already installed with matching version", "version", fl.Version)
+func (fl *Flower) Init() error {
+	if err := defaults.Set(fl); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
+	if fl.Version == "" {
+		return fmt.Errorf("%s.new: missing version", Name)
+	}
+	if fl.Hash == "" {
+		return fmt.Errorf("%s.new: missing hash", Name)
+	}
+	return nil
+}
+
+func (fl *Flower) Install() error {
+	log := florist.Log.ResetNamed(Name + ".install")
+
+	goexe := path.Join(GOROOT, "bin/go")
+	if installedGoVersion(log, goexe) == fl.Version {
+		log.Debug("Go already installed with matching version", "version", fl.Version)
 		return nil
 	}
 
-	fl.log.Info("Download Go package", "version", fl.Version)
-	url := "https://" + path.Join("golang.org/dl",
-		fmt.Sprintf("go%s.linux-amd64.tar.gz", fl.Version))
+	log.Info("Download Go package", "version", fl.Version)
+	uri, err := url.JoinPath("https://golang.org/dl",
+		"go"+fl.Version+".linux-amd64.tar.gz")
 	client := &http.Client{Timeout: 30 * time.Second}
-	tgzPath, err := florist.NetFetch(client, url, florist.SHA256, fl.Hash, florist.WorkDir)
+	tgzPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash,
+		florist.WorkDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	fl.log.Debug("extracting Go")
+	log.Debug("extracting Go")
 	if err := os.RemoveAll(path.Join(florist.WorkDir, "go")); err != nil {
-		return fmt.Errorf("go.Install: %s", err)
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 	cmd := exec.Command("tar", "xzf", tgzPath)
 	cmd.Dir = florist.WorkDir
-	if err := florist.CmdRun(fl.log, cmd); err != nil {
-		return fmt.Errorf("go.Install: %s", err)
+	if err := florist.CmdRun(log, cmd); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	fl.log.Debug("removing old Go (if any)")
-	if err := os.RemoveAll(Goroot); err != nil {
-		return fmt.Errorf("go.Install: %s", err)
+	log.Debug("removing old Go (if any)")
+	if err := os.RemoveAll(GOROOT); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 	// TODO iterate in go/bin/ and remove symlinks
-	fl.log.Debug("Moving Go into place")
-	if err := os.Rename(path.Join(florist.WorkDir, "go"), Goroot); err != nil {
-		return fmt.Errorf("go.Install: %s", err)
+	log.Debug("Moving Go into place")
+	if err := os.Rename(path.Join(florist.WorkDir, "go"), GOROOT); err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
 	}
-	fl.log.Debug("Creating symbolic links")
-	binDir := path.Join(Goroot, "bin")
+
+	log.Debug("Creating symbolic links")
+	binDir := path.Join(GOROOT, "bin")
 	dirEntries, err := os.ReadDir(binDir)
 	if err != nil {
-		return fmt.Errorf("go.Install: %s", err)
+		return fmt.Errorf("%s: %s", Name, err)
 	}
 	for _, de := range dirEntries {
 		if err := os.Symlink(path.Join(binDir, de.Name()),
 			path.Join("/usr/local/bin", de.Name())); err != nil {
-			return fmt.Errorf("go.Install: %s", err)
+			return fmt.Errorf("%s: %s", Name, err)
 		}
 	}
-	fl.log.Info("Installed Go", "path", Goroot)
+	log.Info("Installed Go", "path", GOROOT)
 
-	return envpath.Add(fl.log, "go", "$HOME/go/bin")
+	return envpath.Add(log, "go", "$HOME/go/bin")
 }
 
-func (fl *Flower) Configure(files fs.FS, finder florist.Finder) error {
+func (fl *Flower) Configure() error {
+	log := florist.Log.ResetNamed(Name + ".configure")
+	log.Debug("nothing to do")
 	return nil
 }
 
-// maybeGoVersion returns the version such as "1.17.2" if found, or the empty
+// installedGoVersion returns the version such as "1.17.2" if found, or the empty
 // string if not found.
-func maybeGoVersion(log hclog.Logger, goexe string) string {
+func installedGoVersion(log hclog.Logger, goexe string) string {
 	log = log.With("path", goexe)
 	goexe, err := exec.LookPath(goexe)
 	if err != nil {

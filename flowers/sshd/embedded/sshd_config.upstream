@@ -10,10 +10,7 @@
 # possible, but leave them commented.  Uncommented options override the
 # default value.
 
-# This file has been modified to be provisioned by Florist (https://github.com/marco-m/florist).
-# See the comments in file sshd.go for details.
-
-Port {{.Port}}
+#Port 22
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
@@ -21,8 +18,6 @@ Port {{.Port}}
 #HostKey /etc/ssh/ssh_host_rsa_key
 #HostKey /etc/ssh/ssh_host_ecdsa_key
 #HostKey /etc/ssh/ssh_host_ed25519_key
-
-HostCertificate /etc/ssh/ssh_host_ed25519_key-cert.pub
 
 # Ciphers and keying
 #RekeyLimit default none
@@ -33,10 +28,10 @@ HostCertificate /etc/ssh/ssh_host_ed25519_key-cert.pub
 
 # Authentication:
 
-LoginGraceTime 1m
-PermitRootLogin no
+#LoginGraceTime 2m
+#PermitRootLogin prohibit-password
 #StrictModes yes
-MaxAuthTries 2
+#MaxAuthTries 6
 #MaxSessions 10
 
 #PubkeyAuthentication yes
@@ -59,15 +54,15 @@ AuthorizedKeysFile	.ssh/authorized_keys
 #IgnoreRhosts yes
 
 # To disable tunneled clear text passwords, change to no here!
-PasswordAuthentication no
+#PasswordAuthentication yes
 #PermitEmptyPasswords no
 
 # Change to no to disable s/key passwords
-KbdInteractiveAuthentication no
+#KbdInteractiveAuthentication yes
 
 # Kerberos options
 #KerberosAuthentication no
-KerberosOrLocalPasswd no
+#KerberosOrLocalPasswd yes
 #KerberosTicketCleanup yes
 #KerberosGetAFSToken no
 
@@ -84,19 +79,7 @@ KerberosOrLocalPasswd no
 # If you just want the PAM account and session checks to run without
 # PAM authentication, then enable this but set PasswordAuthentication
 # and KbdInteractiveAuthentication to 'no'.
-#
-# NOTE 1: Contrary to at least Debian and Ubuntu, we (Florist) keep the OpenSSH
-# default of "UsePAM no" for increased security. On the other hand, this
-# breaks all SSH connections, because on Linux account passwords are disabled
-# with a '!' character, and when openSSH sees a '!' in /etc/shadows, also if
-# using public key authentication, it rejects the authentication. To solve
-# this problem, we must replace '!' with '*' (for example, with
-# "usermod -p '*' username"), which still disables password but allows public
-# key. Go figure why...
-# NOTE 2: This is more complicated than expected. For the time being, let's
-# follow the Linux distributions approach of "UsePAM yes". This will be
-# finally fixed in branch shadow-package.
-UsePAM yes
+#UsePAM no
 
 #AllowAgentForwarding yes
 #AllowTcpForwarding yes

@@ -1,1 +1,0 @@
-{{.SshHostEd25519KeyCertPub}}
