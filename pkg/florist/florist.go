@@ -13,11 +13,20 @@ import (
 )
 
 type Flower interface {
-	Init() error
-	fmt.Stringer
+	Installer
+	Configurer
+}
+
+type Installer interface {
+	String() string
 	Description() string
-	Install(files fs.FS, finder Finder) error
-	Configure(files fs.FS, finder Finder) error
+	Embedded() []string
+	Init() error
+	Install() error
+}
+
+type Configurer interface {
+	Configure() error
 }
 
 const (
