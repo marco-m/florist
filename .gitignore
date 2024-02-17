@@ -1,5 +1,6 @@
-.vagrant/
-bin/
+/.vagrant/
+/bin/
+/example/secrets/
 ssh.config*
 TODO.md
 coverage.out
