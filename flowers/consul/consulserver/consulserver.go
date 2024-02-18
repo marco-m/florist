@@ -1,30 +1,18 @@
 // Package consul contains a flower to install a Consul client and a flower to
 // install a Consul server.
-package consul
+package consulserver
 
 import (
 	"fmt"
 	"io/fs"
-	"net/http"
 	"path"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/marco-m/florist/flowers/consul"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/systemd"
 )
-
-const (
-	consulHomeDir  = "/opt/consul"
-	consulCfgDir   = "/opt/consul/config"
-	consulBin      = "/usr/local/bin"
-	consulUsername = "consul"
-)
-
-type dynamic struct {
-	Workspace string
-}
 
 var _ florist.Flower = (*ServerFlower)(nil)
 
@@ -58,17 +46,17 @@ func (fl *ServerFlower) Init() error {
 func (fl *ServerFlower) Install(files fs.FS, finder florist.Finder) error {
 	log := fl.log.Named("install")
 
-	log.Info("Add system user", "user", consulUsername)
-	if err := florist.UserSystemAdd(consulUsername, consulHomeDir); err != nil {
+	log.Info("Add system user", "user", consul.ConsulUsername)
+	if err := florist.UserSystemAdd(consul.ConsulUsername, consul.ConsulHomeDir); err != nil {
 		return fmt.Errorf("consulserver.install: %s", err)
 	}
 
-	if err := installConsulExe(log, fl.Version, fl.Hash, "root"); err != nil {
+	if err := consul.InstallConsulExe(log, fl.Version, fl.Hash, "root"); err != nil {
 		return fmt.Errorf("consulserver.install: %s", err)
 	}
 
-	log.Info("Create cfg dir", "dst", consulCfgDir)
-	if err := florist.Mkdir(consulCfgDir, consulUsername, 0755); err != nil {
+	log.Info("Create cfg dir", "dst", consul.ConsulCfgDir)
+	if err := florist.Mkdir(consul.ConsulCfgDir, consul.ConsulUsername, 0755); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -79,17 +67,17 @@ func (fl *ServerFlower) Configure(files fs.FS, finder florist.Finder) error {
 	log := fl.log.Named("configure")
 
 	log.Debug("loading dynamic configuration")
-	data := dynamic{
+	data := consul.Dynamic{
 		Workspace: finder.Get("Workspace"),
 	}
 	if err := finder.Error(); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	consulCfgDst := path.Join(consulCfgDir, "consul.server.hcl")
+	consulCfgDst := path.Join(consul.ConsulCfgDir, "consul.server.hcl")
 	log.Info("Install consul server configuration file", "dst", consulCfgDst)
 	if err := florist.CopyTemplateFs(files, "consul.server.hcl.tpl",
-		consulCfgDst, 0640, consulUsername, data, "<<", ">>"); err != nil {
+		consulCfgDst, 0640, consul.ConsulUsername, data, "<<", ">>"); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
@@ -108,53 +96,6 @@ func (fl *ServerFlower) Configure(files fs.FS, finder florist.Finder) error {
 	if err := systemd.Restart("consul-server.service"); err != nil {
 		return fmt.Errorf("consulserver.configure: %s", err)
 	}
-
-	return nil
-}
-
-func installConsulExe(log hclog.Logger, version, hash, owner string) error {
-	log.Info("Download Consul package")
-	url := fmt.Sprintf(
-		"https://releases.hashicorp.com/consul/%s/consul_%s_linux_amd64.zip",
-		version, version)
-	client := &http.Client{Timeout: 30 * time.Second}
-	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash, florist.WorkDir)
-	if err != nil {
-		return err
-	}
-
-	extracted := path.Join(florist.WorkDir, "consul")
-	log.Info("Unzipping Consul package", "dst", extracted)
-	if err := florist.UnzipOne(zipPath, "consul", extracted); err != nil {
-		return err
-	}
-
-	exe := path.Join(consulBin, "consul")
-	log.Info("Install consul", "dst", exe)
-	if err := florist.CopyFile(extracted, exe, 0755, owner); err != nil {
-		return err
-	}
-
-	// FIXME
-	// 1. it installs only for the current user
-	// 2. it errors out like this if already installed
-	//  /usr/local/bin/consul -autocomplete-install
-	// Error executing CLI: 2 errors occurred:
-	//         * already installed in /root/.bashrc
-	//         * already installed at /root/.config/fish/completions/consul.fish
-	//
-	// maybe I can run before consul -autocomplete-uninstall ?
-	// sigh no:
-	// consul -autocomplete-uninstall
-	// Error executing CLI: 2 errors occurred:
-	//         * does not installed in /root/.bashrc
-	//         * does not installed in /root/.config/fish
-
-	// log.Info("Install consul shell autocomplete")
-	// cmd := exec.Command(exe, "-autocomplete-install")
-	// if err := cmd.Run(); err != nil {
-	// 	return err
-	// }
 
 	return nil
 }

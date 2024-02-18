@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/marco-m/florist/flowers/consul"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/systemd"
 )
@@ -43,17 +44,17 @@ func (fl *ClientFlower) Init() error {
 }
 
 func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
-	fl.log.Info("Add system user", "user", consulUsername)
-	if err := florist.UserSystemAdd(consulUsername, consulHomeDir); err != nil {
+	fl.log.Info("Add system user", "user", consul.ConsulUsername)
+	if err := florist.UserSystemAdd(consul.ConsulUsername, consul.ConsulHomeDir); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	if err := installConsulExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
+	if err := consul.InstallConsulExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	fl.log.Info("Create cfg dir", "dst", consulCfgDir)
-	if err := florist.Mkdir(consulCfgDir, consulUsername, 0755); err != nil {
+	fl.log.Info("Create cfg dir", "dst", consul.ConsulCfgDir)
+	if err := florist.Mkdir(consul.ConsulCfgDir, consul.ConsulUsername, 0755); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -64,17 +65,17 @@ func (fl *ClientFlower) Configure(files fs.FS, finder florist.Finder) error {
 	log := fl.log.Named("configure")
 
 	log.Debug("loading dynamic configuration")
-	data := dynamic{
+	data := consul.Dynamic{
 		Workspace: finder.Get("Workspace"),
 	}
 	if err := finder.Error(); err != nil {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	consulCfgDst := path.Join(consulCfgDir, "consul.client.hcl")
+	consulCfgDst := path.Join(consul.ConsulCfgDir, "consul.client.hcl")
 	fl.log.Info("Install consul client configuration file", "dst", consulCfgDst)
 	if err := florist.CopyTemplateFs(files, "consul.client.hcl.tpl",
-		consulCfgDst, 0640, consulUsername, data, "<<", ">>"); err != nil {
+		consulCfgDst, 0640, consul.ConsulUsername, data, "<<", ">>"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 

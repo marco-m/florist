@@ -1,4 +1,4 @@
-package consul_test
+package consulserver_test
 
 import (
 	"embed"
@@ -8,18 +8,18 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"github.com/marco-m/florist/flowers/consul"
+	"github.com/marco-m/florist/flowers/consul/consulserver"
 	"github.com/marco-m/florist/pkg/florist"
 )
 
-//go:embed files
+//go:embed embedded
 var filesFS embed.FS
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	florist.SetLogger(florist.NewLogger("test-consulserver"))
-	fl := consul.ServerFlower{
+	fl := consulserver.ServerFlower{
 		Version: "1.11.2",
 		Hash:    "380eaff1b18a2b62d8e1d8a7cbc3f3e08b34d3f7187ee335b891ca2ba98784b3",
 	}
@@ -41,12 +41,12 @@ func TestConsulServerInstallFailureVM(t *testing.T) {
 
 	testCases := []struct {
 		name    string
-		flower  consul.ServerFlower
+		flower  consulserver.ServerFlower
 		wantErr string
 	}{
 		{
 			name:    "missing version",
-			flower:  consul.ServerFlower{},
+			flower:  consulserver.ServerFlower{},
 			wantErr: " missing version",
 		},
 	}

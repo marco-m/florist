@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/marco-m/florist/flowers/nomad"
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/systemd"
@@ -61,12 +62,12 @@ func (fl *ClientFlower) Install(files fs.FS, finder florist.Finder) error {
 
 	fl.log.Info("The nomad client (contrary to the server) must run as root, so not adding any dedicated user")
 
-	if err := installNomadExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
+	if err := nomad.InstallNomadExe(fl.log, fl.Version, fl.Hash, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	fl.log.Info("Create cfg dir", "dst", nomadCfgDir)
-	if err := florist.Mkdir(nomadCfgDir, "root", 0755); err != nil {
+	fl.log.Info("Create cfg dir", "dst", nomad.NomadCfgDir)
+	if err := florist.Mkdir(nomad.NomadCfgDir, "root", 0755); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
@@ -88,28 +89,28 @@ func (fl *ClientFlower) Configure(files fs.FS, finder florist.Finder) error {
 		return fmt.Errorf("%s.configure: %s", fl, err)
 	}
 
-	nomadCfgDst := path.Join(nomadCfgDir, "nomad.client.hcl")
+	nomadCfgDst := path.Join(nomad.NomadCfgDir, "nomad.client.hcl")
 	log.Info("Install nomad client configuration file", "dst", nomadCfgDst)
 	if err := florist.CopyTemplateFs(files, "nomad.client.hcl.tpl",
 		nomadCfgDst, 0640, "root", data, "<<", ">>"); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	nomadAgentCaPubDst := path.Join(nomadCfgDir, "NomadAgentCaPub")
+	nomadAgentCaPubDst := path.Join(nomad.NomadCfgDir, "NomadAgentCaPub")
 	log.Info("Install", "dst", nomadAgentCaPubDst)
 	if err := florist.CopyTemplateFs(files, "NomadAgentCaPub.tpl",
 		nomadAgentCaPubDst, 0640, "root", data, "", ""); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	globalClientNomadKeyPubDst := path.Join(nomadCfgDir, "GlobalClientNomadKeyPub")
+	globalClientNomadKeyPubDst := path.Join(nomad.NomadCfgDir, "GlobalClientNomadKeyPub")
 	log.Info("Install", "dst", globalClientNomadKeyPubDst)
 	if err := florist.CopyTemplateFs(files, "GlobalClientNomadKeyPub.tpl",
 		globalClientNomadKeyPubDst, 0640, "root", data, "", ""); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	globalClientNomadKeyDst := path.Join(nomadCfgDir, "GlobalClientNomadKey")
+	globalClientNomadKeyDst := path.Join(nomad.NomadCfgDir, "GlobalClientNomadKey")
 	log.Info("Install", "dst", globalClientNomadKeyDst)
 	if err := florist.CopyTemplateFs(files, "GlobalClientNomadKey.tpl",
 		globalClientNomadKeyDst, 0640, "root", data, "", ""); err != nil {

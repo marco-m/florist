@@ -14,7 +14,7 @@ import (
 	"github.com/marco-m/florist/pkg/provisioner"
 )
 
-//go:embed embed
+//go:embed embedded
 var embedded embed.FS
 
 func main() {

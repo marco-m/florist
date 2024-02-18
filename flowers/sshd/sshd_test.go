@@ -15,7 +15,7 @@ import (
 	"github.com/marco-m/florist/pkg/florist"
 )
 
-//go:embed files
+//go:embed embedded
 var filesFS embed.FS
 
 func TestSshdInstallSuccess(t *testing.T) {

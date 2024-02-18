@@ -9,20 +9,21 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/marco-m/florist/flowers/consul"
+	"github.com/marco-m/florist/flowers/task"
+
+	"github.com/marco-m/florist/flowers/consul/consulclient"
 	"github.com/marco-m/florist/flowers/consultemplate"
 	"github.com/marco-m/florist/flowers/docker"
 	"github.com/marco-m/florist/flowers/fishshell"
 	"github.com/marco-m/florist/flowers/golang"
 	"github.com/marco-m/florist/flowers/locale"
-	"github.com/marco-m/florist/flowers/nomad"
+	"github.com/marco-m/florist/flowers/nomad/nomadclient"
 	"github.com/marco-m/florist/flowers/ospackages"
-	"github.com/marco-m/florist/flowers/taskfile"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/provisioner"
 )
 
-//go:embed embed
+//go:embed embedded
 var embedded embed.FS
 
 func main() {
