@@ -152,7 +152,7 @@ type InstallCmd struct {
 }
 
 func (cmd *InstallCmd) Run(prov *Provisioner) error {
-	if _, err := florist.Init(); err != nil {
+	if err := florist.Init(); err != nil {
 		return err
 	}
 
@@ -186,7 +186,7 @@ type ConfigureCmd struct {
 }
 
 func (cmd *ConfigureCmd) Run(prov *Provisioner) error {
-	if _, err := florist.Init(); err != nil {
+	if err := florist.Init(); err != nil {
 		return err
 	}
 

@@ -25,18 +25,27 @@ const (
 	CacheValidity = 24 * time.Hour
 )
 
-func Init() (*user.User, error) {
-	log := Log.Named("Init")
+var currentUser *user.User
 
-	currUser, err := user.Current()
+func Init() error {
+	log := Log.Named("Init")
+	var err error
+	currentUser, err = user.Current()
 	if err != nil {
-		return nil, fmt.Errorf("florist.Init: %s", err)
+		return fmt.Errorf("florist.Init: %s", err)
 	}
-	if err := Mkdir(WorkDir, currUser.Username, 0755); err != nil {
-		return currUser, fmt.Errorf("florist.Init: %s", err)
+	if err := Mkdir(WorkDir, currentUser.Username, 0755); err != nil {
+		return fmt.Errorf("florist.Init: %s", err)
 	}
 	log.Info("success")
-	return currUser, nil
+	return nil
+}
+
+func User() *user.User {
+	if currentUser == nil {
+		panic("must call florist.Init before")
+	}
+	return currentUser
 }
 
 // SkipIfNotDisposableHost skips the test if it is running on a precious host.
