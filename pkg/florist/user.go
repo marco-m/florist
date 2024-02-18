@@ -14,6 +14,7 @@ import (
 func UserAdd(username string, groups ...string) error {
 	log := Log.Named("UserAdd").With("user", username)
 
+	log.Info("adding user")
 	if _, err := user.Lookup(username); err == nil {
 		log.Debug("user already present")
 		return nil

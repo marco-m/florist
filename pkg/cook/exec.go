@@ -10,6 +10,7 @@ import (
 
 func ExecOut(env []string, name string, arg ...string) (string, error) {
 	cmd := exec.Command(name, arg...)
+	Out(cmd.String())
 	cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {
@@ -25,6 +26,7 @@ func ExecOut(env []string, name string, arg ...string) (string, error) {
 
 func ExecRun(dir string, env []string, name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
+	Out("cmd", cmd.String(), "dir", dir)
 	cmd.Dir = dir
 	cmd.Env = env
 	cmd.Stdin = os.Stdin
@@ -41,6 +43,7 @@ func ExecRunFunc(dir string, env []string, name string, arg1 ...string,
 ) func(arg2 ...string) error {
 	return func(arg2 ...string) error {
 		cmd := exec.Command(name, append(arg1, arg2...)...)
+		Out("cmd", cmd.String(), "dir", dir)
 		cmd.Dir = dir
 		cmd.Env = env
 		cmd.Stdin = os.Stdin

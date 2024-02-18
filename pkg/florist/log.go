@@ -9,7 +9,7 @@ import (
 // Module-global default logger.
 var Log = hclog.NewNullLogger()
 
-// name should be <project>-florist
+// name should be the name of the executable
 func NewLogger(name string) hclog.Logger {
 	return hclog.New(&hclog.LoggerOptions{
 		Name:       name,

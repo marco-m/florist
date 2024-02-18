@@ -7,6 +7,7 @@ import (
 	"os"
 )
 
+// UnzipOne extracts file `name` from ZIP file `zipPath` and saves it to `dstPath`.
 func UnzipOne(zipPath string, name string, dstPath string) error {
 	log := Log.Named("UnzipOne").With("zipPath", zipPath, "name", name, "dstPath", dstPath)
 	log.Debug("begin")

@@ -8,7 +8,7 @@ import (
 )
 
 // Add `paths` to the system PATH, for POSIX shells and for Fish shell.
-// The never-ending pain of shells and something apparently as mango as
+// The never-ending pain of shells and something apparently as simple as
 // adding to the PATH environment variable. Sigh.
 func Add(log hclog.Logger, name string, paths ...string) error {
 	//

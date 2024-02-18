@@ -20,7 +20,7 @@ func TestAptUpdateVM(t *testing.T) {
 func TestAptInstallVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
-	err := apt.Install("netcat")
+	err := apt.Install("ripgrep")
 
 	if err != nil {
 		t.Fatalf("\nhave: %s\nwant: <no error>", err)
