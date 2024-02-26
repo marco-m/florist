@@ -11,9 +11,8 @@ import (
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := florist.Init()
+	err := florist.Init(nil)
 	qt.Assert(t, qt.IsNil(err))
-	florist.SetLogger(florist.NewLogger("test-consulserver"))
 
 	fl := consulserver.Flower{
 		Inst: consulserver.Inst{
@@ -30,9 +29,8 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := florist.Init()
+	err := florist.Init(nil)
 	qt.Assert(t, qt.IsNil(err))
-	florist.SetLogger(florist.NewLogger("test-consulserver"))
 
 	// FIXME Since not compatible with a client install, I should wipe client installs before...
 	// at this point, should I do it as a Flower method, Unistall(), or should I do it grossly only here?

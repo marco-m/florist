@@ -12,7 +12,7 @@ import (
 )
 
 func Update(cacheValidity time.Duration) error {
-	log := florist.Log.Named("apt.Update")
+	log := florist.Log.With("fn", "apt.Update")
 	// Sigh. No method is robust :-/
 	// /var/lib/apt/lists
 	// /var/cache/apt/pkgcache.bin
@@ -38,7 +38,7 @@ func Update(cacheValidity time.Duration) error {
 }
 
 func Install(pkg ...string) error {
-	log := florist.Log.Named("apt.Install")
+	log := florist.Log.With("fn", "apt.Install")
 	log.Info("updating package cache")
 	if err := Update(florist.CacheValidity); err != nil {
 		return err
@@ -58,7 +58,7 @@ func Install(pkg ...string) error {
 }
 
 func Remove(pkg ...string) error {
-	log := florist.Log.Named("apt.Remove")
+	log := florist.Log.With("fn", "apt.Remove")
 	log.Info("Removing", "packages", pkg)
 	args := []string{"remove", "-y"}
 	args = append(args, pkg...)

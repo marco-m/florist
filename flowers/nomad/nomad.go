@@ -3,12 +3,11 @@
 package nomad
 
 import (
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
-
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/florist"
 )
@@ -21,7 +20,7 @@ const (
 )
 
 // CommonInstall performs the installation steps common to the client and the server.
-func CommonInstall(log hclog.Logger, version string, hash string) error {
+func CommonInstall(log *slog.Logger, version string, hash string) error {
 	// The nomad client (contrary to the server) must run as root, so we leave
 	// to the consulserver flower the care of adding a dedicated user.
 	// Contrast with [consul.CommonInstall].
@@ -43,7 +42,7 @@ func CommonInstall(log hclog.Logger, version string, hash string) error {
 	return nil
 }
 
-func installNomadExe(log hclog.Logger, version string, hash string) error {
+func installNomadExe(log *slog.Logger, version string, hash string) error {
 	log.Info("Download Nomad package")
 	uri, err := url.JoinPath("https://releases.hashicorp.com/nomad",
 		version, "nomad_"+version+"_linux_amd64.zip")

@@ -3,15 +3,13 @@ package florist
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os/exec"
-
-	"github.com/hashicorp/go-hclog"
 )
 
-func CmdRun(log hclog.Logger, cmd *exec.Cmd) error {
+func CmdRun(log *slog.Logger, cmd *exec.Cmd) error {
 	const truncLen = 160
-
-	log.Debug("executing", "cmd", cmd.String())
+	log.Debug("cmd-run", "cmd", cmd.String())
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -30,7 +28,7 @@ func CmdRun(log hclog.Logger, cmd *exec.Cmd) error {
 	for outScanner.Scan() {
 		line := outScanner.Text()
 		if line != "" {
-			log.Debug("", "stdout", truncate(line, truncLen))
+			log.Debug("cmd-run", "stdout", truncate(line, truncLen))
 		}
 	}
 	if err := outScanner.Err(); err != nil {
@@ -44,7 +42,7 @@ func CmdRun(log hclog.Logger, cmd *exec.Cmd) error {
 		if line != "" {
 			line = truncate(line, truncLen)
 			errLines = append(errLines, line)
-			log.Debug("", "stderr", line)
+			log.Debug("cmd-run", "stderr", line)
 		}
 	}
 	if err := errScanner.Err(); err != nil {

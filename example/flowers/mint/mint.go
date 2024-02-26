@@ -46,7 +46,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	//log := florist.Log.ResetNamed(Name + ".install")
+	//log := florist.Log.With("flower", Name + ".install")
 
 	text := `DstDir: {{.DstDir}}\n`
 	rendered, err := florist.TemplateFromText(text, fl)
@@ -64,7 +64,7 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	//log := florist.Log.ResetNamed(Name + ".configure")
+	//log := florist.Log.With("flower", Name + ".configure")
 
 	text := `DstDir: {{.DstDir}}
 Aroma: {{.Aroma}}

@@ -9,8 +9,8 @@ import (
 
 // UnzipOne extracts file `name` from ZIP file `zipPath` and saves it to `dstPath`.
 func UnzipOne(zipPath string, name string, dstPath string) error {
-	log := Log.Named("UnzipOne").With("zipPath", zipPath, "name", name, "dstPath", dstPath)
-	log.Debug("begin")
+	log := Log.With("zipPath", zipPath, "name", name, "dstPath", dstPath)
+	log.Debug("unzip-one")
 
 	rd, err := zip.OpenReader(zipPath)
 	if err != nil {
@@ -32,7 +32,7 @@ func UnzipOne(zipPath string, name string, dstPath string) error {
 	if err != nil {
 		return fmt.Errorf("UnzipOne: copy to dst: %s", err)
 	}
-	log.Debug("written")
+	log.Debug("unzip-one", "status", "written")
 
 	return nil
 }

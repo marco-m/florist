@@ -3,9 +3,8 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
-
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/flowers/fishshell"
 	"github.com/marco-m/florist/flowers/golang"
@@ -17,12 +16,24 @@ import (
 )
 
 func main() {
-	log := florist.NewLogger("florist")
-	os.Exit(provisioner.Main(log, setup, configure))
+	if err := mainErr(); err != nil {
+		fmt.Println("error:", err)
+		os.Exit(1)
+	}
 }
 
-func setup(log hclog.Logger) (*provisioner.Provisioner, error) {
-	prov, err := provisioner.New(log, florist.CacheValidity)
+func mainErr() error {
+	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	if err := florist.Init(log); err != nil {
+		return err
+	}
+	return provisioner.Main(setup, configure)
+}
+
+func setup() (*provisioner.Provisioner, error) {
+	prov, err := provisioner.New(florist.CacheValidity)
 	if err != nil {
 		return nil, fmt.Errorf("setup: %s", err)
 	}

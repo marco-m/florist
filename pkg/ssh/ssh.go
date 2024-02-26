@@ -16,7 +16,7 @@ import (
 // the files matching '*.pub' below fsys, where HOME is the home directory of
 // username.
 func AddAuthorizedKeys(username string, fsys fs.FS) error {
-	log := florist.Log.Named("ssh.AddAuthorizedKeys").With("user", username)
+	log := florist.Log.With("user", username)
 	log.Info("adding SSH authorized_keys")
 
 	theUser, err := user.Lookup(username)

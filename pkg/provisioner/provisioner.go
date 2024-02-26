@@ -3,21 +3,18 @@ package provisioner
 
 import (
 	"fmt"
-	stdlog "log"
 	"os"
 	"path"
 	"path/filepath"
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/hashicorp/go-hclog"
 	"tailscale.com/util/multierr"
 
 	"github.com/marco-m/florist/pkg/florist"
 )
 
 type Provisioner struct {
-	log           hclog.Logger
 	cacheValidity time.Duration
 	flowers       map[string]florist.Flower
 	ordered       []string
@@ -25,16 +22,8 @@ type Provisioner struct {
 	errs          []string
 }
 
-func New(log hclog.Logger, cacheValidity time.Duration,
-) (*Provisioner, error) {
-	florist.SetLogger(log)
-
-	stdlog.SetOutput(log.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
-	stdlog.SetPrefix("")
-	stdlog.SetFlags(0)
-
+func New(cacheValidity time.Duration) (*Provisioner, error) {
 	return &Provisioner{
-		log:           log.Named("provisioner"),
 		cacheValidity: cacheValidity,
 		flowers:       make(map[string]florist.Flower),
 	}, nil
@@ -80,20 +69,18 @@ type cli struct {
 type InstallCmd struct{}
 
 func (cmd *InstallCmd) Run(ctx *context) error {
-	if err := florist.Init(); err != nil {
-		return err
-	}
-	prov, err := ctx.setup(ctx.log)
+	log := florist.Log
+	prov, err := ctx.setup()
 	if err != nil {
 		return fmt.Errorf("install: %s", err)
 	}
 
-	prov.log.Info("installing", "flower-size", len(prov.flowers),
+	log.Info("installing", "flower-size", len(prov.flowers),
 		"flowers", prov.ordered)
 
 	for _, k := range prov.ordered {
 		fl := prov.flowers[k]
-		prov.log.Info("Installing", "flower", fl.String())
+		log.Info("installing", "flower", fl.String())
 		if err := fl.Init(); err != nil {
 			return fmt.Errorf("install: %s", err)
 		}
@@ -102,7 +89,7 @@ func (cmd *InstallCmd) Run(ctx *context) error {
 		}
 	}
 
-	return customizeMotd(prov.log, "installed", prov.root)
+	return customizeMotd("installed", prov.root)
 }
 
 type ConfigureCmd struct {
@@ -110,16 +97,13 @@ type ConfigureCmd struct {
 }
 
 func (cmd *ConfigureCmd) Run(ctx *context) error {
-	if err := florist.Init(); err != nil {
-		return fmt.Errorf("configure: %s", err)
-	}
-
+	log := florist.Log
 	config, err := florist.NewConfig(cmd.Settings)
 	if err != nil {
 		return fmt.Errorf("configure: %s", err)
 	}
 
-	prov, err := ctx.setup(ctx.log)
+	prov, err := ctx.setup()
 	if err != nil {
 		return fmt.Errorf("configure: %s", err)
 	}
@@ -130,12 +114,12 @@ func (cmd *ConfigureCmd) Run(ctx *context) error {
 		return fmt.Errorf("configure: %s", err)
 	}
 
-	prov.log.Info("configuring", "flowers-size", len(prov.flowers),
+	log.Info("configuring", "flowers-size", len(prov.flowers),
 		"flowers", prov.ordered)
 
 	for _, k := range prov.ordered {
 		fl := prov.flowers[k]
-		prov.log.Info("configuring", "flower", fl.String())
+		log.Info("configuring", "flower", fl.String())
 		if err := fl.Init(); err != nil {
 			return fmt.Errorf("configure: %s", err)
 		}
@@ -144,7 +128,7 @@ func (cmd *ConfigureCmd) Run(ctx *context) error {
 		}
 	}
 
-	if err := customizeMotd(prov.log, "configured", prov.root); err != nil {
+	if err := customizeMotd("configured", prov.root); err != nil {
 		return fmt.Errorf("configure: %s", err)
 	}
 	return nil
@@ -154,7 +138,7 @@ type ListCmd struct {
 }
 
 func (cmd *ListCmd) Run(ctx *context) error {
-	prov, err := ctx.setup(ctx.log)
+	prov, err := ctx.setup()
 	if err != nil {
 		return fmt.Errorf("list: %s", err)
 	}
@@ -173,13 +157,12 @@ func (cmd *ListCmd) Run(ctx *context) error {
 }
 
 type context struct {
-	log       hclog.Logger
 	setup     SetupFn
 	configure ConfigureFn
 }
 
 // SetupFn is the function signature to pass to [Main].
-type SetupFn func(log hclog.Logger) (*Provisioner, error)
+type SetupFn func() (*Provisioner, error)
 
 // ConfigureFn is the function signature to pass to [Main].
 type ConfigureFn func(prov *Provisioner, config *florist.Config) error
@@ -188,12 +171,22 @@ type ConfigureFn func(prov *Provisioner, config *florist.Config) error
 // Usage:
 //
 //	func main() {
-//		log := florist.NewLogger("example")
-//		os.Exit(installer.Main(log, os.Args, setup, configure))
+//	    if err := mainErr(); err != nil {
+//	        fmt.Println("error:", err)
+//	        os.Exit(1)
+//	    }
 //	}
 //
-// If you don't want to use it, just copy it and modify as you see fit.
-func Main(log hclog.Logger, setup SetupFn, configure ConfigureFn) int {
+//	func mainErr() error {
+//	    log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+//	        Level: slog.LevelDebug,
+//	    }))
+//	    if err := florist.Init(log); err != nil {
+//	        return err
+//	    }
+//	    return provisioner.Main(setup, configure)
+//	}
+func Main(setup SetupFn, configure ConfigureFn) error {
 	var cli cli
 	parser, err := kong.New(&cli,
 		kong.Description("🌼 florist 🌺 - a simple provisioner"),
@@ -213,25 +206,27 @@ func Main(log hclog.Logger, setup SetupFn, configure ConfigureFn) int {
 	ctx, err := parser.Parse(os.Args[1:])
 	parser.FatalIfErrorf(err)
 
+	log := florist.Log
 	start := time.Now()
 	log.Info("starting", "invocation", os.Args)
-	err = ctx.Run(&context{log: log, setup: setup, configure: configure})
+	err = ctx.Run(&context{setup: setup, configure: configure})
 	elapsed := time.Since(start).Round(time.Millisecond)
 
 	if err != nil {
 		log.Error("", "exit", "failure", "error", err, "elapsed", elapsed)
-		return 1
+		return err
 	}
 	log.Info("", "exit", "success", "elapsed", elapsed)
-	return 0
+	return nil
 }
 
 // root is a hack to ease testing.
-func customizeMotd(log hclog.Logger, op string, rootDir string) error {
+func customizeMotd(op string, rootDir string) error {
+	log := florist.Log
 	now := time.Now().Round(time.Second)
 	line := fmt.Sprintf("%s System %s by 🌼 florist 🌺\n", now, op)
 	name := path.Join(rootDir, "/etc/motd")
-	log.Debug("customizeMotd", "target", name, "operation", op)
+	log.Debug("customize-motd", "target", name, "operation", op)
 
 	if err := florist.Mkdir(path.Dir(name), florist.User().Username, 0755); err != nil {
 		return err

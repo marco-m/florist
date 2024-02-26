@@ -4,13 +4,13 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"path"
 	"path/filepath"
 	"time"
 
 	"github.com/creasty/defaults"
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/systemd"
@@ -80,7 +80,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.ResetNamed(Name + ".install")
+	log := florist.Log.With("flower", Name+".install")
 
 	log.Info("Add system user 'consul-template'")
 	if err := florist.UserSystemAdd("consul-template", HomeDir); err != nil {
@@ -150,7 +150,7 @@ func (fl *Flower) Configure() error {
 }
 
 func installExe(
-	log hclog.Logger,
+	log *slog.Logger,
 	version string,
 	hash string,
 	owner string,

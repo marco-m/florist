@@ -36,9 +36,8 @@ func TestDaisyInstall(t *testing.T) {
 	qt.Assert(t, qt.IsNil(err))
 
 	t.Run("install runs successfully", func(t *testing.T) {
-		err := florist.Init()
+		err := florist.Init(nil)
 		qt.Assert(t, qt.IsNil(err))
-		//florist.SetLogger(florist.NewLogger("test"))
 
 		err = fl.Install()
 		qt.Assert(t, qt.IsNil(err))
@@ -84,7 +83,7 @@ func TestDaisyConfigure(t *testing.T) {
 	qt.Assert(t, qt.IsNil(err))
 
 	t.Run("configure runs successfully", func(t *testing.T) {
-		err := florist.Init()
+		err := florist.Init(nil)
 		qt.Assert(t, qt.IsNil(err))
 
 		err = fl.Configure()

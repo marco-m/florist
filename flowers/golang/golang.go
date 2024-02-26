@@ -3,6 +3,7 @@ package golang
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/creasty/defaults"
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/envpath"
 	"github.com/marco-m/florist/pkg/florist"
@@ -65,7 +65,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.ResetNamed(Name + ".install")
+	log := florist.Log.With("flower", Name+".install")
 
 	goexe := path.Join(GOROOT, "bin/go")
 	if installedGoVersion(log, goexe) == fl.Version {
@@ -121,14 +121,14 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log.ResetNamed(Name + ".configure")
+	log := florist.Log.With("flower", Name+".configure")
 	log.Debug("nothing to do")
 	return nil
 }
 
 // installedGoVersion returns the version such as "1.17.2" if found, or the empty
 // string if not found.
-func installedGoVersion(log hclog.Logger, goexe string) string {
+func installedGoVersion(log *slog.Logger, goexe string) string {
 	log = log.With("path", goexe)
 	goexe, err := exec.LookPath(goexe)
 	if err != nil {

@@ -76,8 +76,8 @@ func Chown(fpath string, username string) error {
 // Mkdir creates. The owner of the intermediate parents will be the current
 // user, while the owner of the last element of dirPath will be owner.
 func Mkdir(dirPath string, owner string, perm fs.FileMode) error {
-	log := Log.Named("Mkdir").With("path", dirPath)
-	log.Debug("", "owner", owner)
+	log := Log.With("path", dirPath)
+	log.Debug("mkdir", "owner", owner)
 
 	ownerUser, err := user.Lookup(owner)
 	if err != nil {

@@ -34,20 +34,21 @@ func AddRepo(
 	keyURL string,
 	keyHash string,
 ) error {
-	log := florist.Log.Named("apt.AddRepo")
+	const fn = "apt.AddRepo"
+	log := florist.Log.With("fn")
 
 	log.Info("Install packages needed to add a repo")
 	if err := Install(
 		"gpg",
 	); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fn, err)
 	}
 
 	log.Info("Download PGP key", "url", keyURL)
 	client := &http.Client{Timeout: 15 * time.Second}
 	keyPath, err := florist.NetFetch(client, keyURL, florist.SHA256, keyHash, florist.WorkDir)
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fn, err)
 	}
 
 	keyDst := fmt.Sprintf("/usr/share/keyrings/%s-archive-keyring.gpg", name)
@@ -56,21 +57,21 @@ func AddRepo(
 	os.Remove(keyDst)
 	cmd := exec.Command("gpg", "--dearmor", "-o", keyDst, keyPath)
 	if err := florist.CmdRun(log, cmd); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fn, err)
 	}
 
 	arch, err := exec.Command("dpkg", "--print-architecture").Output()
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fn, err)
 	}
 	codename, err := exec.Command("lsb_release", "-cs").Output()
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fn, err)
 	}
 
 	repoListDir := "/etc/apt/sources.list.d/"
 	if err := florist.Mkdir(repoListDir, "root", 0755); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fn, err)
 	}
 	repoLine := fmt.Sprintf("deb [arch=%s signed-by=%s] %s %s stable\n",
 		string(bytes.TrimSpace(arch)), keyDst, repoURL, string(bytes.TrimSpace(codename)))
@@ -79,11 +80,11 @@ func AddRepo(
 	log.Debug("write file", "repoline", repoLine, "repoListPath", repoListPath)
 	fi, err := os.Create(repoListPath)
 	if err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fn, err)
 	}
 	defer fi.Close()
 	if _, err := fi.WriteString(repoLine); err != nil {
-		return fmt.Errorf("%s: %s", log.Name(), err)
+		return fmt.Errorf("%s: %s", fn, err)
 	}
 
 	return nil

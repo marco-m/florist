@@ -3,6 +3,7 @@ package task
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/creasty/defaults"
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/florist"
 )
@@ -60,7 +60,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.ResetNamed(Name + ".install")
+	log := florist.Log.With("flower", Name+".install")
 
 	taskDst := "/usr/local/bin/task"
 	if installedTaskVersion(log, taskDst) == fl.Version {
@@ -111,14 +111,14 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log.ResetNamed(Name + ".configure")
+	log := florist.Log.With("flower", Name+".configure")
 	log.Debug("nothing to do")
 	return nil
 }
 
 // installedTaskVersion returns the version such as "1.17.2" if found, or the empty
 // string if not found.
-func installedTaskVersion(log hclog.Logger, taskexe string) string {
+func installedTaskVersion(log *slog.Logger, taskexe string) string {
 	log = log.With("path", taskexe)
 	taskexe, err := exec.LookPath(taskexe)
 	if err != nil {

@@ -50,7 +50,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.ResetNamed(Name + ".install")
+	log := florist.Log.With("flower", Name+".install")
 
 	log.Info("Add Docker upstream APT repository")
 	// https://docs.docker.com/engine/install/debian/

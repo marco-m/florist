@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/go-quicktest/qt"
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/provisioner"
@@ -49,8 +48,7 @@ func (fl *TestFlower) Configure() error {
 }
 
 func TestProvisionerAddFlowersSuccess(t *testing.T) {
-	log := hclog.NewNullLogger()
-	prov, err := provisioner.New(log, florist.CacheValidity)
+	prov, err := provisioner.New(florist.CacheValidity)
 	qt.Assert(t, qt.IsNil(err))
 
 	err = prov.AddFlowers(
@@ -73,8 +71,7 @@ func TestProvisionerAddFlowersFailure(t *testing.T) {
 	}
 
 	test := func(t *testing.T, tc testCase) {
-		log := hclog.NewNullLogger()
-		prov, err := provisioner.New(log, florist.CacheValidity)
+		prov, err := provisioner.New(florist.CacheValidity)
 		qt.Assert(t, qt.IsNil(err))
 
 		err = prov.AddFlowers(tc.flowers...)

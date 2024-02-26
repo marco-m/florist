@@ -75,7 +75,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.ResetNamed(Name + ".install")
+	log := florist.Log.With("flower", Name+".install")
 	userName := florist.User().Username
 
 	dstPath := filepath.Join(fl.Inst.DstDir, InstallPlainFileDst)
@@ -102,7 +102,7 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log.ResetNamed(Name + ".configure")
+	log := florist.Log.With("flower", Name+".configure")
 
 	dstPath := filepath.Join(fl.Inst.DstDir, ConfigTmplFileDst)
 	log.Debug("installing file (templated)", "src", ConfigTmplFileSrc, "dst", dstPath)

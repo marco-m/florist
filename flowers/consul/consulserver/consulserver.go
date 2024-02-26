@@ -77,7 +77,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.ResetNamed(Name + ".install")
+	log := florist.Log.With("flower", Name+".install")
 
 	if err := consul.CommonInstall(log, fl.Version, fl.Hash); err != nil {
 		return fmt.Errorf("%s.install: %s", Name, err)
@@ -86,7 +86,7 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log.ResetNamed(Name + ".configure")
+	log := florist.Log.With("flower", Name+".configure")
 
 	dst := path.Join(consul.CfgDir, filepath.Base(ConfigFile))
 	log.Info("Install consul server configuration file", "dst", dst)

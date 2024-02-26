@@ -3,12 +3,11 @@
 package consul
 
 import (
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
-
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/marco-m/florist/pkg/florist"
 )
@@ -21,7 +20,7 @@ const (
 )
 
 // CommonInstall performs the install steps common to the client and the server.
-func CommonInstall(log hclog.Logger, version string, hash string) error {
+func CommonInstall(log *slog.Logger, version string, hash string) error {
 	log.Info("Add system user", "user", Username)
 	if err := florist.UserSystemAdd(Username, HomeDir); err != nil {
 		return err
@@ -39,7 +38,7 @@ func CommonInstall(log hclog.Logger, version string, hash string) error {
 	return nil
 }
 
-func installConsulExe(log hclog.Logger, version string, hash string) error {
+func installConsulExe(log *slog.Logger, version string, hash string) error {
 	log.Info("Download Consul package")
 	uri, err := url.JoinPath("https://releases.hashicorp.com/consul",
 		version, "consul_"+version+"_linux_amd64.zip")

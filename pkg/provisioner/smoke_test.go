@@ -5,15 +5,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/rogpeppe/go-internal/testscript"
 
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/provisioner"
 )
 
-func setup1(log hclog.Logger) (*provisioner.Provisioner, error) {
-	prov, err := provisioner.New(log, florist.CacheValidity)
+func setup1() (*provisioner.Provisioner, error) {
+	prov, err := provisioner.New(florist.CacheValidity)
 	if err != nil {
 		return nil, fmt.Errorf("setup: %s", err)
 	}
@@ -40,9 +39,14 @@ func TestScriptProvisioner(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	log := florist.NewLogger("test")
 	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"provisioner1": func() int { return provisioner.Main(log, setup1, configure1) },
+		"provisioner1": func() int {
+			if err := provisioner.Main(setup1, configure1); err != nil {
+				fmt.Println("error:", err)
+				return 1
+			}
+			return 0
+		},
 		//"provisioner2": func() int { return provisioner.Main(log, setup2) },
 	}))
 }

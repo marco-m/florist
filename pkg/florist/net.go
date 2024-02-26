@@ -24,7 +24,7 @@ const (
 // If the file in dstDir exists and the hash matches, it will not be
 // redownloaded.
 func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDir string) (string, error) {
-	log := Log.Named("NetFetch").With("url", url)
+	log := Log.With("url", url)
 
 	if len(url) == 0 {
 		return "", fmt.Errorf("empty url")
@@ -40,7 +40,8 @@ func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDi
 		}
 		have := hex.EncodeToString(hasher.Sum(nil))
 		if have == hash {
-			log.Debug("file exist locally, hash matches, skipping download", "file", dstPath)
+			log.Debug("file exist locally, hash matches, skipping download",
+				"file", dstPath)
 			return dstPath, nil
 		}
 	}

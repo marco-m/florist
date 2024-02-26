@@ -12,11 +12,11 @@ import (
 // If groups not empty, add the user to the supplementary groups.
 // Password login is disabled (use SSH public key or use passwd)
 func UserAdd(username string, groups ...string) error {
-	log := Log.Named("UserAdd").With("user", username)
+	log := Log.With("user", username)
 
-	log.Info("adding user")
+	log.Info("user-add")
 	if _, err := user.Lookup(username); err == nil {
-		log.Debug("user already present")
+		log.Debug("user-add", "status", "user-already-present")
 		return nil
 	}
 	// Here we should check for the specific user.UnknownUserError
@@ -31,7 +31,7 @@ func UserAdd(username string, groups ...string) error {
 	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("user: add: %s", err)
 	}
-	log.Debug("user added")
+	log.Debug("user-add", "status", "user-added")
 
 	if err := SupplementaryGroups(username, groups...); err != nil {
 		return err
@@ -47,13 +47,13 @@ func UserAdd(username string, groups ...string) error {
 
 // if username is present, then add it to the supplementary groups
 func SupplementaryGroups(username string, groups ...string) error {
-	log := Log.Named("SupplementaryGroups").With("user", username).With("groups", groups)
+	log := Log.With("user", username).With("groups", groups)
 	if _, err := user.Lookup(username); err != nil {
-		log.Debug("user not found, skip")
+		log.Debug("supplementary-groups", "status", "user-not-found-skipping")
 		return nil
 	}
 	if len(groups) == 0 {
-		log.Debug("no supplementary groups, skip")
+		log.Debug("supplementary-groups", "status", "no-supplementary-groups-skipping")
 		return nil
 	}
 	args := strings.Join(groups, ",")
@@ -61,16 +61,16 @@ func SupplementaryGroups(username string, groups ...string) error {
 	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("user: add to groups: %s", err)
 	}
-	log.Debug("user added to supplementary groups")
+	log.Debug("supplementary-groups", "status", "user-added-to-groups")
 
 	return nil
 }
 
 func UserSystemAdd(username string, homedir string) error {
-	log := Log.Named("UserSystemAdd").With("user", username)
+	log := Log.With("user", username)
 
 	if _, err := user.Lookup(username); err == nil {
-		log.Debug("user already present")
+		log.Debug("user-system-add", "status", "user already present")
 		return nil
 	}
 
@@ -83,7 +83,7 @@ func UserSystemAdd(username string, homedir string) error {
 	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("user: add: %s", err)
 	}
-	log.Debug("user added")
+	log.Debug("user-system-add", "status", "user added")
 
 	_, err := user.Lookup(username)
 	if err != nil {
@@ -94,12 +94,12 @@ func UserSystemAdd(username string, homedir string) error {
 }
 
 func GroupSystemAdd(groupname string) error {
-	log := Log.Named("GroupAdd").With("group", groupname)
+	log := Log.With("group", groupname)
 
 	cmd := exec.Command("addgroup", "--system", groupname)
 	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("group: add: %s", err)
 	}
-	log.Debug("group added")
+	log.Debug("group-added")
 	return nil
 }

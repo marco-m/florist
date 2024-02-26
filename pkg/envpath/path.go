@@ -2,15 +2,14 @@ package envpath
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
-
-	"github.com/hashicorp/go-hclog"
 )
 
 // Add `paths` to the system PATH, for POSIX shells and for Fish shell.
 // The never-ending pain of shells and something apparently as simple as
 // adding to the PATH environment variable. Sigh.
-func Add(log hclog.Logger, name string, paths ...string) error {
+func Add(log *slog.Logger, name string, paths ...string) error {
 	//
 	// Works for POSIX shells but not for fish
 	//
