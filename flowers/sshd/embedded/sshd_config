@@ -1,3 +1,6 @@
+# This file has been modified to be provisioned by Florist (https://github.com/marco-m/florist).
+# See the comments in file sshd.go for details.
+
 #	$OpenBSD: sshd_config,v 1.104 2021/07/02 05:11:21 dtucker Exp $
 
 # This is the sshd server system-wide configuration file.  See
@@ -9,9 +12,6 @@
 # OpenSSH is to specify options with their default value where
 # possible, but leave them commented.  Uncommented options override the
 # default value.
-
-# This file has been modified to be provisioned by Florist (https://github.com/marco-m/florist).
-# See the comments in file sshd.go for details.
 
 Port {{.Port}}
 #AddressFamily any
