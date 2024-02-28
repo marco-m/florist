@@ -2,6 +2,7 @@ package florist_test
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,12 +10,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-quicktest/qt"
 	"gotest.tools/v3/assert"
 
 	"github.com/marco-m/florist/pkg/florist"
 )
 
 func TestNetFetchMockSuccess(t *testing.T) {
+	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
+	qt.Assert(t, qt.IsNil(err))
 	dir := t.TempDir()
 	hash := "b493d48364afe44d11c0165cf470a4164d1e2609911ef998be868d46ade3de4e"
 	client := &http.Client{Timeout: 1 * time.Second}

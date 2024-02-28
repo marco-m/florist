@@ -12,7 +12,7 @@ import (
 // If groups not empty, add the user to the supplementary groups.
 // Password login is disabled (use SSH public key or use passwd)
 func UserAdd(username string, groups ...string) error {
-	log := Log.With("user", username)
+	log := Log().With("user", username)
 
 	log.Info("user-add")
 	if _, err := user.Lookup(username); err == nil {
@@ -47,7 +47,7 @@ func UserAdd(username string, groups ...string) error {
 
 // if username is present, then add it to the supplementary groups
 func SupplementaryGroups(username string, groups ...string) error {
-	log := Log.With("user", username).With("groups", groups)
+	log := Log().With("user", username).With("groups", groups)
 	if _, err := user.Lookup(username); err != nil {
 		log.Debug("supplementary-groups", "status", "user-not-found-skipping")
 		return nil
@@ -67,7 +67,7 @@ func SupplementaryGroups(username string, groups ...string) error {
 }
 
 func UserSystemAdd(username string, homedir string) error {
-	log := Log.With("user", username)
+	log := Log().With("user", username)
 
 	if _, err := user.Lookup(username); err == nil {
 		log.Debug("user-system-add", "status", "user already present")
@@ -94,7 +94,7 @@ func UserSystemAdd(username string, homedir string) error {
 }
 
 func GroupSystemAdd(groupname string) error {
-	log := Log.With("group", groupname)
+	log := Log().With("group", groupname)
 
 	cmd := exec.Command("addgroup", "--system", groupname)
 	if err := CmdRun(log, cmd); err != nil {

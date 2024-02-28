@@ -1,0 +1,11 @@
+#
+# list
+#
+exec provisioner-1 list
+! stderr .
+cmp stdout cmd-list.txt
+
+-- cmd-list.txt --
+testFlower -- description of testFllower
+  one
+  two

@@ -51,7 +51,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.With("flower", Name+".install")
+	log := florist.Log().With("flower", Name+".install")
 
 	if len(fl.Add) > 0 {
 		log.Info("adding packages")
@@ -71,7 +71,7 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log.With("flower", Name+".configure")
+	log := florist.Log().With("flower", Name+".configure")
 	log.Debug("nothing to do")
 	return nil
 }

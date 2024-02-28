@@ -84,7 +84,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.With("flower", Name+".install")
+	log := florist.Log().With("flower", Name+".install")
 
 	log.Info("Install packages needed by Nomad client")
 	if err := apt.Install(
@@ -104,7 +104,7 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log.With("flower", Name+".configure")
+	log := florist.Log().With("flower", Name+".configure")
 
 	dst := path.Join(nomad.CfgDir, filepath.Base(ConfigFile))
 	log.Info("Install nomad client configuration file", "dst", dst)

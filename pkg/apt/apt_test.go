@@ -10,7 +10,7 @@ import (
 func TestAptUpdateVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
-	err := apt.Update(florist.CacheValidity)
+	err := apt.Update(florist.CacheValidity())
 
 	if err != nil {
 		t.Fatalf("\nhave: %s\nwant: <no error>", err)

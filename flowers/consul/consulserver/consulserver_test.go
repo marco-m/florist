@@ -1,7 +1,9 @@
 package consulserver_test
 
 import (
+	"io"
 	"testing"
+	"time"
 
 	"github.com/go-quicktest/qt"
 
@@ -11,7 +13,7 @@ import (
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := florist.Init(nil)
+	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
 	qt.Assert(t, qt.IsNil(err))
 
 	fl := consulserver.Flower{
@@ -29,7 +31,7 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := florist.Init(nil)
+	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
 	qt.Assert(t, qt.IsNil(err))
 
 	// FIXME Since not compatible with a client install, I should wipe client installs before...

@@ -80,7 +80,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.With("flower", Name+".install")
+	log := florist.Log().With("flower", Name+".install")
 
 	log.Info("Add system user 'consul-template'")
 	if err := florist.UserSystemAdd("consul-template", HomeDir); err != nil {

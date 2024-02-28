@@ -1,10 +1,12 @@
 package daisy_test
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/go-quicktest/qt"
 
@@ -19,6 +21,9 @@ func TestDaisyInstall(t *testing.T) {
 	// florist.SkipIfNotDisposableHost(t)
 	// because this is a special flower!
 
+	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
+	qt.Assert(t, qt.IsNil(err))
+
 	fsys := fstest.MapFS{
 		daisy.InstallPlainFileSrc: {
 			Data: []byte("Johnny Stecchino"),
@@ -32,13 +37,10 @@ func TestDaisyInstall(t *testing.T) {
 		Inst: daisy.Inst{Fsys: fsys},
 		Conf: daisy.Conf{},
 	}
-	err := fl.Init()
+	err = fl.Init()
 	qt.Assert(t, qt.IsNil(err))
 
 	t.Run("install runs successfully", func(t *testing.T) {
-		err := florist.Init(nil)
-		qt.Assert(t, qt.IsNil(err))
-
 		err = fl.Install()
 		qt.Assert(t, qt.IsNil(err))
 	})
@@ -83,9 +85,6 @@ func TestDaisyConfigure(t *testing.T) {
 	qt.Assert(t, qt.IsNil(err))
 
 	t.Run("configure runs successfully", func(t *testing.T) {
-		err := florist.Init(nil)
-		qt.Assert(t, qt.IsNil(err))
-
 		err = fl.Configure()
 		qt.Assert(t, qt.IsNil(err))
 	})

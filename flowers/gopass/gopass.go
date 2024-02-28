@@ -58,7 +58,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log.With("flower", Name+".install")
+	log := florist.Log().With("flower", Name+".install")
 
 	log.Info("Installing dependencies for gopass")
 	if err := apt.Install(

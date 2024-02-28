@@ -1,7 +1,9 @@
 package sshd_test
 
 import (
+	"io"
 	"testing"
+	"time"
 
 	"github.com/go-quicktest/qt"
 
@@ -12,7 +14,7 @@ import (
 
 func TestSshdInstallSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := florist.Init(nil)
+	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
 	qt.Assert(t, qt.IsNil(err))
 
 	fl := sshd.Flower{
@@ -34,7 +36,7 @@ func TestSshdConfigureSuccess(t *testing.T) {
 		SshHostEd25519KeyPub     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFLAbr5vAYA6o0A1RCK/z1xDBWe7PEssR7lu9UtWo4ZV controller\n"
 		SshHostEd25519KeyCertPub = "ssh-ed25519-cert-v01@openssh.com AAAAIHNzaC1lZDI1NTE5LWNlcnQtdjAxQG9wZW5zc2guY29tAAAAICKzG6B7ncoyduo40F9j09SKmNHmN0fBB/88EKhUrKGQAAAAIFLAbr5vAYA6o0A1RCK/z1xDBWe7PEssR7lu9UtWo4ZVAAAAAAAAAAAAAAACAAAAE2NvbnRyb2xsZXItb3Jzb2xhYnMAAAAAAAAAAAAAAAD//////////wAAAAAAAAAAAAAAAAAAADMAAAALc3NoLWVkMjU1MTkAAAAgemiCHSBWFPq5PWhEGrBoOIMAlqNFC/e3kyKsYoYCzyoAAABTAAAAC3NzaC1lZDI1NTE5AAAAQO2pYU1CkGRyQK7PjaE/8r6aoKZEwkLfEtlpoDtmLtfxckMPxh3xPp3K2Jrkkn+2YAi92PYmeHhNEELBd82h6gA= controller\n"
 	)
-	err := florist.Init(nil)
+	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
 	qt.Assert(t, qt.IsNil(err))
 
 	fl := sshd.Flower{

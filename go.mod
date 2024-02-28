@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/alecthomas/kong v0.8.1
+	github.com/alexflint/go-arg v1.4.4-0.20231010223646-bf629a16cbe5
 	github.com/cakturk/go-netstat v0.0.0-20200220111822-e5b49efee7a5
 	github.com/creasty/defaults v1.7.0
 	github.com/go-quicktest/qt v1.101.0
@@ -15,6 +15,7 @@ require (
 )
 
 require (
+	github.com/alexflint/go-scalar v1.2.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect

@@ -35,7 +35,7 @@ func AddRepo(
 	keyHash string,
 ) error {
 	const fn = "apt.AddRepo"
-	log := florist.Log.With("fn")
+	log := florist.Log().With("fn", fn)
 
 	log.Info("Install packages needed to add a repo")
 	if err := Install(

@@ -41,7 +41,7 @@ func WriteFile(fname string, data string, perm os.FileMode, owner string) error 
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
 
-	Log.Debug("write-file", "name", fname)
+	Log().Debug("write-file", "name", fname)
 	if err := os.WriteFile(fname, []byte(data), perm); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
@@ -76,7 +76,7 @@ func Chown(fpath string, username string) error {
 // Mkdir creates. The owner of the intermediate parents will be the current
 // user, while the owner of the last element of dirPath will be owner.
 func Mkdir(dirPath string, owner string, perm fs.FileMode) error {
-	log := Log.With("path", dirPath)
+	log := Log().With("path", dirPath)
 	log.Debug("mkdir", "owner", owner)
 
 	ownerUser, err := user.Lookup(owner)
@@ -142,19 +142,19 @@ func CopyFileFs(
 //}
 
 func TemplateFromText(text string, tmplData any) (string, error) {
-	Log.Debug("TemplateFromText")
+	Log().Debug("TemplateFromText")
 	return rendertext(text, tmplData, "", "")
 }
 
 func TemplateFromFs(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
-	Log.Debug("TemplateFromFs", "file-name", srcPath)
+	Log().Debug("TemplateFromFs", "file-name", srcPath)
 	return rendertemplate(srcFs, srcPath, tmplData, "", "")
 }
 
 // TemplateFromFsWithDelims uses "<<", ">>" as template delimiters.
 // This is useful to escape the default delimiters "{{", "}}" in the template.
 func TemplateFromFsWithDelims(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
-	Log.Debug("TemplateFromFsWithDelims", "file-name", srcPath)
+	Log().Debug("TemplateFromFsWithDelims", "file-name", srcPath)
 	return rendertemplate(srcFs, srcPath, tmplData, "<<", ">>")
 }
 

@@ -1,0 +1,8 @@
+#
+# install
+#
+exec provisioner-1 install
+! stderr .
+cmp installed.txt want.txt
+-- want.txt --
+from-installed

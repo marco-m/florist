@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/marco-m/florist/flowers/fishshell"
@@ -12,33 +11,17 @@ import (
 	"github.com/marco-m/florist/flowers/ospackages"
 	"github.com/marco-m/florist/flowers/task"
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 func main() {
-	if err := mainErr(); err != nil {
-		fmt.Println("error:", err)
-		os.Exit(1)
-	}
-}
-
-func mainErr() error {
-	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+	os.Exit(florist.MainInt(&florist.Options{
+		SetupFn:     setup,
+		ConfigureFn: configure,
 	}))
-	if err := florist.Init(log); err != nil {
-		return err
-	}
-	return provisioner.Main(setup, configure)
 }
 
-func setup() (*provisioner.Provisioner, error) {
-	prov, err := provisioner.New(florist.CacheValidity)
-	if err != nil {
-		return nil, fmt.Errorf("setup: %s", err)
-	}
-
-	if err := prov.AddFlowers(
+func setup(prov *florist.Provisioner) error {
+	err := prov.AddFlowers(
 		&locale.Flower{
 			Inst: locale.Inst{
 				Lang: locale.Lang_en_US_UTF8,
@@ -75,13 +58,14 @@ func setup() (*provisioner.Provisioner, error) {
 				SetAsDefault: true,
 			},
 		},
-	); err != nil {
-		return nil, err
+	)
+	if err != nil {
+		return fmt.Errorf("setup: %s", err)
 	}
 
-	return prov, nil
+	return nil
 }
 
-func configure(prov *provisioner.Provisioner, config *florist.Config) error {
+func configure(prov *florist.Provisioner, config *florist.Config) error {
 	return nil
 }
