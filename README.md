@@ -1,23 +1,23 @@
 # 🌼 florist 🌺
 
-A bare-bones and opinionated Go package to create a **non-idempotent**, one-file-contains-everything provisioner (install and configure).
+A bare-bones and opinionated Go module to create a **non-idempotent**, **one-file-contains-everything** provisioner (install and configure).
 
 ## Status
 
 **The project currently does not accept Pull Requests.**
 
-**Work in progress, heavily unstable, not ready for use.**
+**Work in progress, API heavily unstable, not ready for use.**
 
 ## Goals
 
 - Stay small and as simple as possible.
-- Zero-dependencies (no interpreters, no additional files, the installer is all you need).
+- Zero-dependencies (no interpreters, no additional files, the provisioner executable is all you need).
 - Configuration-is-code, static typing (no YAML, less runtime errors, full programming language power).
 
 ## Use cases
 
 - Installer: substitute shell scripts / Salt / Ansible / similar tools when building an image with Packer.
-- Configurer: substitute cloud-init / shell scripts / Salt / Ansible / similar tools to configure an image at deployment time with Terraform.
+- Configurer: substitute shell scripts / Salt / Ansible / similar tools to configure an image at deployment time with tools like cloud-init, Terraform, Pulumi.
 
 ## Non-goals
 
@@ -31,33 +31,34 @@ If you need any of these, then consider Ansible, SaltStack or similar.
 ## Terminology
 
 - **florist**: this module.
-- **\<project\>-florist**: the installer for **\<project\>**. You write this one.
-- **flower** a composable unit, under the form of a Go package, that implements the `flower` interface. You can:
+- **\<role\>.florist**: the installer for **\<role\>**. You write one per role in your project.
+- **flower** a composable unit, under the form of a Go package, that implements the [`flower`](./pkg/florist/florist.go) interface. You can:
     - write it for your project.
     - use 3rd-party flowers (they are just Go packages).
     - use some ready-made flowers in this module.
-- **bouquet** a target for the `install` subcommand, made of one or more flowers. You can list the installable bouquets with the `list` subcommand.
 
-## The install and configure subcommands
+## The `install` and `configure` subcommands
 
-- Use `install` when building the image with Packer.
-- Use `configure` when deploying the image with Terraform.
+- Use `install` when building the image with Packer or similar.
+- Use `configure` when deploying the image with cloud-init, Terraform, Pulumi or similar.
 
-See also section [Secrets](#secrets) to understand Florist and secrets handling.
+## Files and templates: embed at compile time or download at runtime
 
-## Files: embed at compile time or download at runtime
+Florist uses Go [embed](https://pkg.go.dev/embed) to recursively embed all files below a directory. The conventional name of the directory is `embedded` (can be overridden by each flower). You will then pass along the `embed.FS` to the various flowers.
 
-Florist uses Go [embed](https://pkg.go.dev/embed) to recursively embed all files below a directory. The conventional name of the directory is `files/` (can be overridden by each flower). You will then pass along the `embed.FS` to the various flowers.
-
-To see all the embedded files in a given installer, run it with the `embed-list` subcommand, or run `go list -f '{{.EmbedFiles}}'` in the directory containing the main package of the installer.
+To see all the embedded files in a given installer, run it with the `list` subcommand, or run `go list -f '{{.EmbedFiles}}'` in the directory containing the main package of the provisioner.
 
 It is also possible to download files at runtime, using `florist.NetFetch` and then unarchive with `florist.UnzipOne`.
 
-## Text templates
+## Templating
 
-Florist supports [Go text templates] with the function `florist.CopyTemplateFromFs`. It also supports custom delimiters (instead of the default `{{`, `}}`). 
+Florist supports [Go text templates] with multiple functions:
 
-See `os_test.go` for an example.
+- `TemplateFromText()`
+- `TemplateFromFs()`
+- `TemplateFromFsWithDelims()`. This replaces the default delimiters `{{`, `}}` with `<<` and `>>`. This is useful to reduce the clutter when the rendered file must contain `{{` or `}}`.
+
+ee `os_test.go` for an example.
 
 ## Default values
 
@@ -67,77 +68,35 @@ Thanks to the [defaults package], you can set default values for flowers fields 
 type Flower struct {
 	FilesFS fs.FS
 	Port    int `default:"22"`
-	log     hclog.Logger
 }
 ```
 
 ## Secrets
 
-In general, do NOT store any secret on the image at image build time (`florist install`). Instead, inject secrets only in the running instance.
+In general, do NOT store any secret on the image at image build time (`florist install`). Instead, inject secrets only in the running instance (`florist configure`).
 
-You have two options:
-- Use `cloud-init` or equivalent.
-- Use `florist configure`, as explained in the rest of this section.
+Secrets handling in Florist depend on how deep you are bootstrapping your infrastructure. It can be roughly separated in 3 cases:
+1. If at deployment time you have access to a network secrets manager (eg AWS Secrets Manager or SSM) and your infrastructure supports giving an identity to the instance (eg IAM roles) then you are all set. Just use the SDK of the secrets manager to fetch the secrets from the florist `configure` function.  
+2. If at deployment time you have access to a network secrets manager or K/V store (eg Vault, Consul, ...) but no instance identity, then pass an identity token to florist (see option 3) and then use the SDK of the secrets manager or K/V store to fetch the secrets from the florist `configure` function.
+3. If at deployment time you do not have available anything on the network, then use an OOB method (eg: from Terraform, configure cloud-init to create a JSON file with the secrets, set it mode 06000) and invoke florist `configure --settings=secrets.json`.
 
-Secrets handling in Florist depend on how deep you are bootstrapping your infrastructure:
-- If at Terraform time you have available something on the network, such as a secrets store like Vault or SSM, or a KV store like Consul, use it (currently Florist doesn't have an API for this, but it is easy to add it yourself).
-- If at Terraform time you do not have available anything on the network, you can embed the secrets in florist. This is safe, as long as:
-  - the florist executable is purpose-built for the specific Terraform root or instance.
-  - the florist executable is uploaded on the instance with a `file` provisioner and executed with a `remote-exec` provisioner in the same `null_resource`.
-  - the florist executable is deleted form the instance, also in case of failure.
-  - the florist executable, together with the files containing the secrets (that have been embedded), are deleted from the local host just after the `terraform apply` (also in case of failure!)
-  - all this means that you need to drive all this sequence from a build script carefully written.
-
-When using `florist configure`, the secrets are made available to the various flowers depending both on the flower identity and on the node identity, according to this layout:
-
-```
-PROJECT/
-├── dev-USER/
-│   ├── florist/
-│   │   ├── base/
-│   │   │   └── ...
-│   │   ├── flowers/
-│   │   │   ├── FLOWER-A/
-│   │   │   │   └── ...
-│   │   │   └── FLOWER-B/
-│   │   │       └── ...
-│   │   └── nodes/
-│   │       ├── NODE-X/
-│   │       │   └── FLOWER-A/
-│   │       │       └── ...
-│   │       └── NODE-Y/
-│   │           └── FLOWER-A/
-│   │               └── ...
-│   └── unexported/            ← Secrets that are never made available to florist.
-│       └── ...
-├── prod/
-│   └── ...
-```
-
-Assuming that we are provisioning flower FLOWER-A on node NODE-X, secrets are merged as follows:
-- Keys with prefix "base" are made available to the flower, without the prefix.
-- Keys with prefix "flower/FLOWER-A" override the keys in prefix "base" and are made available to the flower, without the prefix.
-- Keys with prefix "nodes/NODE-X/FLOWER-A" override the keys in the two previous prefixes and are made available to the flower, without the prefix.
-  
 For a real-world example, see the orsolabs project (FIXME ADD LINK)
-
 
 ## Usage
 
 ```
-$ ./example-florist -h
-🌼 florist 🌺 - a simple provisioner
-
-Usage: example-florist <command> [<args>]
+$ ./example -h
+example -- A 🌼 florist 🌺 provisioner.
+Usage: example [--log-level LEVEL] <command> [<args>]
 
 Options:
+  --log-level LEVEL      log level [default: INFO]
   --help, -h             display this help and exit
 
 Commands:
-  install                install one or more bouquets
-  configure              configure one or more bouquets
-  list                   list the available bouquets
-  embed-list             list the embedded FS
+  list                   list the flowers and their files
+  install
+  configure
 ```
 
 ## Usage with Packer
