@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/alexflint/go-arg"
-	"tailscale.com/util/multierr"
 )
 
 var (
@@ -272,7 +271,7 @@ func customizeMotd(op string, rootDir string) error {
 
 	_, errWrite := f.WriteString(line)
 	errClose := f.Close()
-	return multierr.New(errWrite, errClose)
+	return JoinErrors(errWrite, errClose)
 }
 
 // User returns the current user, as set by Init.

@@ -11,7 +11,6 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/scylladb/go-set v1.0.2
 	gotest.tools/v3 v3.5.1
-	tailscale.com v1.58.2
 )
 
 require (
@@ -19,6 +18,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect
 )
