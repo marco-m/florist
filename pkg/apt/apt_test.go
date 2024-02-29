@@ -1,7 +1,11 @@
 package apt_test
 
 import (
+	"io"
 	"testing"
+	"time"
+
+	"github.com/go-quicktest/qt"
 
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
@@ -10,19 +14,16 @@ import (
 func TestAptUpdateVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
-	err := apt.Update(florist.CacheValidity())
+	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
+	qt.Assert(t, qt.IsNil(err))
 
-	if err != nil {
-		t.Fatalf("\nhave: %s\nwant: <no error>", err)
-	}
+	err = apt.Update(florist.CacheValidity())
+	qt.Assert(t, qt.IsNil(err))
 }
 
 func TestAptInstallVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	err := apt.Install("ripgrep")
-
-	if err != nil {
-		t.Fatalf("\nhave: %s\nwant: <no error>", err)
-	}
+	qt.Assert(t, qt.IsNil(err))
 }

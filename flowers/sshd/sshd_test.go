@@ -14,6 +14,7 @@ import (
 
 func TestSshdInstallSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
+
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
 	qt.Assert(t, qt.IsNil(err))
 
@@ -26,11 +27,12 @@ func TestSshdInstallSuccess(t *testing.T) {
 	err = fl.Install()
 	qt.Assert(t, qt.IsNil(err))
 
-	qt.Assert(t, qh.FileContains(sshd.SshdConfigDst, "Port 1234\n"))
+	qt.Assert(t, qh.FileContains(sshd.SshdConfigDst, "Port 22\n"))
 }
 
 func TestSshdConfigureSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
+
 	const (
 		SshHostEd25519Key        = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACBSwG6+bwGAOqNANUQiv89cQwVnuzxLLEe5bvVLVqOGVQAAAJDCUHL+wlBy\n/gAAAAtzc2gtZWQyNTUxOQAAACBSwG6+bwGAOqNANUQiv89cQwVnuzxLLEe5bvVLVqOGVQ\nAAAEByQPIGdxQvT+KK9Gb1pZSHOxeKuTFZinuOMqLdUXtTQ1LAbr5vAYA6o0A1RCK/z1xD\nBWe7PEssR7lu9UtWo4ZVAAAACmNvbnRyb2xsZXIBAgM=\n-----END OPENSSH PRIVATE KEY-----\n"
 		SshHostEd25519KeyPub     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFLAbr5vAYA6o0A1RCK/z1xDBWe7PEssR7lu9UtWo4ZV controller\n"

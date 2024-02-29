@@ -297,7 +297,7 @@ func Log() *slog.Logger {
 }
 
 // LowLevelInit should be called only by low-level test code.
-// Absolutely do not call in non-test code!
+// Absolutely do not call in non-test code! Call florist.MainInt instead!
 func LowLevelInit(logOutput io.Writer, logLevel string, cacheValidity time.Duration) error {
 	var level slog.Level
 	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
