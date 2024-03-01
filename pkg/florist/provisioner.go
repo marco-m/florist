@@ -306,7 +306,7 @@ func LowLevelInit(logOutput io.Writer, logLevel string, cacheValidity time.Durat
 
 	prog := filepath.Base(os.Args[0])
 	floristLog = slog.New(slog.NewTextHandler(logOutput,
-		&slog.HandlerOptions{Level: level})).With("prog", prog, "lib", "florist")
+		&slog.HandlerOptions{Level: level})).With("prog", prog)
 
 	// FIXME should this go below???
 	var err error
