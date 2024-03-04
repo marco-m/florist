@@ -59,7 +59,7 @@ func TestRenderTemplate(t *testing.T) {
 			srcPath: &fstest.MapFile{Data: []byte(tc.tplContents)},
 		}
 
-		rendered, err := rendertemplate(fsys, srcPath, fruitBox, tc.sepL, tc.sepR)
+		rendered, err := renderTemplate(fsys, srcPath, fruitBox, tc.sepL, tc.sepR)
 
 		assert.NilError(t, err)
 		qt.Assert(t, qt.Equals(rendered, tc.want))

@@ -13,6 +13,8 @@ import (
 	"text/template"
 )
 
+// ListFs returns a list of the files (not directories) in fsys.
+// In case of error, it encodes the error in a file name in the list.
 func ListFs(fsys fs.FS) []string {
 	if fsys == nil {
 		return []string{"**** nil FS ****"}
@@ -36,18 +38,20 @@ func ListFs(fsys fs.FS) []string {
 	return files
 }
 
-func WriteFile(fname string, data string, perm os.FileMode, owner string) error {
+// WriteFile writes data to fname and sets the mode and owner of fname.
+// If also creates any missing directories in the path, if any.
+func WriteFile(fname string, data string, mode os.FileMode, owner string) error {
 	if err := Mkdir(path.Dir(fname), User().Username, 0700); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
 
 	Log().Debug("write-file", "name", fname)
-	if err := os.WriteFile(fname, []byte(data), perm); err != nil {
+	if err := os.WriteFile(fname, []byte(data), mode); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
 	// We call Chmod explicitly because os.WriteFile does _not_ changes the
 	// mode _if_ the file already exists.
-	if err := os.Chmod(fname, perm); err != nil {
+	if err := os.Chmod(fname, mode); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
 
@@ -58,6 +62,7 @@ func WriteFile(fname string, data string, perm os.FileMode, owner string) error 
 	return nil
 }
 
+// Chown sets the owner of fpath to username.
 func Chown(fpath string, username string) error {
 	ownerUser, err := user.Lookup(username)
 	if err != nil {
@@ -124,50 +129,39 @@ func CopyFileFs(
 	return copyfile(srcFs, srcPath, dstPath, mode, owner)
 }
 
-// CopyTemplateFs copies file srcPath to dstPath, with mode and owner, performing
-// Go text template processing based on the fields in tmplData. The source file resides
-// in the srcFs filesystem (for example, via go:embed), while the destination file
-// resides in the "real" filesystem.
-// Notes:
-//   - If dstPath exists, it will be overwritten.
-//   - Setting an owner different that the current user requires elevated privileges.
-//   - Template delimiters delimL, delimR allow to easily support templates that contain
-//     themselves the default delimiters {{, }}. Passing the empty delimiters stand for
-//     the default.
-//func CopyTemplateFs(
-//	srcFs fs.FS, srcPath string, dstPath string,
-//	mode os.FileMode, owner string, tmplData any, delimL, delimR string,
-//) error {
-//	return copytemplate(srcFs, srcPath, dstPath, mode, owner, tmplData, delimL, delimR)
-//}
-
+// TemplateFromText renders the template text with tmplData.
 func TemplateFromText(text string, tmplData any) (string, error) {
 	Log().Debug("TemplateFromText")
-	return rendertext(text, tmplData, "", "")
+	return renderText(text, tmplData, "", "")
 }
 
+// TemplateFromFs reads file srcPath in filesystem srcFs and renders its contents
+// // as a template with data tmplData.
 func TemplateFromFs(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
 	Log().Debug("TemplateFromFs", "file-name", srcPath)
-	return rendertemplate(srcFs, srcPath, tmplData, "", "")
+	return renderTemplate(srcFs, srcPath, tmplData, "", "")
 }
 
-// TemplateFromFsWithDelims uses "<<", ">>" as template delimiters.
+// TemplateFromFsWithDelims reads file srcPath in filesystem srcFs and renders its
+// contents as a template with data tmplData, with "<<", ">>" as template delimiters.
 // This is useful to escape the default delimiters "{{", "}}" in the template.
 func TemplateFromFsWithDelims(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
 	Log().Debug("TemplateFromFsWithDelims", "file-name", srcPath)
-	return rendertemplate(srcFs, srcPath, tmplData, "<<", ">>")
+	return renderTemplate(srcFs, srcPath, tmplData, "<<", ">>")
 }
 
-// Reads the whole file in memory, since it must do text template processing.
-func rendertemplate(
+// renderTemplate reads file srcPath in filesystem srcFs and renders its contents
+// as a template with data tmplData, with delimL and delimR as template delimiters.
+// If delimL and delimR are empty, the default delimiters "{{" and "}}" will be used.
+func renderTemplate(
 	srcFs fs.FS, srcPath string, tmplData any, delimL, delimR string,
 ) (string, error) {
 	buf, err := fs.ReadFile(srcFs, srcPath)
 	if err != nil {
-		return "", fmt.Errorf("florist.rendertemplate: %s", err)
+		return "", fmt.Errorf("florist.renderTemplate: %s", err)
 	}
 
-	return rendertext(string(buf), tmplData, delimL, delimR)
+	return renderText(string(buf), tmplData, delimL, delimR)
 
 	//// if dstPath is an executable file and is running, then we will get back a
 	//// TXTBSY (text file busy).
@@ -198,19 +192,22 @@ func rendertemplate(
 	//return nil
 }
 
-func rendertext(text string, tmplData any, delimL, delimR string) (string, error) {
+// renderText renders the template text with data tmplData, with delimL and delimR
+// as template delimiters. If delimL and delimR are empty, the default delimiters
+// "{{" and "}}" will be used.
+func renderText(text string, tmplData any, delimL, delimR string) (string, error) {
 	tmpl := template.New("render-text").
 		Delims(delimL, delimR).
 		Option("missingkey=error")
 
 	_, err := tmpl.Parse(text)
 	if err != nil {
-		return "", fmt.Errorf("florist.rendertext: %s", err)
+		return "", fmt.Errorf("florist.renderText: %s", err)
 	}
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, tmplData); err != nil {
-		return "", fmt.Errorf("florist.rendertext: %s", err)
+		return "", fmt.Errorf("florist.renderText: %s", err)
 	}
 
 	return buf.String(), nil
