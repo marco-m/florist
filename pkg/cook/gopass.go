@@ -144,7 +144,8 @@ func GopassDelete(key string) error {
 	_, err := ExecOut(nil, "gopass", "delete", "--force", key)
 	if err != nil {
 		msg := err.Error()
-		if strings.Contains(msg, "Secret") && strings.Contains(msg, "does not exist") {
+		if strings.Contains(msg, "does not exist") ||
+			strings.Contains(msg, "entry is not in the password store") {
 			return nil
 		}
 		return err

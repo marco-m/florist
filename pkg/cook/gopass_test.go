@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io/fs"
 	"math/rand"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -161,6 +162,9 @@ func walkDir(root string) error {
 
 func skipIfGopassNotFound(t *testing.T) {
 	t.Helper()
+	if os.Getenv("FLORIST_TEST_GOPASS") == "" {
+		t.Skip("skip: FLORIST_TEST_GOPASS not set")
+	}
 	_, err := exec.LookPath("gopass")
 	if err != nil {
 		t.Skip("skip: gopass not found")
