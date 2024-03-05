@@ -40,7 +40,10 @@ func AddAuthorizedKeys(username string, fsys fs.FS) error {
 
 	// If $HOME/.ssh doesn't exist, create it, correct owner and permissions.
 	sshDir := filepath.Join(theUser.HomeDir, ".ssh")
-	if err := florist.Mkdir(sshDir, username, 0700); err != nil {
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		return fmt.Errorf("AddAuthorizedKeys: %s", err)
+	}
+	if err := florist.Chown(sshDir, username); err != nil {
 		return fmt.Errorf("AddAuthorizedKeys: %s", err)
 	}
 
