@@ -76,34 +76,6 @@ func Chown(fpath string, username string) error {
 	return nil
 }
 
-// Mkdir creates directory dirPath, along with any necessary parents.
-// The permission bits perm (before umask) are used for all directories that
-// Mkdir creates. The owner of the intermediate parents will be the current
-// user, while the owner of the last element of dirPath will be owner.
-func Mkdir(dirPath string, owner string, perm fs.FileMode) error {
-	log := Log().With("path", dirPath)
-	log.Debug("mkdir", "owner", owner)
-
-	ownerUser, err := user.Lookup(owner)
-	if err != nil {
-		return fmt.Errorf("florist.Mkdir: %s", err)
-	}
-
-	log.Debug("create-directory", "owner", owner, "perm", perm)
-	if err := os.MkdirAll(dirPath, perm); err != nil {
-		return fmt.Errorf("florist.Mkdir: %s", err)
-	}
-
-	uid, _ := strconv.Atoi(ownerUser.Uid)
-	gid, _ := strconv.Atoi(ownerUser.Gid)
-	log.Debug("chow-directory", "owner", owner)
-	if err := os.Chown(dirPath, uid, gid); err != nil {
-		return fmt.Errorf("florist.Mkdir: %s", err)
-	}
-
-	return nil
-}
-
 // CopyFile copies file srcPath to dstPath, with mode and owner. The source and
 // destination files reside in the "real" filesystem.
 // Notes:
