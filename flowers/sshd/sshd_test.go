@@ -7,9 +7,10 @@ import (
 
 	"github.com/go-quicktest/qt"
 
+	"github.com/marco-m/rosina"
+
 	"github.com/marco-m/florist/flowers/sshd"
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/florist/pkg/qh"
 )
 
 func TestSshdInstallSuccess(t *testing.T) {
@@ -27,7 +28,7 @@ func TestSshdInstallSuccess(t *testing.T) {
 	err = fl.Install()
 	qt.Assert(t, qt.IsNil(err))
 
-	qt.Assert(t, qh.FileContains(sshd.SshdConfigDst, "Port 22\n"))
+	qt.Assert(t, rosina.FileContains(sshd.SshdConfigDst, "Port 22\n"))
 }
 
 func TestSshdConfigureSuccess(t *testing.T) {
@@ -56,10 +57,10 @@ func TestSshdConfigureSuccess(t *testing.T) {
 	err = fl.Configure()
 	qt.Assert(t, qt.IsNil(err))
 
-	qt.Assert(t, qh.FileEqualsString(sshd.SshHostEd25519KeyDst,
+	qt.Assert(t, rosina.FileEqualsString(sshd.SshHostEd25519KeyDst,
 		SshHostEd25519Key))
-	qt.Assert(t, qh.FileEqualsString(sshd.SshHostEd25519KeyPubDst,
+	qt.Assert(t, rosina.FileEqualsString(sshd.SshHostEd25519KeyPubDst,
 		SshHostEd25519KeyPub))
-	qt.Assert(t, qh.FileEqualsString(sshd.SshHostEd25519KeyCertPubDst,
+	qt.Assert(t, rosina.FileEqualsString(sshd.SshHostEd25519KeyCertPubDst,
 		SshHostEd25519KeyCertPub))
 }
