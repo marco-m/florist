@@ -46,7 +46,7 @@ func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDi
 		}
 	}
 
-	if err := Mkdir(dstDir, User().Username, 0775); err != nil {
+	if err := os.MkdirAll(dstDir, 0775); err != nil {
 		return "", fmt.Errorf("NetDetch: %w", err)
 	}
 	dst, err := os.Create(dstPath)

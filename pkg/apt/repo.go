@@ -70,7 +70,7 @@ func AddRepo(
 	}
 
 	repoListDir := "/etc/apt/sources.list.d/"
-	if err := florist.Mkdir(repoListDir, "root", 0755); err != nil {
+	if err := os.MkdirAll(repoListDir, 0755); err != nil {
 		return fmt.Errorf("%s: %s", fn, err)
 	}
 	repoLine := fmt.Sprintf("deb [arch=%s signed-by=%s] %s %s stable\n",

@@ -41,7 +41,7 @@ func ListFs(fsys fs.FS) []string {
 // WriteFile writes data to fname and sets the mode and owner of fname.
 // If also creates any missing directories in the path, if any.
 func WriteFile(fname string, data string, mode os.FileMode, owner string) error {
-	if err := Mkdir(path.Dir(fname), User().Username, 0700); err != nil {
+	if err := os.MkdirAll(path.Dir(fname), 0700); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
 
@@ -206,7 +206,7 @@ func copyfile(
 	}
 	defer src.Close()
 
-	if err := Mkdir(filepath.Dir(dstPath), owner, mode|0111); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dstPath), mode|0111); err != nil {
 		return fmt.Errorf("florist.copyfile: %s", err)
 	}
 

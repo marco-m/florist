@@ -260,7 +260,7 @@ func customizeMotd(op string, rootDir string) error {
 	name := path.Join(rootDir, "/etc/motd")
 	log.Debug("customize-motd", "target", name, "operation", op)
 
-	if err := Mkdir(path.Dir(name), User().Username, 0755); err != nil {
+	if err := os.MkdirAll(path.Dir(name), 0755); err != nil {
 		return err
 	}
 

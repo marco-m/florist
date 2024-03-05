@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"time"
 
@@ -35,7 +36,7 @@ func CommonInstall(log *slog.Logger, version string, hash string) error {
 	}
 
 	log.Info("Create cfg dir", "dst", CfgDir)
-	if err := florist.Mkdir(CfgDir, Username, 0755); err != nil {
+	if err := os.Mkdir(CfgDir, 0755); err != nil {
 		return err
 	}
 

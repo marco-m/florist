@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
 	"time"
@@ -88,13 +89,12 @@ func (fl *Flower) Install() error {
 	}
 
 	log.Info("Create consul-template configuration dir", "dir", ConfigDir)
-	if err := florist.Mkdir(ConfigDir, "consul-template", 0755); err != nil {
+	if err := os.MkdirAll(ConfigDir, 0755); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	log.Info("Create consul-template templates dir", "dir", TemplatesDir)
-	if err := florist.Mkdir(TemplatesDir, "consul-template",
-		0755); err != nil {
+	if err := os.MkdirAll(TemplatesDir, 0755); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
