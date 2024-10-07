@@ -3,7 +3,7 @@
 version: '3'
 
 vars:
-  GOTESTSUM_VERSION: v1.11.0
+  GOTESTSUM_VERSION: v1.12.0
 
 tasks:
   build:example:
