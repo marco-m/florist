@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"testing"
-	"time"
 
 	"gotest.tools/v3/assert"
 	gotestfs "gotest.tools/v3/fs"
@@ -30,7 +29,6 @@ import (
 func TestGopassDeleteNonExistingKey(t *testing.T) {
 	skipIfGopassNotFound(t)
 
-	rand.Seed(time.Now().Unix())
 	key := "cook/" + strconv.FormatUint(rand.Uint64(), 16)
 
 	err := cook.GopassDelete(key)
@@ -137,17 +135,17 @@ func TestGopassToDirSuccess(t *testing.T) {
 	assert.NilError(t, err)
 
 	want := gotestfs.Expected(t,
-		gotestfs.WithMode(0755),
-		gotestfs.WithFile("k1", "v1", gotestfs.WithMode(0600)),
-		gotestfs.WithDir("a", gotestfs.WithMode(0755),
-			gotestfs.WithFile("k2", "v2", gotestfs.WithMode(0600)),
-			gotestfs.WithDir("b", gotestfs.WithMode(0755),
-				gotestfs.WithFile("k3", "v3", gotestfs.WithMode(0600)),
+		gotestfs.WithMode(0o755),
+		gotestfs.WithFile("k1", "v1", gotestfs.WithMode(0o600)),
+		gotestfs.WithDir("a", gotestfs.WithMode(0o755),
+			gotestfs.WithFile("k2", "v2", gotestfs.WithMode(0o600)),
+			gotestfs.WithDir("b", gotestfs.WithMode(0o755),
+				gotestfs.WithFile("k3", "v3", gotestfs.WithMode(0o600)),
 			),
 		),
 	)
 	// repr.Println("manifest", want)
-	// assert.NilError(t, walkDir(dstDir))
+	assert.NilError(t, walkDir(dstDir))
 	assert.Assert(t, gotestfs.Equal(dstDir, want))
 }
 

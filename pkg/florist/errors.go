@@ -18,5 +18,5 @@ func JoinErrors(errs ...error) error {
 	if len(msgs) == 0 {
 		return nil
 	}
-	return fmt.Errorf(strings.Join(msgs, " ;"))
+	return fmt.Errorf("%s", strings.Join(msgs, " ;"))
 }
