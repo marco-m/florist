@@ -132,8 +132,7 @@ func MainErr(opts *Options) error {
 	return nil
 }
 
-type listArgs struct {
-}
+type listArgs struct{}
 
 func (cmd *listArgs) Run(prov *Provisioner) error {
 	for _, k := range prov.ordered {
@@ -212,7 +211,6 @@ type Provisioner struct {
 	flowers map[string]Flower
 	ordered []string
 	root    string
-	errs    []string
 }
 
 func newProvisioner() *Provisioner {
@@ -260,11 +258,11 @@ func customizeMotd(op string, rootDir string) error {
 	name := path.Join(rootDir, "/etc/motd")
 	log.Debug("customize-motd", "target", name, "operation", op)
 
-	if err := os.MkdirAll(path.Dir(name), 0755); err != nil {
+	if err := os.MkdirAll(path.Dir(name), 0o755); err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
 	if err != nil {
 		return err
 	}

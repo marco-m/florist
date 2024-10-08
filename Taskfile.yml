@@ -2,9 +2,6 @@
 
 version: '3'
 
-vars:
-  GOTESTSUM_VERSION: v1.11.0
-
 tasks:
   build:example:
     desc: Build the example provisioner.
@@ -21,6 +18,10 @@ tasks:
     desc: Test successful build.
     cmds:
       - go build ./...
+
+  lint:
+    cmds:
+      - golangci-lint run ./...
 
   test:all:
     desc: Run all the unit tests; makes sense only if invoking from the VM.
@@ -85,7 +86,8 @@ tasks:
     cmds:
       - vagrant snapshot restore pristine
 
-  install-deps:
+  install:deps:
     desc: Install tool dependencies.
     cmds:
-      - go install gotest.tools/gotestsum@{{.GOTESTSUM_VERSION}}
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      - go install gotest.tools/gotestsum@latest

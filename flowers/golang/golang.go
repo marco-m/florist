@@ -36,8 +36,7 @@ type Inst struct {
 	Hash    string
 }
 
-type Conf struct {
-}
+type Conf struct{}
 
 func (fl *Flower) String() string {
 	return Name
@@ -76,6 +75,9 @@ func (fl *Flower) Install() error {
 	log.Info("Download Go package", "version", fl.Version)
 	uri, err := url.JoinPath("https://golang.org/dl",
 		"go"+fl.Version+".linux-amd64.tar.gz")
+	if err != nil {
+		return fmt.Errorf("%s: %s", Name, err)
+	}
 	client := &http.Client{Timeout: 30 * time.Second}
 	tgzPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash,
 		florist.WorkDir)

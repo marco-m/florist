@@ -6,8 +6,7 @@ import (
 	"testing/fstest"
 	"text/template"
 
-	"github.com/go-quicktest/qt"
-	"gotest.tools/v3/assert"
+	"github.com/marco-m/rosina"
 )
 
 func TestUnderstandTemplate(t *testing.T) {
@@ -17,13 +16,13 @@ func TestUnderstandTemplate(t *testing.T) {
 	}
 	sweaters := Inventory{Material: "wool", Count: 17}
 	tmpl, err := template.New("name").Parse("{{.Count}} items are made of {{.Material}}")
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertIsNil(t, err)
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, sweaters)
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertIsNil(t, err)
 
-	qt.Assert(t, qt.Equals(buf.String(), "17 items are made of wool"))
+	rosina.AssertTextEqual(t, buf.String(), "17 items are made of wool", "rendered")
 }
 
 func TestUnderstandTemplateFailure(t *testing.T) {
@@ -33,11 +32,14 @@ func TestUnderstandTemplateFailure(t *testing.T) {
 	}
 	sweaters := Inventory{Material: "wool", Count: 17}
 	tmpl, err := template.New("name").Parse("{{.Banana}} items are made of {{.Material}}")
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertIsNil(t, err)
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, sweaters)
-	qt.Assert(t, qt.ErrorMatches(err, `template: name:1:2: executing "name" at <.Banana>: can't evaluate field Banana in type florist.Inventory`))
+	rosina.AssertIsNotNil(t, err)
+	rosina.AssertTextEqual(t, err.Error(),
+		`template: name:1:2: executing "name" at <.Banana>: can't evaluate field Banana in type florist.Inventory`,
+		"error message")
 }
 
 func TestRenderTemplate(t *testing.T) {
@@ -61,9 +63,8 @@ func TestRenderTemplate(t *testing.T) {
 
 		rendered, err := renderTemplate(fsys, srcPath, fruitBox, tc.sepL, tc.sepR)
 
-		assert.NilError(t, err)
-		qt.Assert(t, qt.Equals(rendered, tc.want))
-
+		rosina.AssertIsNil(t, err)
+		rosina.AssertTextEqual(t, rendered, tc.want, "rendered")
 	}
 
 	testCases := []testCase{

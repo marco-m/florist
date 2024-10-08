@@ -5,20 +5,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/go-quicktest/qt"
-	"gotest.tools/v3/assert"
-
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/rosina"
 )
 
 func TestNetFetchMockSuccess(t *testing.T) {
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertIsNil(t, err)
 	dir := t.TempDir()
 	hash := "b493d48364afe44d11c0165cf470a4164d1e2609911ef998be868d46ade3de4e"
 	client := &http.Client{Timeout: 1 * time.Second}
@@ -31,11 +28,8 @@ func TestNetFetchMockSuccess(t *testing.T) {
 	defer ts.Close()
 
 	path, err := florist.NetFetch(client, ts.URL, florist.SHA256, hash, dir)
-	assert.NilError(t, err)
-
-	buf, err := os.ReadFile(path)
-	assert.NilError(t, err)
-	assert.Equal(t, string(buf), contents)
+	rosina.AssertIsNil(t, err)
+	rosina.AssertFileEqualsString(t, path, contents)
 }
 
 func TestNetFetchMockFailure(t *testing.T) {
@@ -73,7 +67,8 @@ func TestNetFetchMockFailure(t *testing.T) {
 			url := fmt.Sprintf("%s/%s", ts.URL, strconv.Itoa(tcN))
 			_, err := florist.NetFetch(client, url, florist.SHA256, tc.hash, dir)
 
-			assert.ErrorContains(t, err, tc.wantErr)
+			rosina.AssertIsNotNil(t, err)
+			rosina.AssertContains(t, err.Error(), tc.wantErr)
 		})
 	}
 }
