@@ -24,6 +24,7 @@ import (
 	gotestfs "gotest.tools/v3/fs"
 
 	"github.com/marco-m/florist/pkg/cook"
+	"github.com/marco-m/rosina"
 )
 
 func TestGopassDeleteNonExistingKey(t *testing.T) {
@@ -33,7 +34,7 @@ func TestGopassDeleteNonExistingKey(t *testing.T) {
 
 	err := cook.GopassDelete(key)
 
-	assert.NilError(t, err)
+	rosina.AssertIsNil(t, err)
 }
 
 func TestGopassDeleteExistingKey(t *testing.T) {
@@ -41,14 +42,14 @@ func TestGopassDeleteExistingKey(t *testing.T) {
 
 	// insert
 	key, val := "cook/k3", "v3"
-	assert.NilError(t, cook.GopassPut(key, val))
+	rosina.AssertIsNil(t, cook.GopassPut(key, val))
 
 	// delete
 	err := cook.GopassDelete(key)
 
-	assert.NilError(t, err)
+	rosina.AssertIsNil(t, err)
 	_, err = cook.GopassGet(key)
-	assert.ErrorIs(t, err, cook.ErrNotFound)
+	rosina.AssertErrorIs(t, err, cook.ErrNotFound)
 }
 
 func TestGopassGetExistingKey(t *testing.T) {
@@ -56,27 +57,27 @@ func TestGopassGetExistingKey(t *testing.T) {
 
 	key, val := "cook/k1", "v1"
 	err := cook.GopassPut(key, val)
-	assert.NilError(t, err)
+	rosina.AssertIsNil(t, err)
 
 	have, err := cook.GopassGet(key)
 
-	assert.NilError(t, err)
-	assert.Equal(t, have, val)
+	rosina.AssertIsNil(t, err)
+	rosina.AssertEqual(t, have, val, "value")
 
 	// Cleanup
-	assert.NilError(t, cook.GopassDelete(key))
+	rosina.AssertIsNil(t, cook.GopassDelete(key))
 }
 
 func TestGopassGetNonExistingKey(t *testing.T) {
 	skipIfGopassNotFound(t)
 
 	key := "cook/k1"
-	assert.NilError(t, cook.GopassDelete(key))
+	rosina.AssertIsNil(t, cook.GopassDelete(key))
 
 	have, err := cook.GopassGet(key)
 
-	assert.ErrorIs(t, err, cook.ErrNotFound)
-	assert.Equal(t, have, "")
+	rosina.AssertErrorIs(t, err, cook.ErrNotFound)
+	rosina.AssertEqual(t, have, "", "value")
 }
 
 func TestGopassPutSuccess(t *testing.T) {
@@ -84,14 +85,14 @@ func TestGopassPutSuccess(t *testing.T) {
 
 	key, val := "cook/k2", "v2"
 	err := cook.GopassDelete(key)
-	assert.NilError(t, err)
+	rosina.AssertIsNil(t, err)
 
 	err = cook.GopassPut(key, val)
-	assert.NilError(t, err)
+	rosina.AssertIsNil(t, err)
 
 	have, err := cook.GopassGet(key)
-	assert.NilError(t, err)
-	assert.Equal(t, have, val)
+	rosina.AssertIsNil(t, err)
+	rosina.AssertEqual(t, have, val, "value")
 }
 
 func TestGopassLsSuccess(t *testing.T) {
@@ -104,15 +105,16 @@ func TestGopassLsSuccess(t *testing.T) {
 	}
 
 	have, err := cook.GopassLs("florist.test/secrets")
-	assert.NilError(t, err)
-	assert.DeepEqual(t, have, want)
+	rosina.AssertIsNil(t, err)
+	rosina.AssertDeepEqual(t, have, want, "values")
 }
 
 func TestGopassLsFailure(t *testing.T) {
 	skipIfGopassNotFound(t)
 
 	_, err := cook.GopassLs("florist.test/non-existing")
-	assert.ErrorContains(t, err, "not found")
+	rosina.AssertIsNotNil(t, err)
+	rosina.AssertContains(t, err.Error(), "not found")
 }
 
 // gopass ls florist.test
@@ -132,7 +134,7 @@ func TestGopassToDirSuccess(t *testing.T) {
 	dstDir := filepath.Join(t.TempDir(), "secrets")
 
 	err := cook.GopassToDir("florist.test/secrets", dstDir)
-	assert.NilError(t, err)
+	rosina.AssertIsNil(t, err)
 
 	want := gotestfs.Expected(t,
 		gotestfs.WithMode(0o755),
@@ -145,7 +147,7 @@ func TestGopassToDirSuccess(t *testing.T) {
 		),
 	)
 	// repr.Println("manifest", want)
-	assert.NilError(t, walkDir(dstDir))
+	rosina.AssertIsNil(t, walkDir(dstDir))
 	assert.Assert(t, gotestfs.Equal(dstDir, want))
 }
 

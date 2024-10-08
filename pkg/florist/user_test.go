@@ -3,9 +3,8 @@ package florist_test
 import (
 	"testing"
 
-	"gotest.tools/v3/assert"
-
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/rosina"
 )
 
 func TestUserAddSuccessVM(t *testing.T) {
@@ -13,7 +12,7 @@ func TestUserAddSuccessVM(t *testing.T) {
 
 	err := florist.UserAdd("beppe")
 
-	assert.NilError(t, err)
+	rosina.AssertIsNil(t, err)
 }
 
 func TestSupplementaryGroupsFailureVM(t *testing.T) {
@@ -21,7 +20,8 @@ func TestSupplementaryGroupsFailureVM(t *testing.T) {
 
 	err := florist.SupplementaryGroups("beppe", "banana")
 
-	assert.ErrorContains(t, err, "group 'banana' does not exist")
+	rosina.AssertIsNotNil(t, err)
+	rosina.AssertContains(t, err.Error(), "group 'banana' does not exist")
 }
 
 func TestUserSystemAddSuccessVM(t *testing.T) {
@@ -29,5 +29,5 @@ func TestUserSystemAddSuccessVM(t *testing.T) {
 
 	err := florist.UserSystemAdd("maniglia", "/opt/maniglia")
 
-	assert.NilError(t, err)
+	rosina.AssertIsNil(t, err)
 }

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/marco-m/rosina"
 	"gotest.tools/v3/assert"
 	gotestfs "gotest.tools/v3/fs"
 )
@@ -18,8 +19,8 @@ func TestParseTfVarsSuccess(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		have, err := parseTfVars(strings.NewReader(tc.input))
 
-		assert.NilError(t, err)
-		assert.DeepEqual(t, have, tc.want)
+		rosina.AssertIsNil(t, err)
+		rosina.AssertDeepEqual(t, have, tc.want, "tfvars")
 	}
 
 	testCases := []testCase{
@@ -64,7 +65,8 @@ func TestParseTfVarsFailure(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		_, err := parseTfVars(strings.NewReader(tc.input))
 
-		assert.ErrorContains(t, err, tc.want)
+		rosina.AssertIsNotNil(t, err)
+		rosina.AssertContains(t, err.Error(), tc.want)
 	}
 
 	testCases := []testCase{
@@ -84,18 +86,17 @@ a = 42
 			run(t, tc)
 		})
 	}
-
 }
 
 func TestTfVarsToDirSuccess(t *testing.T) {
 	dstDir := t.TempDir()
 
 	err := TfVarsToDir("testdata/settings.tfvars", dstDir)
-	assert.NilError(t, err)
+	rosina.AssertIsNil(t, err)
 
-	mode := gotestfs.WithMode(0640)
+	mode := gotestfs.WithMode(0o640)
 	want := gotestfs.Expected(t,
-		gotestfs.WithMode(0755),
+		gotestfs.WithMode(0o755),
 		gotestfs.WithFile("location", "nbg1", mode),
 		gotestfs.WithFile("ssh-port", "22", mode),
 		gotestfs.WithFile("this_0", "foo", mode),
@@ -107,5 +108,7 @@ func TestTfVarsToDirFailure(t *testing.T) {
 	dstDir := t.TempDir()
 
 	err := TfVarsToDir("testdata/duplicates.tfvars", dstDir)
-	assert.ErrorContains(t, err, "TfVarsToDir: parseTfVars: duplicate key: a")
+	rosina.AssertIsNotNil(t, err)
+	rosina.AssertContains(t, err.Error(),
+		"TfVarsToDir: parseTfVars: duplicate key: a")
 }
