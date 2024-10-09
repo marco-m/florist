@@ -7,11 +7,11 @@ import (
 	"net"
 
 	"github.com/cakturk/go-netstat/netstat"
-	"github.com/scylladb/go-set/strset"
+	"github.com/marco-m/florist/pkg/sets"
 )
 
-func ListeningSockets() (*strset.Set, error) {
-	ss := strset.New()
+func ListeningSockets() (*sets.Set[string], error) {
+	ss := sets.New[string](0)
 
 	// UDPv4
 	socks, err := netstat.UDPSocks(func(s *netstat.SockTabEntry) bool {
