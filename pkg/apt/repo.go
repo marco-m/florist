@@ -30,9 +30,9 @@ import (
 //	}
 func AddRepo(
 	name string,
-	repoURL string,
 	keyURL string,
 	keyHash string,
+	repoURL string,
 ) error {
 	const fn = "apt.AddRepo"
 	log := florist.Log().With("fn", fn)
