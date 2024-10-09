@@ -12,7 +12,7 @@ func TestUserAddSuccessVM(t *testing.T) {
 
 	err := florist.UserAdd("beppe")
 
-	rosina.AssertIsNil(t, err)
+	rosina.AssertNoError(t, err)
 }
 
 func TestSupplementaryGroupsFailureVM(t *testing.T) {
@@ -20,8 +20,7 @@ func TestSupplementaryGroupsFailureVM(t *testing.T) {
 
 	err := florist.SupplementaryGroups("beppe", "banana")
 
-	rosina.AssertIsNotNil(t, err)
-	rosina.AssertContains(t, err.Error(), "group 'banana' does not exist")
+	rosina.AssertErrorContains(t, err, "group 'banana' does not exist")
 }
 
 func TestUserSystemAddSuccessVM(t *testing.T) {
@@ -29,5 +28,5 @@ func TestUserSystemAddSuccessVM(t *testing.T) {
 
 	err := florist.UserSystemAdd("maniglia", "/opt/maniglia")
 
-	rosina.AssertIsNil(t, err)
+	rosina.AssertNoError(t, err)
 }

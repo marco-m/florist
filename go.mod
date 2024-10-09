@@ -8,7 +8,7 @@ require (
 	github.com/cakturk/go-netstat v0.0.0-20200220111822-e5b49efee7a5
 	github.com/creasty/defaults v1.8.0
 	github.com/go-quicktest/qt v1.101.1-0.20240301121107-c6c8733fa1e6
-	github.com/marco-m/rosina v0.0.3
+	github.com/marco-m/rosina v0.0.4
 	github.com/rogpeppe/go-internal v1.13.1
 	github.com/scylladb/go-set v1.0.2
 	gotest.tools/v3 v3.5.1

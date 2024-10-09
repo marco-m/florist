@@ -16,11 +16,11 @@ func TestUnderstandTemplate(t *testing.T) {
 	}
 	sweaters := Inventory{Material: "wool", Count: 17}
 	tmpl, err := template.New("name").Parse("{{.Count}} items are made of {{.Material}}")
-	rosina.AssertIsNil(t, err)
+	rosina.AssertNoError(t, err)
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, sweaters)
-	rosina.AssertIsNil(t, err)
+	rosina.AssertNoError(t, err)
 
 	rosina.AssertTextEqual(t, buf.String(), "17 items are made of wool", "rendered")
 }
@@ -32,14 +32,12 @@ func TestUnderstandTemplateFailure(t *testing.T) {
 	}
 	sweaters := Inventory{Material: "wool", Count: 17}
 	tmpl, err := template.New("name").Parse("{{.Banana}} items are made of {{.Material}}")
-	rosina.AssertIsNil(t, err)
+	rosina.AssertNoError(t, err)
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, sweaters)
-	rosina.AssertIsNotNil(t, err)
-	rosina.AssertTextEqual(t, err.Error(),
-		`template: name:1:2: executing "name" at <.Banana>: can't evaluate field Banana in type florist.Inventory`,
-		"error message")
+	rosina.AssertErrorContains(t, err,
+		`template: name:1:2: executing "name" at <.Banana>: can't evaluate field Banana in type florist.Inventory`)
 }
 
 func TestRenderTemplate(t *testing.T) {
@@ -63,7 +61,7 @@ func TestRenderTemplate(t *testing.T) {
 
 		rendered, err := renderTemplate(fsys, srcPath, fruitBox, tc.sepL, tc.sepR)
 
-		rosina.AssertIsNil(t, err)
+		rosina.AssertNoError(t, err)
 		rosina.AssertTextEqual(t, rendered, tc.want, "rendered")
 	}
 
