@@ -19,7 +19,7 @@ func TestParseTfVarsSuccess(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		have, err := parseTfVars(strings.NewReader(tc.input))
 
-		rosina.AssertIsNil(t, err)
+		rosina.AssertNoError(t, err)
 		rosina.AssertDeepEqual(t, have, tc.want, "tfvars")
 	}
 
@@ -65,8 +65,7 @@ func TestParseTfVarsFailure(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		_, err := parseTfVars(strings.NewReader(tc.input))
 
-		rosina.AssertIsNotNil(t, err)
-		rosina.AssertContains(t, err.Error(), tc.want)
+		rosina.AssertErrorContains(t, err, tc.want)
 	}
 
 	testCases := []testCase{
@@ -92,7 +91,7 @@ func TestTfVarsToDirSuccess(t *testing.T) {
 	dstDir := t.TempDir()
 
 	err := TfVarsToDir("testdata/settings.tfvars", dstDir)
-	rosina.AssertIsNil(t, err)
+	rosina.AssertNoError(t, err)
 
 	mode := gotestfs.WithMode(0o640)
 	want := gotestfs.Expected(t,
@@ -108,7 +107,6 @@ func TestTfVarsToDirFailure(t *testing.T) {
 	dstDir := t.TempDir()
 
 	err := TfVarsToDir("testdata/duplicates.tfvars", dstDir)
-	rosina.AssertIsNotNil(t, err)
-	rosina.AssertContains(t, err.Error(),
+	rosina.AssertErrorContains(t, err,
 		"TfVarsToDir: parseTfVars: duplicate key: a")
 }

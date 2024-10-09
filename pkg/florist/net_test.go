@@ -15,7 +15,7 @@ import (
 
 func TestNetFetchMockSuccess(t *testing.T) {
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	rosina.AssertIsNil(t, err)
+	rosina.AssertNoError(t, err)
 	dir := t.TempDir()
 	hash := "b493d48364afe44d11c0165cf470a4164d1e2609911ef998be868d46ade3de4e"
 	client := &http.Client{Timeout: 1 * time.Second}
@@ -28,7 +28,7 @@ func TestNetFetchMockSuccess(t *testing.T) {
 	defer ts.Close()
 
 	path, err := florist.NetFetch(client, ts.URL, florist.SHA256, hash, dir)
-	rosina.AssertIsNil(t, err)
+	rosina.AssertNoError(t, err)
 	rosina.AssertFileEqualsString(t, path, contents)
 }
 
@@ -67,8 +67,7 @@ func TestNetFetchMockFailure(t *testing.T) {
 			url := fmt.Sprintf("%s/%s", ts.URL, strconv.Itoa(tcN))
 			_, err := florist.NetFetch(client, url, florist.SHA256, tc.hash, dir)
 
-			rosina.AssertIsNotNil(t, err)
-			rosina.AssertContains(t, err.Error(), tc.wantErr)
+			rosina.AssertErrorContains(t, err, tc.wantErr)
 		})
 	}
 }
