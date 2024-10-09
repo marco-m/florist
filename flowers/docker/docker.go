@@ -56,9 +56,9 @@ func (fl *Flower) Install() error {
 	// https://docs.docker.com/engine/install/debian/
 	if err := apt.AddRepo(
 		"docker",
-		"https://download.docker.com/linux/debian",
 		"https://download.docker.com/linux/debian/gpg",
 		"1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570",
+		"https://download.docker.com/linux/debian",
 	); err != nil {
 		return err
 	}
