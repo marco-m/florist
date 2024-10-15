@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/marco-m/florist/flowers/fishshell"
@@ -21,7 +20,7 @@ func main() {
 }
 
 func setup(prov *florist.Provisioner) error {
-	err := prov.AddFlowers(
+	return prov.AddFlowers(
 		&locale.Flower{
 			Inst: locale.Inst{
 				Lang: locale.Lang_en_US_UTF8,
@@ -59,11 +58,6 @@ func setup(prov *florist.Provisioner) error {
 			},
 		},
 	)
-	if err != nil {
-		return fmt.Errorf("setup: %s", err)
-	}
-
-	return nil
 }
 
 func configure(prov *florist.Provisioner, config *florist.Config) error {

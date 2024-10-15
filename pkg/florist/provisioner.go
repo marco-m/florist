@@ -36,7 +36,7 @@ func (cliArgs) Description() string {
 
 type ConfigureFn func(prov *Provisioner, config *Config) error
 
-// The Options passed to Main. For an example, see florist/example/main.go
+// The Options passed to [MainInt]. For an example, see florist/example/main.go
 type Options struct {
 	// Output for the logger. Defaults to os.Stdout. Before changing to os.Stderr,
 	// consider that HashiCorp Packer renders any output to stderr in red, thus
@@ -66,7 +66,7 @@ type Options struct {
 //	}
 func MainInt(opts *Options) int {
 	if err := MainErr(opts); err != nil {
-		fmt.Println(err)
+		fmt.Fprintf(os.Stderr, "\n%s\n", err)
 		return 1
 	}
 	return 0
@@ -166,7 +166,7 @@ func (cmd *installArgs) Run(prov *Provisioner) error {
 		}
 	}
 
-	return customizeMotd("installed", prov.root)
+	return customizeMotd("installed", prov.rootDir)
 }
 
 type configureArgs struct {
@@ -201,7 +201,7 @@ func (cmd *configureArgs) Run(prov *Provisioner, configure ConfigureFn) error {
 		}
 	}
 
-	if err := customizeMotd("configured", prov.root); err != nil {
+	if err := customizeMotd("configured", prov.rootDir); err != nil {
 		return fmt.Errorf("configure: %s", err)
 	}
 	return nil
@@ -210,7 +210,7 @@ func (cmd *configureArgs) Run(prov *Provisioner, configure ConfigureFn) error {
 type Provisioner struct {
 	flowers map[string]Flower
 	ordered []string
-	root    string
+	rootDir string
 }
 
 func newProvisioner() *Provisioner {
@@ -221,7 +221,7 @@ func newProvisioner() *Provisioner {
 
 // FIXME what is this doing????
 func (prov *Provisioner) UseWorkdir() {
-	prov.root = WorkDir
+	prov.rootDir = WorkDir
 }
 
 // Flowers returns
@@ -254,7 +254,7 @@ func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
 func customizeMotd(op string, rootDir string) error {
 	log := Log()
 	now := time.Now().Round(time.Second)
-	line := fmt.Sprintf("%s System %s by 🌼 florist 🌺\n", now, op)
+	line := fmt.Sprintf("%s 🌼 florist 🌺 System %s\n", now, op)
 	name := path.Join(rootDir, "/etc/motd")
 	log.Debug("customize-motd", "target", name, "operation", op)
 

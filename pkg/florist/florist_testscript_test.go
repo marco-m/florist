@@ -81,7 +81,7 @@ func (fl testFlower) Install() error {
 		return err
 	}
 	username := florist.User().Username
-	if err := florist.WriteFile(dstPath, rendered, 0600, username); err != nil {
+	if err := florist.WriteFile(dstPath, rendered, 0o600, username); err != nil {
 		return err
 	}
 	return nil
@@ -94,7 +94,7 @@ func (fl testFlower) Configure() error {
 		return err
 	}
 	username := florist.User().Username
-	if err := florist.WriteFile(dstPath, rendered, 0600, username); err != nil {
+	if err := florist.WriteFile(dstPath, rendered, 0o600, username); err != nil {
 		return err
 	}
 	return nil
