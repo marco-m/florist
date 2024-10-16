@@ -76,7 +76,7 @@ func (fl testFlower) Init() error {
 
 func (fl testFlower) Install() error {
 	dstPath := "installed.txt"
-	rendered, err := florist.TemplateFromText("{{.FieldInst}}\n", fl)
+	rendered, err := florist.TemplateFromText("{{.FieldInst}}\n", fl, "template-name")
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (fl testFlower) Install() error {
 
 func (fl testFlower) Configure() error {
 	dstPath := "configured.txt"
-	rendered, err := florist.TemplateFromText("{{.FieldInst}} {{.FieldConf}}\n", fl)
+	rendered, err := florist.TemplateFromText("{{.FieldInst}} {{.FieldConf}}\n", fl, "template-name")
 	if err != nil {
 		return err
 	}

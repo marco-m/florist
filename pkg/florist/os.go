@@ -41,7 +41,7 @@ func ListFs(fsys fs.FS) []string {
 // WriteFile writes data to fname and sets the mode and owner of fname.
 // If also creates any missing directories in the path, if any.
 func WriteFile(fname string, data string, mode os.FileMode, owner string) error {
-	if err := os.MkdirAll(path.Dir(fname), 0700); err != nil {
+	if err := os.MkdirAll(path.Dir(fname), 0o700); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
 
@@ -101,10 +101,12 @@ func CopyFileFs(
 	return copyfile(srcFs, srcPath, dstPath, mode, owner)
 }
 
-// TemplateFromText renders the template text with tmplData.
-func TemplateFromText(text string, tmplData any) (string, error) {
+// TemplateFromText renders the template 'tmplText' with data 'tmplData'.
+// Parameter 'tmplName' is used for debugging purposes, a typical example is
+// the template file name.
+func TemplateFromText(tmplText string, tmplData any, tmplName string) (string, error) {
 	Log().Debug("TemplateFromText")
-	return renderText(text, tmplData, "", "")
+	return renderText(tmplText, tmplData, tmplName, "", "")
 }
 
 // TemplateFromFs reads file srcPath in filesystem srcFs and renders its contents
@@ -133,7 +135,7 @@ func renderTemplate(
 		return "", fmt.Errorf("florist.renderTemplate: %s", err)
 	}
 
-	return renderText(string(buf), tmplData, delimL, delimR)
+	return renderText(string(buf), tmplData, srcPath, delimL, delimR)
 
 	//// if dstPath is an executable file and is running, then we will get back a
 	//// TXTBSY (text file busy).
@@ -164,15 +166,19 @@ func renderTemplate(
 	//return nil
 }
 
-// renderText renders the template text with data tmplData, with delimL and delimR
-// as template delimiters. If delimL and delimR are empty, the default delimiters
-// "{{" and "}}" will be used.
-func renderText(text string, tmplData any, delimL, delimR string) (string, error) {
-	tmpl := template.New("render-text").
+// renderText renders the template 'tmplText' with data 'tmplData'.
+// Parameter 'tmplName' is used for debugging purposes, a typical example is
+// the template file name.
+// Parameters 'delimL' and 'delimR' as template delimiters. If they are empty,
+// then the default delimiters "{{" and "}}" will be used.
+func renderText(tmplText string, tmplData any, tmplName string,
+	delimL, delimR string,
+) (string, error) {
+	tmpl := template.New(tmplName).
 		Delims(delimL, delimR).
 		Option("missingkey=error")
 
-	_, err := tmpl.Parse(text)
+	_, err := tmpl.Parse(tmplText)
 	if err != nil {
 		return "", fmt.Errorf("florist.renderText: %s", err)
 	}
@@ -206,7 +212,7 @@ func copyfile(
 	}
 	defer src.Close()
 
-	if err := os.MkdirAll(filepath.Dir(dstPath), mode|0111); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dstPath), mode|0o111); err != nil {
 		return fmt.Errorf("florist.copyfile: %s", err)
 	}
 

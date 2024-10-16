@@ -46,17 +46,17 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	//log := florist.Log().With("flower", Name + ".install")
+	// log := florist.Log().With("flower", Name + ".install")
 
 	text := `DstDir: {{.DstDir}}\n`
-	rendered, err := florist.TemplateFromText(text, fl)
+	rendered, err := florist.TemplateFromText(text, fl, "template-name")
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	username := florist.User().Username
 	dstPath := filepath.Join(fl.Inst.DstDir, "install.txt")
-	if err := florist.WriteFile(dstPath, rendered, 0600, username); err != nil {
+	if err := florist.WriteFile(dstPath, rendered, 0o600, username); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
@@ -64,19 +64,19 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	//log := florist.Log().With("flower", Name + ".configure")
+	// log := florist.Log().With("flower", Name + ".configure")
 
 	text := `DstDir: {{.DstDir}}
 Aroma: {{.Aroma}}
 `
-	rendered, err := florist.TemplateFromText(text, fl)
+	rendered, err := florist.TemplateFromText(text, fl, "template-name")
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	username := florist.User().Username
 	dstPath := filepath.Join(fl.Inst.DstDir, "configure.txt")
-	if err := florist.WriteFile(dstPath, rendered, 0600, username); err != nil {
+	if err := florist.WriteFile(dstPath, rendered, 0o600, username); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
