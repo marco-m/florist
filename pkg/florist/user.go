@@ -9,9 +9,8 @@ import (
 
 // Add user and create home directory.
 // Do nothing if user already present.
-// If groups not empty, add the user to the supplementary groups.
 // Password login is disabled (use SSH public key or use passwd)
-func UserAdd(username string, groups ...string) error {
+func UserAdd(username string) error {
 	log := Log().With("user", username)
 
 	log.Info("user-add")
@@ -32,10 +31,6 @@ func UserAdd(username string, groups ...string) error {
 		return fmt.Errorf("user: add: %s", err)
 	}
 	log.Debug("user-add", "status", "user-added")
-
-	if err := SupplementaryGroups(username, groups...); err != nil {
-		return err
-	}
 
 	_, err := user.Lookup(username)
 	if err != nil {
