@@ -5,25 +5,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-quicktest/qt"
-
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/rosina"
 )
 
 func TestAptUpdateVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 
 	err = apt.Update(florist.CacheValidity())
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 }
 
 func TestAptInstallVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	err := apt.Install("ripgrep")
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 }

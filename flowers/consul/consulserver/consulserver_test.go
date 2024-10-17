@@ -5,16 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-quicktest/qt"
-
 	"github.com/marco-m/florist/flowers/consul/consulserver"
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/rosina"
 )
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 
 	fl := consulserver.Flower{
 		Inst: consulserver.Inst{
@@ -23,16 +22,16 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 		},
 	}
 	err = fl.Init()
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 
 	err = fl.Install()
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 }
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 
 	// FIXME Since not compatible with a client install, I should wipe client installs before...
 	// at this point, should I do it as a Flower method, Unistall(), or should I do it grossly only here?
@@ -47,14 +46,14 @@ func TestConsulServerInstallFailureVM(t *testing.T) {
 		{
 			name:    "missing version",
 			flower:  consulserver.Flower{},
-			wantErr: `.+ missing version`,
+			wantErr: ` missing version`,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.flower.Init()
-			qt.Assert(t, qt.ErrorMatches(err, tc.wantErr))
+			rosina.AssertErrorContains(t, err, tc.wantErr)
 		})
 	}
 }
@@ -63,7 +62,6 @@ func TestConsulClientConfigureVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	// FIXME WRITEME
-	//cfgFile := path.Join(consul.CfgDir, filepath.Base(consulserver.ConfigFile))
-	//qt.Assert(t, qh.FileContains(cfgFile, "Port 1234\n"))
-
+	// cfgFile := path.Join(consul.CfgDir, filepath.Base(consulserver.ConfigFile))
+	//	rosina.AssertFileContains(t,cfgFile, "Port 1234\n")
 }
