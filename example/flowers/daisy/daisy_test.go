@@ -2,16 +2,14 @@ package daisy_test
 
 import (
 	"io"
-	"os"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
 	"time"
 
-	"github.com/go-quicktest/qt"
-
 	"github.com/marco-m/florist/example/flowers/daisy"
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/rosina"
 )
 
 // TODO: test install all defaults.
@@ -22,7 +20,7 @@ func TestDaisyInstall(t *testing.T) {
 	// because this is a special flower!
 
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 
 	fsys := fstest.MapFS{
 		daisy.InstallPlainFileSrc: {
@@ -38,27 +36,23 @@ func TestDaisyInstall(t *testing.T) {
 		Conf: daisy.Conf{},
 	}
 	err = fl.Init()
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 
 	t.Run("install runs successfully", func(t *testing.T) {
 		err = fl.Install()
-		qt.Assert(t, qt.IsNil(err))
+		rosina.AssertNoError(t, err)
 	})
 
 	t.Run("read back what install wrote", func(t *testing.T) {
 		// File 1
 		{
 			fpath := filepath.Join(fl.Inst.DstDir, daisy.InstallPlainFileDst)
-			have, err := os.ReadFile(fpath)
-			qt.Assert(t, qt.IsNil(err))
-			qt.Assert(t, qt.Equals(string(have), "Johnny Stecchino"))
+			rosina.AssertFileEqualsString(t, fpath, "Johnny Stecchino")
 		}
 		// File 2
 		{
 			fpath := filepath.Join(fl.Inst.DstDir, daisy.InstallTmplFileDst)
-			have, err := os.ReadFile(fpath)
-			qt.Assert(t, qt.IsNil(err))
-			qt.Assert(t, qt.Equals(string(have), "white"))
+			rosina.AssertFileEqualsString(t, fpath, "white")
 		}
 	})
 }
@@ -82,18 +76,15 @@ func TestDaisyConfigure(t *testing.T) {
 		},
 	}
 	err := fl.Init()
-	qt.Assert(t, qt.IsNil(err))
+	rosina.AssertNoError(t, err)
 
 	t.Run("configure runs successfully", func(t *testing.T) {
 		err = fl.Configure()
-		qt.Assert(t, qt.IsNil(err))
+		rosina.AssertNoError(t, err)
 	})
 
 	t.Run("read back what configure wrote", func(t *testing.T) {
 		fpath := filepath.Join(fl.Inst.DstDir, daisy.ConfigTmplFileDst)
-		have, err := os.ReadFile(fpath)
-
-		qt.Assert(t, qt.IsNil(err))
-		qt.Assert(t, qt.Equals(string(have), "white dev sesamo"))
+		rosina.AssertFileEqualsString(t, fpath, "white dev sesamo")
 	})
 }

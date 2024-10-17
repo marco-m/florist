@@ -9,9 +9,8 @@ import (
 
 // Add user and create home directory.
 // Do nothing if user already present.
-// If groups not empty, add the user to the supplementary groups.
 // Password login is disabled (use SSH public key or use passwd)
-func UserAdd(username string, groups ...string) error {
+func UserAdd(username string) error {
 	log := Log().With("user", username)
 
 	log.Info("user-add")
@@ -25,17 +24,13 @@ func UserAdd(username string, groups ...string) error {
 
 	cmd := exec.Command(
 		"adduser",
-		"--gecos", fmt.Sprintf("'user %s'", username),
+		"--gecos", fmt.Sprintf(`"user %s"`, username),
 		"--disabled-password",
 		username)
 	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("user: add: %s", err)
 	}
 	log.Debug("user-add", "status", "user-added")
-
-	if err := SupplementaryGroups(username, groups...); err != nil {
-		return err
-	}
 
 	_, err := user.Lookup(username)
 	if err != nil {
@@ -48,18 +43,21 @@ func UserAdd(username string, groups ...string) error {
 // if username is present, then add it to the supplementary groups
 func SupplementaryGroups(username string, groups ...string) error {
 	log := Log().With("user", username).With("groups", groups)
-	if _, err := user.Lookup(username); err != nil {
-		log.Debug("supplementary-groups", "status", "user-not-found-skipping")
-		return nil
-	}
+
 	if len(groups) == 0 {
-		log.Debug("supplementary-groups", "status", "no-supplementary-groups-skipping")
-		return nil
+		return fmt.Errorf("supplementary-groups: must specify at least one group (user: %s)",
+			username)
 	}
+	if _, err := user.Lookup(username); err != nil {
+		return fmt.Errorf("supplementary-groups: user not found (user: %s, groups: %s)",
+			username, groups)
+	}
+
 	args := strings.Join(groups, ",")
 	cmd := exec.Command("usermod", "--append", "--groups", args, username)
 	if err := CmdRun(log, cmd); err != nil {
-		return fmt.Errorf("user: add to groups: %s", err)
+		return fmt.Errorf("user: add to groups: %s (user: %s, groups: %s)",
+			err, username, groups)
 	}
 	log.Debug("supplementary-groups", "status", "user-added-to-groups")
 
@@ -78,7 +76,7 @@ func UserSystemAdd(username string, homedir string) error {
 		"adduser",
 		"--system", "--group",
 		"--home", homedir,
-		"--gecos", fmt.Sprintf("'user %s'", username),
+		"--gecos", fmt.Sprintf(`"user %s"`, username),
 		username)
 	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("user: add: %s", err)
