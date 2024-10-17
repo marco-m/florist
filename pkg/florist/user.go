@@ -43,18 +43,21 @@ func UserAdd(username string) error {
 // if username is present, then add it to the supplementary groups
 func SupplementaryGroups(username string, groups ...string) error {
 	log := Log().With("user", username).With("groups", groups)
-	if _, err := user.Lookup(username); err != nil {
-		log.Debug("supplementary-groups", "status", "user-not-found-skipping")
-		return nil
-	}
+
 	if len(groups) == 0 {
-		log.Debug("supplementary-groups", "status", "no-supplementary-groups-skipping")
-		return nil
+		return fmt.Errorf("supplementary-groups: must specify at least one group (user: %s)",
+			username)
 	}
+	if _, err := user.Lookup(username); err != nil {
+		return fmt.Errorf("supplementary-groups: user not found (user: %s, groups: %s)",
+			username, groups)
+	}
+
 	args := strings.Join(groups, ",")
 	cmd := exec.Command("usermod", "--append", "--groups", args, username)
 	if err := CmdRun(log, cmd); err != nil {
-		return fmt.Errorf("user: add to groups: %s", err)
+		return fmt.Errorf("user: add to groups: %s (user: %s, groups: %s)",
+			err, username, groups)
 	}
 	log.Debug("supplementary-groups", "status", "user-added-to-groups")
 
