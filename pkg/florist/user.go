@@ -25,7 +25,7 @@ func UserAdd(username string, groups ...string) error {
 
 	cmd := exec.Command(
 		"adduser",
-		"--gecos", fmt.Sprintf("'user %s'", username),
+		"--gecos", fmt.Sprintf(`"user %s"`, username),
 		"--disabled-password",
 		username)
 	if err := CmdRun(log, cmd); err != nil {
@@ -78,7 +78,7 @@ func UserSystemAdd(username string, homedir string) error {
 		"adduser",
 		"--system", "--group",
 		"--home", homedir,
-		"--gecos", fmt.Sprintf("'user %s'", username),
+		"--gecos", fmt.Sprintf(`"user %s"`, username),
 		username)
 	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("user: add: %s", err)
