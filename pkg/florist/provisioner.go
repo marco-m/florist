@@ -73,6 +73,7 @@ func MainInt(opts *Options) int {
 }
 
 // MainErr is a ready-made function for the main() of your installer.
+// See also [MainInt].
 func MainErr(opts *Options) error {
 	start := time.Now()
 
