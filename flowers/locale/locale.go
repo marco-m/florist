@@ -30,8 +30,7 @@ type Inst struct {
 	Lang string // the LANG of the locale.
 }
 
-type Conf struct {
-}
+type Conf struct{}
 
 func (fl *Flower) String() string {
 	return Name
@@ -65,25 +64,23 @@ func (fl *Flower) Install() error {
 
 	log.Info("Setup locale", "lang", fl.Lang)
 	// Since running locale-gen takes seconds, avoid if possible.
-	cmd := exec.Command("localedef", "--list-archive")
-	out, err := cmd.Output()
+	localesArchive, err := exec.Command("localedef", "--list-archive").Output()
 	if err != nil {
 		return err
 	}
 	// For some unfathomable reasons, the output of "localedef --list-archive"
 	// is "en_US.utf8", while LANG is "en_US.UTF-8" :-/
 	left := strings.Split(fl.Lang, ".")[0]
-	if strings.Contains(string(out), left) {
+	if strings.Contains(string(localesArchive), left) {
 		log.Info("locale already present, skipping generation", "lang", fl.Lang)
 		return nil
 	}
 
 	locale := fmt.Sprintf("%s UTF-8\n", fl.Lang)
-	if err := os.WriteFile("/etc/locale.gen", []byte(locale), 0644); err != nil {
+	if err := os.WriteFile("/etc/locale.gen", []byte(locale), 0o644); err != nil {
 		return err
 	}
-	cmd = exec.Command("locale-gen")
-	if err := florist.CmdRun(log, cmd); err != nil {
+	if err := florist.CmdRun(log, exec.Command("locale-gen")); err != nil {
 		return err
 	}
 	return nil
