@@ -276,21 +276,21 @@ func customizeMotd(op string, rootDir string) error {
 // User returns the current user, as set by Init.
 func User() *user.User {
 	if currentUser == nil {
-		panic("florist.User: must call florist.Main before")
+		panic("florist.User: must call florist.MainInt before")
 	}
 	return currentUser
 }
 
 func CacheValidity() time.Duration {
 	if osPkgCacheValidity == 0 {
-		panic("florist.CacheValidity: must call florist.Main before")
+		panic("florist.CacheValidity: must call florist.MainInt before")
 	}
 	return osPkgCacheValidity
 }
 
 func Log() *slog.Logger {
 	if floristLog == nil {
-		panic("florist.Log: must call florist.Main before")
+		panic("florist.Log: must call florist.MainInt before")
 	}
 	return floristLog
 }
