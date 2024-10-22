@@ -38,3 +38,32 @@ func TestUnzipOne(t *testing.T) {
 		t.Run(tc.wantName, func(t *testing.T) { test(t, tc) })
 	}
 }
+
+func TestUntarOne(t *testing.T) {
+	florist.LowLevelInit(io.Discard, "Info", 24*time.Hour)
+	dstDir := t.TempDir()
+
+	type testCase struct {
+		wantName string
+	}
+
+	test := func(t *testing.T, tc testCase) {
+		dstPath := filepath.Join(dstDir, tc.wantName)
+
+		err := florist.UntarOne("testdata/archive/two-files.tgz",
+			tc.wantName, dstPath)
+
+		rosina.AssertNoError(t, err)
+		wantPath := filepath.Join("testdata/archive", tc.wantName)
+		rosina.AssertFileEqualsFile(t, dstPath, wantPath)
+	}
+
+	testCases := []testCase{
+		{wantName: "file1.txt"},
+		{wantName: "file2.txt"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.wantName, func(t *testing.T) { test(t, tc) })
+	}
+}
