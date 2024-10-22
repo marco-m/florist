@@ -85,7 +85,7 @@ func MainErr(opts *Options) error {
 		opts.LogOutput = os.Stdout
 	}
 	if opts.OsPkgCacheValidity == 0 {
-		opts.OsPkgCacheValidity = time.Hour
+		opts.OsPkgCacheValidity = 24 * time.Hour
 	}
 	if opts.SetupFn == nil {
 		return fmt.Errorf("florist.Main: SetupFn is nil")
