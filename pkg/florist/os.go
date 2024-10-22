@@ -2,6 +2,7 @@ package florist
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -36,6 +37,25 @@ func ListFs(fsys fs.FS) []string {
 		files = append(files, fmt.Sprintf("****%s****", err.Error()))
 	}
 	return files
+}
+
+// Return true if file 'fpath' exists.
+// WARNING Checking for file existence is racy and in certain cases can lead
+// to security vulnerabilities. Think twice before using this. In the majority
+// of cases, you can simply skip the existence check, since the next operation
+// will fail in any case if the file doesn't exist.
+//
+// Explanation of the TOCTOU vulnerability:
+// https://wiki.sei.cmu.edu/confluence/display/c/FIO45-C.+Avoid+TOCTOU+race+conditions+while+accessing+files
+func FileExists(fpath string) (bool, error) {
+	_, err := os.Stat(fpath)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	return false, err
 }
 
 // WriteFile writes data to fname and sets the mode and owner of fname.
