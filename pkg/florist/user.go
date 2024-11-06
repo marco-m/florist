@@ -2,6 +2,7 @@ package florist
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"os/user"
 	"strings"
@@ -64,6 +65,8 @@ func SupplementaryGroups(username string, groups ...string) error {
 	return nil
 }
 
+// UserSystemAdd adds the system user 'username' with home directory 'homedir'
+// and mode 0o755.
 func UserSystemAdd(username string, homedir string) error {
 	log := Log().With("user", username)
 
@@ -83,9 +86,17 @@ func UserSystemAdd(username string, homedir string) error {
 	}
 	log.Debug("user-system-add", "status", "user added")
 
-	_, err := user.Lookup(username)
+	newUser, err := user.Lookup(username)
 	if err != nil {
 		return fmt.Errorf("user: lookup: %s", err)
+	}
+
+	if newUser.HomeDir != homedir {
+		return fmt.Errorf("user %s: homedir: have: %s, want: %s",
+			username, newUser.HomeDir, homedir)
+	}
+	if err := os.Chmod(newUser.HomeDir, 0o755); err != nil {
+		return fmt.Errorf("user %s: %s", username, err)
 	}
 
 	return nil
