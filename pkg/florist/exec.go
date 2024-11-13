@@ -7,6 +7,8 @@ import (
 	"os/exec"
 )
 
+// CmdRun runs 'cmd', redirecting its stdout and stderr to 'log'.
+// CmdRun blocks until 'cmd' terminates.
 func CmdRun(log *slog.Logger, cmd *exec.Cmd) error {
 	const truncLen = 160
 	log.Debug("cmd-run", "cmd", cmd.String())
