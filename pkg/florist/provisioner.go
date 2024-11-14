@@ -13,6 +13,10 @@ import (
 	"github.com/alexflint/go-arg"
 )
 
+const (
+	DefOsPkgCacheValidity = 1 * time.Hour
+)
+
 var (
 	// currentUser is set by Main.
 	currentUser *user.User
@@ -45,7 +49,7 @@ type Options struct {
 	// command-line flag.
 	LogOutput io.Writer
 	// Optimization to avoid refreshing the OS package manager cache each time before
-	// installing an OS package. Defaults to 1h.
+	// installing an OS package. Defaults to DefOsPkgCacheValidity.
 	OsPkgCacheValidity time.Duration
 	// The setup function, called before any command-line subcommand. No default.
 	SetupFn func(prov *Provisioner) error
@@ -85,7 +89,7 @@ func MainErr(opts *Options) error {
 		opts.LogOutput = os.Stdout
 	}
 	if opts.OsPkgCacheValidity == 0 {
-		opts.OsPkgCacheValidity = 24 * time.Hour
+		opts.OsPkgCacheValidity = DefOsPkgCacheValidity
 	}
 	if opts.SetupFn == nil {
 		return fmt.Errorf("florist.Main: SetupFn is nil")

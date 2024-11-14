@@ -41,7 +41,9 @@ func UserAdd(username string) error {
 	return nil
 }
 
-// if username is present, then add it to the supplementary groups
+// SupplementaryGroups adds 'username' to the supplementary groups 'groups'.
+// It is an error if any of 'groups' does not exist (create them beforehand
+// with GroupSystemAdd).
 func SupplementaryGroups(username string, groups ...string) error {
 	log := Log().With("user", username).With("groups", groups)
 
@@ -65,8 +67,8 @@ func SupplementaryGroups(username string, groups ...string) error {
 	return nil
 }
 
-// UserSystemAdd adds the system user 'username' with home directory 'homedir'
-// and mode 0o755.
+// UserSystemAdd adds the system user 'username' and group 'username', with
+// home directory 'homedir' and mode 0o755.
 func UserSystemAdd(username string, homedir string) error {
 	log := Log().With("user", username)
 
@@ -102,6 +104,8 @@ func UserSystemAdd(username string, homedir string) error {
 	return nil
 }
 
+// GroupSystemAdd adds group 'groupname'. It is not an error if 'groupname'
+// already exists.
 func GroupSystemAdd(groupname string) error {
 	log := Log().With("group", groupname)
 
