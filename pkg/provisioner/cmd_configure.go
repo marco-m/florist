@@ -2,6 +2,7 @@ package provisioner
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/marco-m/clim"
 	"github.com/marco-m/florist/pkg/florist"
@@ -20,7 +21,7 @@ func newConfigureCmd(parent *clim.CLI[App]) error {
 	}
 
 	if err := cli.AddFlags(&clim.Flag{
-		Value: clim.String(&configureCmd.Settings, "/opt/florist/config.json"),
+		Value: clim.String(&configureCmd.Settings, filepath.Join(florist.HomeDir, "config.json")),
 		Long:  "settings", Help: "Settings file (JSON)",
 	}); err != nil {
 		return err

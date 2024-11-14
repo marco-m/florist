@@ -12,18 +12,13 @@ import (
 	"time"
 
 	"github.com/marco-m/clim"
+	"github.com/marco-m/florist/internal"
 	"github.com/marco-m/florist/pkg/florist"
 )
 
-const (
-	DefOsPkgCacheValidity = 1 * time.Hour
-)
-
 var (
-	// currentUser is set by Main.
+	// currentUser is set by [MainInt].
 	currentUser *user.User
-	// osPkgCacheValidity is set by Main.
-	osPkgCacheValidity time.Duration
 )
 
 // The Options passed to [MainInt]. For an example, see florist/example/main.go
@@ -34,9 +29,6 @@ type Options struct {
 	// The default log level is INFO; it can be changed to DEBUG via the --log-level
 	// command-line flag.
 	LogOutput io.Writer
-	// Optimization to avoid refreshing the OS package manager cache each time before
-	// installing an OS package. Defaults to DefOsPkgCacheValidity.
-	OsPkgCacheValidity time.Duration
 	// Set to a temporary directory during testing. DO NOT MODIFY in production code.
 	RootDir string
 	// The setup function, called before any command-line subcommand. Mandatory.
@@ -131,9 +123,6 @@ func MainErr(args []string, opts *Options) error {
 	if opts.LogOutput == nil {
 		opts.LogOutput = os.Stdout
 	}
-	if opts.OsPkgCacheValidity == 0 {
-		opts.OsPkgCacheValidity = DefOsPkgCacheValidity
-	}
 	if opts.RootDir == "" {
 		opts.RootDir = "/"
 	}
@@ -144,7 +133,7 @@ func MainErr(args []string, opts *Options) error {
 		return fmt.Errorf("florist.Main: PreConfigureFn is nil")
 	}
 
-	if err := LowLevelInit(opts.LogOutput, app.LogLevel, opts.OsPkgCacheValidity); err != nil {
+	if err := LowLevelInit(opts.LogOutput, app.LogLevel); err != nil {
 		return err
 	}
 
@@ -218,19 +207,13 @@ func Group() *user.Group {
 	return group
 }
 
-func CacheValidity() time.Duration {
-	if osPkgCacheValidity == 0 {
-		panic("florist.CacheValidity: must call florist.MainInt before")
-	}
-	return osPkgCacheValidity
-}
-
 // LowLevelInit should be called only by low-level test code.
 // Absolutely do not call in non-test code! Call florist.MainInt instead!
-func LowLevelInit(logOutput io.Writer, logLevel string, cacheValidity time.Duration) error {
+func LowLevelInit(logOutput io.Writer, logLevel string) error {
+	errorf := internal.MakeErrorf("provisioner.LowLevelInit")
 	var level slog.Level
 	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
-		return fmt.Errorf("florist.Main: --log-level: %s", err)
+		return errorf("--log-level: %s", err)
 	}
 
 	prog := filepath.Base(os.Args[0])
@@ -241,10 +224,15 @@ func LowLevelInit(logOutput io.Writer, logLevel string, cacheValidity time.Durat
 	var err error
 	currentUser, err = user.Current()
 	if err != nil {
-		return fmt.Errorf("florist.Main: %s", err)
+		return errorf("%s", err)
 	}
 
-	osPkgCacheValidity = cacheValidity
+	if err := florist.Mkdir(florist.WorkDir, 0o755, User().Username, Group().Name); err != nil {
+		return errorf("%s", err)
+	}
+	// if err := florist.Mkdir(florist.HomeDir, 0o755, User().Username, Group().Name); err != nil {
+	// 	return errorf("%s", err)
+	// }
 
 	return nil
 }

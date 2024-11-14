@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -28,13 +29,14 @@ type Configurer interface {
 }
 
 const (
-	WorkDir = "/tmp/florist.work"
+	WorkDir = "/tmp/florist"
+	HomeDir = "/opt/florist"
 )
 
 // SkipIfNotDisposableHost skips the test if it is running on a precious host.
 func SkipIfNotDisposableHost(t *testing.T) {
 	t.Helper()
-	_, err := os.Stat("/opt/florist/disposable")
+	_, err := os.Stat(filepath.Join(HomeDir, "disposable"))
 	if errors.Is(err, fs.ErrNotExist) {
 		t.Skip("skip: this host is not disposable")
 	}

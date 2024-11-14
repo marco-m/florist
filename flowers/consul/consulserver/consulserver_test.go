@@ -3,7 +3,6 @@ package consulserver_test
 import (
 	"io"
 	"testing"
-	"time"
 
 	"github.com/marco-m/florist/flowers/consul/consulserver"
 	"github.com/marco-m/florist/pkg/florist"
@@ -13,7 +12,7 @@ import (
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := provisioner.LowLevelInit(io.Discard, "INFO", time.Hour)
+	err := provisioner.LowLevelInit(io.Discard, "INFO")
 	assert.NoError(t, err, "provisioner.LowLevelInit")
 
 	fl := consulserver.Flower{
@@ -31,7 +30,7 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := provisioner.LowLevelInit(io.Discard, "INFO", time.Hour)
+	err := provisioner.LowLevelInit(io.Discard, "INFO")
 	assert.NoError(t, err, "provisioner.LowLevelInit")
 
 	// FIXME Since not compatible with a client install, I should wipe client installs before...

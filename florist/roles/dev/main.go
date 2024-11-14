@@ -30,7 +30,7 @@ func setup(prov *provisioner.Provisioner) error {
 			Inst: ospackages.Inst{
 				Add: []string{
 					//"build-essential",
-					"sntp",
+					// "sntp",
 					"ripgrep",
 					"rsync", // Needed by Jetbrains Goland SSH run target.
 				},

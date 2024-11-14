@@ -1,113 +1,105 @@
 package apt
 
 import (
-	"errors"
-	"fmt"
-	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
-	"sync"
 	"time"
 
+	"github.com/marco-m/florist/internal"
+	"github.com/marco-m/florist/pkg/cachestate"
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/florist/pkg/provisioner"
 )
 
-var (
-	once      sync.Once
-	updateErr error
+const (
+	PkgCacheValidity = 24 * time.Hour
 )
 
-// Update calls "apt-get update" only once in the lifetime of the installer,
-// thus ensuring a faster operation.
-// This is normally the function to use, but see also [Refresh].
-func Update(cacheValidity time.Duration) error {
-	now := time.Now()
-	once.Do(func() {
-		updateErr = Refresh(cacheValidity)
-	})
-	slog.Info("apt.Update", "elapsed", time.Since(now).Truncate(time.Millisecond))
-	return updateErr
+var cacheState = cachestate.New(PkgCacheValidity, florist.WorkDir, slog.Default())
+
+// Installs takes care of updating the APT cache if needed and installs 'packages'.
+func Install(packages ...string) error {
+	errorf, log := internal.MakeErrorfAndLog("apt.Install", slog.Default())
+	log.Info("updating package cache")
+	if err := update(); err != nil {
+		return errorf("%s", err)
+	}
+	log.Info("installing", "packages", packages)
+	args := []string{"install", "--no-install-recommends", "-y"}
+	args = append(args, packages...)
+	cmd := exec.Command("apt-get", args...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
+
+	if err := florist.CmdRun(log, cmd); err != nil {
+		return errorf("%s", err)
+	}
+
+	return nil
 }
 
-// Refresh calls "apt-get update" each time it is called.
-// This function is needed _only_ after having added a new APT repo with
-// [AddRepo].
-// Note that the function to use for the majority of cases is instead [Update].
-func Refresh(cacheValidity time.Duration) error {
-	log := slog.With("fn", "apt.Update")
-	// Sigh. No method is robust :-/
-	// /var/lib/apt/lists
-	// /var/cache/apt/pkgcache.bin
-	cacheModTime, err := modTime("/var/lib/apt/periodic/update-success-stamp")
-	if err != nil {
-		return fmt.Errorf("apt.Update: %s", err)
+// Remove removes 'packages'. It is not an error if some of the packages are not
+// installed.
+func Remove(packages ...string) error {
+	errorf, log := internal.MakeErrorfAndLog("apt.Remove", slog.Default())
+
+	log.Info("Removing", "packages", packages)
+	args := []string{"remove", "-y"}
+	args = append(args, packages...)
+	cmd := exec.Command("apt-get", args...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
+
+	if err := florist.CmdRun(log, cmd); err != nil {
+		return errorf("%s", err)
 	}
 
-	cacheAge := time.Since(cacheModTime).Truncate(time.Second)
-	log.Debug("cache-info", "cache-validity", cacheValidity,
-		"cache-age", florist.HumanDuration(cacheAge))
-	if cacheAge < cacheValidity {
-		log.Debug("", "cache", "valid")
+	return nil
+}
+
+// update calls "apt-get update", if needed.
+// It is optimized, in order to do actual work only if the cache is expired or if a previous
+// call to [AddRepo] requires an update. It does the right thing for you.
+func update() error {
+	errorf, log := internal.MakeErrorfAndLog("apt.update", slog.Default())
+	now := time.Now()
+
+	valid := isCacheValid()
+	if valid {
+		log.Debug("cache-validity", "valid", valid, "decision", "skip")
 		return nil
 	}
-	log.Debug("", "cache", "expired")
+	log.Debug("cache-validity", "valid", valid, "decision", "proceed")
 
 	cmd := exec.Command("apt-get", "update")
 	if err := florist.CmdRun(log, cmd); err != nil {
-		return fmt.Errorf("apt.Update: %s", err)
+		return errorf("%s", err)
 	}
+
+	if err := cacheState.Update(); err != nil {
+		return errorf("%s", err)
+	}
+
+	elapsed := time.Since(now).Truncate(time.Millisecond)
+	log.Info("updated-package-cache", "elapsed", elapsed)
 
 	return nil
 }
 
-func Install(pkg ...string) error {
-	log := slog.With("fn", "apt.Install")
-	log.Info("updating package cache")
-	if err := Update(provisioner.CacheValidity()); err != nil {
-		return err
-	}
-	log.Info("installing", "packages", pkg)
-	args := []string{"install", "--no-install-recommends", "-y"}
-	args = append(args, pkg...)
-	cmd := exec.Command("apt-get", args...)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
-
-	if err := florist.CmdRun(log, cmd); err != nil {
-		return fmt.Errorf("apt: install: %s", err)
-	}
-
-	return nil
-}
-
-func Remove(pkg ...string) error {
-	log := slog.With("fn", "apt.Remove")
-	log.Info("Removing", "packages", pkg)
-	args := []string{"remove", "-y"}
-	args = append(args, pkg...)
-	cmd := exec.Command("apt-get", args...)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
-
-	if err := florist.CmdRun(log, cmd); err != nil {
-		return fmt.Errorf("apt: remove: %s", err)
-	}
-
-	return nil
-}
-
-// modTime returns the file (or directory) last modified time.
-// If the file doesn't exist, returns the zero time.
-func modTime(path string) (time.Time, error) {
-	info, err := os.Stat(path)
-
-	if errors.Is(err, fs.ErrNotExist) {
-		return time.Time{}, nil
-	}
-	if err != nil {
-		return time.Time{}, err
-	}
-	return info.ModTime(), nil
+// isCacheValid returns true if the APT cache has not expired.
+//
+// Running "apt-get update" can take more than 20s, which can be more than the total time
+// taken by Florist. For this reason, we avoid running an update if the cache age is less
+// than 'cacheValidity'.
+//
+// This function went through many implementations, attempting to look at the last
+// modified time of many files generated or updated one time or another by the APT
+// machinery. No matter what we did, we always encountered a corner case, or something
+// that worked on Ubuntu did not work on Debian, or did not work on AWS.
+//
+// For this reason, we now use a logic that is guaranteed to be 100% correct and
+// ironically is also simpler, although it will not detect if the APT cache has been
+// updated OOB of Florist.
+func isCacheValid() bool {
+	return cacheState.IsValid()
 }

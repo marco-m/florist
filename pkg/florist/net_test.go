@@ -15,7 +15,7 @@ import (
 )
 
 func TestNetFetchMockSuccess(t *testing.T) {
-	err := provisioner.LowLevelInit(io.Discard, "INFO", time.Hour)
+	err := provisioner.LowLevelInit(io.Discard, "INFO")
 	assert.NoError(t, err, "provisioner.LowLevelInit")
 	dir := t.TempDir()
 	hash := "b493d48364afe44d11c0165cf470a4164d1e2609911ef998be868d46ade3de4e"
