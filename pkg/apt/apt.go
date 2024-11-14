@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/marco-m/florist/pkg/florist"
@@ -13,17 +15,12 @@ import (
 
 func Update(cacheValidity time.Duration) error {
 	log := florist.Log().With("fn", "apt.Update")
-	// Sigh. No method is robust :-/
-	// /var/lib/apt/lists
-	// /var/cache/apt/pkgcache.bin
-	cacheModTime, err := modTime("/var/lib/apt/periodic/update-success-stamp")
-	if err != nil {
-		return fmt.Errorf("apt.Update: %s", err)
-	}
 
-	cacheAge := time.Since(cacheModTime).Truncate(time.Second)
-	log.Debug("cache-info", "cache-validity", cacheValidity, "cache-age", cacheAge)
-	if cacheAge < cacheValidity {
+	valid, err := maybeCacheValid(log, cacheValidity)
+	if err != nil {
+		return err
+	}
+	if valid {
 		log.Debug("", "cache", "valid")
 		return nil
 	}
@@ -35,6 +32,51 @@ func Update(cacheValidity time.Duration) error {
 	}
 
 	return nil
+}
+
+func maybeCacheValid(log *slog.Logger, cacheValidity time.Duration) (bool, error) {
+	// Sigh. No method turns out to be robust :-/
+	// /var/lib/apt/lists
+	// /var/cache/apt/pkgcache.bin
+	// we barely try with an heuristics.
+	//
+	// Running "apt-get update" can take more than 20s, which can be more than
+	// the total time taken by Florist. For this reason, we avoid running an
+	// update if the cache age is less than the cache validity.
+	//
+	// BUT when running on AWS the _first_ time, although file
+	// /var/lib/apt/periodic/update-success-stamp is present, the indexes are
+	// NOT present on the image, so if we were to only look at the cache age,
+	// we would skip the update and a subsequent 'install' would fail.
+	//
+	// Thus, we use yet another heuristics: we ask apt-cache for a package that
+	// should always be present. If we don't find it, it means that there are
+	// no indexes, so we short-circuit and always perform an update.
+
+	const shouldExist = "zsh"
+	cmd := exec.Command("apt-cache", "showpkg", shouldExist)
+	buf, err := cmd.CombinedOutput()
+	combined := string(buf)
+	if err != nil {
+		return false, fmt.Errorf("apt.Update: showpkg: %s (%s)", err, combined)
+	}
+	if strings.Contains(combined, "N: Unable to locate package") {
+		log.Debug("cache-info", shouldExist, "not-found")
+		return false, nil
+	}
+	log.Debug("cache-info", shouldExist, "found")
+
+	cacheModTime, err := modTime("/var/lib/apt/periodic/update-success-stamp")
+	if err != nil {
+		return false, fmt.Errorf("apt.Update: %s", err)
+	}
+
+	cacheAge := time.Since(cacheModTime).Truncate(time.Second)
+	log.Debug("cache-info", "cache-validity", cacheValidity, "cache-age", cacheAge)
+	if cacheAge < cacheValidity {
+		return true, nil
+	}
+	return false, nil
 }
 
 func Install(pkg ...string) error {
