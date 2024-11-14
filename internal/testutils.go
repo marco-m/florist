@@ -9,3 +9,7 @@ func RemoveTime(groups []string, a slog.Attr) slog.Attr {
 	}
 	return a
 }
+
+func MakeTestLog() *slog.Logger {
+	return slog.New(slog.DiscardHandler)
+}

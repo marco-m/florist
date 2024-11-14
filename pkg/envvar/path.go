@@ -43,6 +43,8 @@ func Add(k, v string) error {
 //
 // The never-ending pain of shells and something apparently as simple as adding
 // to the PATH environment variable. Sigh.
+// More about the total mess of shells:
+// https://unix.stackexchange.com/questions/88201/whats-the-best-distro-shell-agnostic-way-to-set-environment-variables
 func AddPaths(log *slog.Logger, name string, paths ...string) error {
 	errorf := internal.MakeErrorf("envvar.AddPaths")
 	//
