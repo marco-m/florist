@@ -82,7 +82,7 @@ func WriteFile(fname string, data string, mode os.FileMode, owner string) error 
 	return nil
 }
 
-// Chown sets the owner of fpath to username.
+// Chown sets the owner of 'fpath' to the user ID and primary group ID of 'username'.
 func Chown(fpath string, username string) error {
 	ownerUser, err := user.Lookup(username)
 	if err != nil {
