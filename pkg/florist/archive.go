@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 )
 
@@ -85,12 +86,15 @@ func UntarOne(tarPath string, name string, dstPath string) error {
 			return fmt.Errorf("UntarOne: reading %s: found insecure name %q",
 				tarPath, header.Name)
 		}
-		if header.Name == name {
+		// The archive could contain (or not) a directory structure. Look
+		// only at the final path segment.
+		if _, file := path.Split(header.Name); file == name {
 			nameFound = true
 			break
 		}
 		seen = append(seen, header.Name)
 	}
+
 	log.Debug("loop-finished", "names", seen)
 	if !nameFound {
 		return fmt.Errorf("UntarOne: archive %s does not contain file %s",
