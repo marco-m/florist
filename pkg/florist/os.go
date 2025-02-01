@@ -69,7 +69,7 @@ func WriteFile(fname string, data string, mode os.FileMode, owner string) error 
 	if err := os.WriteFile(fname, []byte(data), mode); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
-	// We call Chmod explicitly because os.WriteFile does _not_ changes the
+	// We call Chmod explicitly because os.WriteFile does _not_ change the
 	// mode _if_ the file already exists.
 	if err := os.Chmod(fname, mode); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)

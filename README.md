@@ -223,6 +223,14 @@ vagrant@florist-dev:~$ cd florist
 vagrant@florist-dev:~$ sudo task test:all
 ```
 
+### Log files
+
+The cloud-init logs are at
+
+- `/var/log/cloud-init-output.log`
+
+The cloud-config file and other configuration information is at `/var/lib/cloud/instance/user-data.txt`
+
 ## Examples
 
 See directory [examples/](examples) for example installers.

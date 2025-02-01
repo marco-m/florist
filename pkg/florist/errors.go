@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// Return an error containing the joined error messages of errs.
-// If all elements of errs are nil, return nil.
+// JoinErrors returns an error containing the joined error messages of 'errs'.
+// If all elements of 'errs' are nil, JoinErrors returns nil.
 // Does not preserve the error types nor provides Unwrap.
 func JoinErrors(errs ...error) error {
 	var msgs []string

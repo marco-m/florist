@@ -18,7 +18,7 @@ type Config struct {
 func NewConfig(settingsPaths []string) (*Config, error) {
 	cfg := &Config{settingsPaths: settingsPaths}
 	for _, sPath := range settingsPaths {
-		var settings = make(map[string]string)
+		settings := make(map[string]string)
 		if err := parse(sPath, &settings); err != nil {
 			return nil, fmt.Errorf("NewConfig: parsing %s: %s", sPath, err)
 		}
@@ -63,7 +63,7 @@ func (cfg *Config) Get(k string) string {
 func (cfg *Config) Lookup(k string) (string, error) {
 	v, found := cfg.settings[k]
 	if !found {
-		return "", fmt.Errorf("key '%s': not found", k)
+		return "", fmt.Errorf("key '%s': not found (file: %s)", k, cfg.settingsPaths)
 	}
 	return v, nil
 }
