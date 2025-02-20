@@ -1,6 +1,6 @@
 module github.com/marco-m/florist
 
-go 1.23.2
+go 1.24
 
 require (
 	dario.cat/mergo v1.0.1
@@ -9,15 +9,14 @@ require (
 	github.com/creasty/defaults v1.8.0
 	github.com/marco-m/rosina v0.0.4
 	github.com/rogpeppe/go-internal v1.13.1
-	gotest.tools/v3 v3.5.1
 )
 
 require (
 	github.com/alexflint/go-scalar v1.2.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/tools v0.26.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 )
 
 retract [v0.3.0, v0.3.1]
