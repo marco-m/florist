@@ -6,6 +6,6 @@ exec provisioner-1 list
 cmp stdout cmd-list.txt
 
 -- cmd-list.txt --
-testFlower -- description of testFllower
+testFlower -- description of testFlower
   one
   two

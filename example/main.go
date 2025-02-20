@@ -12,8 +12,8 @@ import (
 
 func main() {
 	os.Exit(florist.MainInt(&florist.Options{
-		SetupFn:     setup,
-		ConfigureFn: configure,
+		SetupFn:        setup,
+		PreConfigureFn: preConfigure,
 	}))
 }
 
@@ -33,7 +33,7 @@ func setup(prov *florist.Provisioner) error {
 	return nil
 }
 
-func configure(prov *florist.Provisioner, config *florist.Config) error {
+func preConfigure(prov *florist.Provisioner, config *florist.Config) (any, error) {
 	prov.Flowers()[daisy.Name].(*daisy.Flower).Conf = daisy.Conf{
 		Environment: config.Get("Environment"),
 		GossipKey:   config.Get("GossipKey"),
@@ -43,5 +43,5 @@ func configure(prov *florist.Provisioner, config *florist.Config) error {
 		Aroma: config.Get("Aroma"), // dynamic setting
 	}
 
-	return florist.JoinErrors(config.Errors())
+	return nil, florist.JoinErrors(config.Errors())
 }

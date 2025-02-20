@@ -14,8 +14,8 @@ import (
 
 func main() {
 	os.Exit(florist.MainInt(&florist.Options{
-		SetupFn:     setup,
-		ConfigureFn: configure,
+		SetupFn:        setup,
+		PreConfigureFn: preConfigure,
 	}))
 }
 
@@ -60,6 +60,6 @@ func setup(prov *florist.Provisioner) error {
 	)
 }
 
-func configure(prov *florist.Provisioner, config *florist.Config) error {
-	return nil
+func preConfigure(prov *florist.Provisioner, config *florist.Config) (any, error) {
+	return nil, nil
 }

@@ -13,8 +13,8 @@ func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"provisioner-1": func() int {
 			return florist.MainInt(&florist.Options{
-				SetupFn:     setup,
-				ConfigureFn: configure,
+				SetupFn:        setup,
+				PreConfigureFn: preConfigure,
 			},
 			)
 		},
@@ -38,11 +38,11 @@ func setup(prov *florist.Provisioner) error {
 	return err
 }
 
-func configure(prov *florist.Provisioner, config *florist.Config) error {
+func preConfigure(prov *florist.Provisioner, config *florist.Config) (any, error) {
 	prov.Flowers()["testFlower"].(*testFlower).Conf = Conf{
 		FieldConf: "from-configured",
 	}
-	return florist.JoinErrors(config.Errors())
+	return nil, florist.JoinErrors(config.Errors())
 }
 
 type testFlower struct {
@@ -63,7 +63,7 @@ func (fl testFlower) String() string {
 }
 
 func (fl testFlower) Description() string {
-	return "description of testFllower"
+	return "description of testFlower"
 }
 
 func (fl testFlower) Embedded() []string {

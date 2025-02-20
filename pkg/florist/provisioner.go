@@ -38,8 +38,6 @@ func (cliArgs) Description() string {
 	return fmt.Sprintf("%s -- A 🌼 florist 🌺 provisioner.", prog)
 }
 
-type ConfigureFn func(prov *Provisioner, config *Config) error
-
 // The Options passed to [MainInt]. For an example, see florist/example/main.go
 type Options struct {
 	// Output for the logger. Defaults to os.Stdout. Before changing to os.Stderr,
@@ -51,11 +49,14 @@ type Options struct {
 	// Optimization to avoid refreshing the OS package manager cache each time before
 	// installing an OS package. Defaults to DefOsPkgCacheValidity.
 	OsPkgCacheValidity time.Duration
-	// The setup function, called before any command-line subcommand. No default.
+	// The setup function, called before any command-line subcommand. Mandatory.
 	SetupFn func(prov *Provisioner) error
-	// The configure function, called before the command-line configure subcommand.
-	// No default.
-	ConfigureFn ConfigureFn
+	// The preConfigure function, called before the command-line configure
+	// subcommand. Mandatory.
+	PreConfigureFn func(prov *Provisioner, config *Config) (any, error)
+	// The postConfigure function, called after the command-line configure
+	// subcommand. Optional.
+	PostConfigureFn func(prov *Provisioner, config *Config, bag any) error
 }
 
 // MainInt is a ready-made function for the main() of your installer.
@@ -78,7 +79,7 @@ func MainInt(opts *Options) int {
 
 // MainErr is a ready-made function for the main() of your installer.
 // See also [MainInt].
-func MainErr(opts *Options) error {
+func MainErr[T *struct{}](opts *Options) error {
 	start := time.Now()
 
 	if currentUser != nil {
@@ -94,8 +95,8 @@ func MainErr(opts *Options) error {
 	if opts.SetupFn == nil {
 		return fmt.Errorf("florist.Main: SetupFn is nil")
 	}
-	if opts.ConfigureFn == nil {
-		return fmt.Errorf("florist.Main: ConfigureFn is nil")
+	if opts.PreConfigureFn == nil {
+		return fmt.Errorf("florist.Main: PreConfigureFn is nil")
 	}
 
 	var args cliArgs
@@ -123,7 +124,7 @@ func MainErr(opts *Options) error {
 		err = args.Install.Run(prov)
 	case args.Configure != nil:
 		log.Info("starting", "command-line", os.Args)
-		err = args.Configure.Run(prov, opts.ConfigureFn)
+		err = args.Configure.Run(prov, opts.PreConfigureFn, opts.PostConfigureFn)
 	default:
 		return fmt.Errorf("internal error: unwired command: %s", p.SubcommandNames())
 	}
@@ -178,21 +179,27 @@ type configureArgs struct {
 	Settings []string `help:"Settings and secrets file(s) (JSON)"`
 }
 
-func (cmd *configureArgs) Run(prov *Provisioner, configure ConfigureFn) error {
+func (cmd *configureArgs) Run(
+	prov *Provisioner,
+	preConfigure func(prov *Provisioner, config *Config) (any, error),
+	postConfigure func(prov *Provisioner, config *Config, bag any) error,
+) error {
 	log := Log()
 	config, err := NewConfig(cmd.Settings)
 	if err != nil {
 		return fmt.Errorf("configure: %s", err)
 	}
 
-	if err := configure(prov, config); err != nil {
-		return fmt.Errorf("configure: %s", err)
+	log.Info("running-preConfigure")
+	var bag any
+	if bag, err = preConfigure(prov, config); err != nil {
+		return fmt.Errorf("configure: preConfigure: %s", err)
 	}
 	if err := config.Errors(); err != nil {
 		return fmt.Errorf("configure: %s", err)
 	}
 
-	log.Info("configuring", "flowers-size", len(prov.flowers),
+	log.Info("configuring-each-flower", "flowers-size", len(prov.flowers),
 		"flowers", prov.ordered)
 
 	for _, k := range prov.ordered {
@@ -209,6 +216,16 @@ func (cmd *configureArgs) Run(prov *Provisioner, configure ConfigureFn) error {
 	if err := customizeMotd("configured", prov.rootDir); err != nil {
 		return fmt.Errorf("configure: %s", err)
 	}
+
+	if postConfigure != nil {
+		log.Info("running-postConfigure")
+		if err := postConfigure(prov, config, bag); err != nil {
+			return fmt.Errorf("configure: postConfigure: %s", err)
+		}
+	} else {
+		log.Info("not-running-postConfigure")
+	}
+
 	return nil
 }
 
