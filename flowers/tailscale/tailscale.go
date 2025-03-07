@@ -156,7 +156,7 @@ func (fl *Flower) Configure() error {
 		upArgs = append(upArgs, "--ssh")
 	}
 	if err := florist.CmdRun(log, exec.Command("tailscale", upArgs...)); err != nil {
-		errorf("tailscale up: %s", err)
+		return errorf("tailscale up: %s", err)
 	}
 
 	if err := florist.CmdRun(log, exec.Command("tailscale", "set", "--auto-update")); err != nil {
