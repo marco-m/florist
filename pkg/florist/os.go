@@ -83,15 +83,40 @@ func WriteFile(fname string, data string, mode os.FileMode, owner string) error 
 }
 
 // Chown sets the owner of 'fpath' to the user ID and primary group ID of 'username'.
+// See also [Chgrp].
 func Chown(fpath string, username string) error {
-	ownerUser, err := user.Lookup(username)
+	theUser, err := user.Lookup(username)
 	if err != nil {
 		return fmt.Errorf("florist.chown: %s", err)
 	}
-	uid, _ := strconv.Atoi(ownerUser.Uid)
-	gid, _ := strconv.Atoi(ownerUser.Gid)
+	uid, err := strconv.Atoi(theUser.Uid)
+	if err != nil {
+		return fmt.Errorf("florist.chown: %s", err)
+	}
+	gid, err := strconv.Atoi(theUser.Gid)
+	if err != nil {
+		return fmt.Errorf("florist.chown: %s", err)
+	}
 	if err := os.Chown(fpath, uid, gid); err != nil {
 		return fmt.Errorf("florist.chown: %s", err)
+	}
+	return nil
+}
+
+// Chgrp sets the group of 'fpath' to the group ID of 'groupname'.
+// See also [Chown].
+func Chgrp(fpath string, groupname string) error {
+	theGroup, err := user.LookupGroup(groupname)
+	if err != nil {
+		return fmt.Errorf("florist.chgrp: %s", err)
+	}
+	uid := -1 // Meaning: do not change the UID.
+	gid, err := strconv.Atoi(theGroup.Gid)
+	if err != nil {
+		return fmt.Errorf("florist.chgrp: %s", err)
+	}
+	if err := os.Chown(fpath, uid, gid); err != nil {
+		return fmt.Errorf("florist.chgrp: %s", err)
 	}
 	return nil
 }

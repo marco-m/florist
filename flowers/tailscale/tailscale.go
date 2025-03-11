@@ -57,6 +57,8 @@ type Inst struct {
 type Conf struct {
 	// https://tailscale.com/kb/1085/auth-keys
 	AuthKey string
+	// https://tailscale.com/kb/1193/tailscale-ssh
+	Ssh bool
 }
 
 func (fl *Flower) String() string {
@@ -149,9 +151,12 @@ func (fl *Flower) Configure() error {
 	// --auth-key string
 	//     Node authorization key; if it begins with "file:", then it's a path
 	//     to a file containing the authkey.
-	if err := florist.CmdRun(log, exec.Command(
-		"tailscale", "up", "--auth-key=file:"+keyFile)); err != nil {
-		errorf("tailscale up: %s", err)
+	upArgs := []string{"up", "--auth-key=file:" + keyFile}
+	if fl.Ssh {
+		upArgs = append(upArgs, "--ssh")
+	}
+	if err := florist.CmdRun(log, exec.Command("tailscale", upArgs...)); err != nil {
+		return errorf("tailscale up: %s", err)
 	}
 
 	if err := florist.CmdRun(log, exec.Command("tailscale", "set", "--auto-update")); err != nil {

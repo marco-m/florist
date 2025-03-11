@@ -6,8 +6,6 @@ package cloudinit
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/creasty/defaults"
 )
 
 // CloudConfig represents the cloud-config file. Fill the fields that you need
@@ -55,13 +53,10 @@ type CloudConfig struct {
 // NOTE The output of Render can still be an invalid cloud-config file, exactly
 // as you could write by hand a syntactically valid YAML file that is an invalid
 // cloud-config file.
-func (cfg *CloudConfig) Render() ([]byte, error) {
-	if err := defaults.Set(cfg); err != nil {
-		return nil, fmt.Errorf("render: applying defaults: %s", err)
-	}
+func (cfg CloudConfig) Render() ([]byte, error) {
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cloud-config: encoding to JSON: %s", err)
 	}
 	return append([]byte("#cloud-config\n"), data...), nil
 }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -54,6 +53,11 @@ func UnzipOne(zipPath string, name string, dstPath string) error {
 
 // UntarOne extracts file 'name' from tar file 'tarPath', expected to be
 // compressed with gzip,  and saves it to 'dstPath'.
+//
+// Examples:
+//
+//   - Flat archive, extract file "foo":             UntarOne(tarPath, "foo", dst)
+//   - Hierarchical archive, extract file "bar/foo": UntarOne(tarPath, "bar/foo", dst)
 func UntarOne(tarPath string, name string, dstPath string) error {
 	log := Log().With("tarPath", tarPath, "name", name, "dstPath", dstPath)
 	log.Debug("untar-one")
@@ -86,9 +90,7 @@ func UntarOne(tarPath string, name string, dstPath string) error {
 			return fmt.Errorf("UntarOne: reading %s: found insecure name %q",
 				tarPath, header.Name)
 		}
-		// The archive could contain (or not) a directory structure. Look
-		// only at the final path segment.
-		if _, file := path.Split(header.Name); file == name {
+		if header.Name == name {
 			nameFound = true
 			break
 		}

@@ -10,21 +10,19 @@ import (
 )
 
 type Config struct {
-	settings      map[string]string
-	errs          []string
-	settingsPaths []string
+	settings     map[string]string
+	errs         []string
+	settingsPath string
 }
 
-func NewConfig(settingsPaths []string) (*Config, error) {
-	cfg := &Config{settingsPaths: settingsPaths}
-	for _, sPath := range settingsPaths {
-		settings := make(map[string]string)
-		if err := parse(sPath, &settings); err != nil {
-			return nil, fmt.Errorf("NewConfig: parsing %s: %s", sPath, err)
-		}
-		if err := mergo.Merge(&cfg.settings, settings); err != nil {
-			return nil, fmt.Errorf("NewConfig: merging: %s", err)
-		}
+func NewConfig(settingsPath string) (*Config, error) {
+	cfg := &Config{settingsPath: settingsPath}
+	settings := make(map[string]string)
+	if err := parse(cfg.settingsPath, &settings); err != nil {
+		return nil, fmt.Errorf("NewConfig: parsing %s: %s", cfg.settingsPath, err)
+	}
+	if err := mergo.Merge(&cfg.settings, settings); err != nil {
+		return nil, fmt.Errorf("NewConfig: merging: %s", err)
 	}
 	return cfg, nil
 }
@@ -63,7 +61,7 @@ func (cfg *Config) Get(k string) string {
 func (cfg *Config) Lookup(k string) (string, error) {
 	v, found := cfg.settings[k]
 	if !found {
-		return "", fmt.Errorf("key '%s': not found (file: %s)", k, cfg.settingsPaths)
+		return "", fmt.Errorf("key '%s': not found (file: %s)", k, cfg.settingsPath)
 	}
 	return v, nil
 }
@@ -71,7 +69,7 @@ func (cfg *Config) Lookup(k string) (string, error) {
 func (cfg *Config) Errors() error {
 	if len(cfg.errs) > 0 {
 		return fmt.Errorf("%s (files: %s)", strings.Join(cfg.errs, "; "),
-			cfg.settingsPaths)
+			cfg.settingsPath)
 	}
 	return nil
 }

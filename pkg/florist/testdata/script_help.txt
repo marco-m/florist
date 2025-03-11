@@ -43,7 +43,7 @@ provisioner-1 -- A 🌼 florist 🌺 provisioner.
 Usage: provisioner-1 configure [--settings SETTINGS]
 
 Options:
-  --settings SETTINGS    Settings and secrets file(s) (JSON)
+  --settings SETTINGS    Settings file (JSON) [default: /opt/florist/config.json]
 
 Global options:
   --log-level LEVEL      log level [default: INFO]
