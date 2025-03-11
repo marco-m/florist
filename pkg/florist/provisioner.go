@@ -176,7 +176,7 @@ func (cmd *installArgs) Run(prov *Provisioner) error {
 }
 
 type configureArgs struct {
-	Settings []string `help:"Settings and secrets file(s) (JSON)"`
+	Settings string `help:"Settings file (JSON)" default:"/opt/florist/config.json"`
 }
 
 func (cmd *configureArgs) Run(
@@ -218,12 +218,12 @@ func (cmd *configureArgs) Run(
 	}
 
 	if postConfigure != nil {
-		log.Info("running-postConfigure")
+		log.Info("postConfigure-running")
 		if err := postConfigure(prov, config, bag); err != nil {
 			return fmt.Errorf("configure: postConfigure: %s", err)
 		}
 	} else {
-		log.Info("not-running-postConfigure")
+		log.Info("postConfigure-nothing-to-run")
 	}
 
 	return nil

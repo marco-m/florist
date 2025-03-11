@@ -1,8 +1,10 @@
 #
 # configure
 #
-exec provisioner-1 configure
+exec provisioner-1 configure --settings=empty.json
 ! stderr .
 cmp configured.txt want.txt
 -- want.txt --
 from-installed from-configured
+-- empty.json --
+{}
