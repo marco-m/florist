@@ -82,7 +82,7 @@ func (fl *Flower) Install() error {
 	log.Debug("installing file (plain)",
 		"src", InstallPlainFileSrc, "dst", dstPath)
 	if err := florist.CopyFileFs(
-		fl.Fsys, InstallPlainFileSrc, dstPath, 0600, userName); err != nil {
+		fl.Fsys, InstallPlainFileSrc, dstPath, 0o600, userName); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
@@ -94,7 +94,8 @@ func (fl *Flower) Install() error {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 	username := florist.User().Username
-	if err := florist.WriteFile(dstPath, rendered, 0600, username); err != nil {
+	groupname := florist.Group().Name
+	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
@@ -111,7 +112,8 @@ func (fl *Flower) Configure() error {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 	username := florist.User().Username
-	if err := florist.WriteFile(dstPath, rendered, 0600, username); err != nil {
+	groupname := florist.Group().Name
+	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 

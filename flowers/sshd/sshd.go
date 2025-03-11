@@ -100,25 +100,29 @@ func (fl *Flower) Configure() error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
-	if err := florist.WriteFile(SshdConfigDst, rendered, 0644, "root"); err != nil {
+	if err := florist.WriteFile(SshdConfigDst, rendered,
+		0o644, "root", "root"); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	log.Info("adding SSH host key, private")
 	data := strings.TrimSpace(fl.SshHostEd25519Key) + "\n"
-	if err := florist.WriteFile(SshHostEd25519KeyDst, data, 0600, "root"); err != nil {
+	if err := florist.WriteFile(SshHostEd25519KeyDst, data,
+		0o600, "root", "root"); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	log.Info("adding SSH host key, public")
 	data = fl.SshHostEd25519KeyPub
-	if err := florist.WriteFile(SshHostEd25519KeyPubDst, data, 0644, "root"); err != nil {
+	if err := florist.WriteFile(SshHostEd25519KeyPubDst, data,
+		0o644, "root", "root"); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	log.Info("adding SSH host key, certificate")
 	data = fl.SshHostEd25519KeyCertPub
-	if err := florist.WriteFile(SshHostEd25519KeyCertPubDst, data, 0644, "root"); err != nil {
+	if err := florist.WriteFile(SshHostEd25519KeyCertPubDst, data,
+		0o644, "root", "root"); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 

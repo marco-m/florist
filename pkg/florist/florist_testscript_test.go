@@ -76,12 +76,15 @@ func (fl testFlower) Init() error {
 
 func (fl testFlower) Install() error {
 	dstPath := "installed.txt"
-	rendered, err := florist.TemplateFromText("{{.FieldInst}}\n", fl, "template-name")
+	rendered, err := florist.TemplateFromText("{{.FieldInst}}\n",
+		fl, "template-name")
 	if err != nil {
 		return err
 	}
 	username := florist.User().Username
-	if err := florist.WriteFile(dstPath, rendered, 0o600, username); err != nil {
+	groupname := florist.Group().Name
+	if err := florist.WriteFile(dstPath, rendered,
+		0o600, username, groupname); err != nil {
 		return err
 	}
 	return nil
@@ -89,12 +92,15 @@ func (fl testFlower) Install() error {
 
 func (fl testFlower) Configure() error {
 	dstPath := "configured.txt"
-	rendered, err := florist.TemplateFromText("{{.FieldInst}} {{.FieldConf}}\n", fl, "template-name")
+	rendered, err := florist.TemplateFromText("{{.FieldInst}} {{.FieldConf}}\n",
+		fl, "template-name")
 	if err != nil {
 		return err
 	}
 	username := florist.User().Username
-	if err := florist.WriteFile(dstPath, rendered, 0o600, username); err != nil {
+	groupname := florist.Group().Name
+	if err := florist.WriteFile(dstPath, rendered,
+		0o600, username, groupname); err != nil {
 		return err
 	}
 	return nil

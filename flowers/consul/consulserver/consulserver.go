@@ -94,14 +94,15 @@ func (fl *Flower) Configure() error {
 	if err != nil {
 		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
-	if err := florist.WriteFile(dst, rendered, 0640, consul.Username); err != nil {
+	if err := florist.WriteFile(dst, rendered, 0o640,
+		consul.Username, consul.Username); err != nil {
 		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
 
 	dst = path.Join("/etc/systemd/system/", filepath.Base(UnitFile))
 	log.Info("Install consul server systemd unit file", "dst", dst)
 	if err := florist.CopyFileFs(fl.Fsys, UnitFile,
-		dst, 0644, "root"); err != nil {
+		dst, 0o644, "root"); err != nil {
 		return fmt.Errorf("%s.configure: %s", Name, err)
 	}
 

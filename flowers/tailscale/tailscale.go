@@ -130,7 +130,8 @@ func (fl *Flower) Configure() error {
 		}
 	}()
 	log.Debug("write-authkey-file", "path", keyFile)
-	if err := florist.WriteFile(keyFile, fl.AuthKey, 0o600, "root"); err != nil {
+	if err := florist.WriteFile(keyFile, fl.AuthKey,
+		0o600, "root", "root"); err != nil {
 		return errorf("writing the authkey file: %s", err)
 	}
 
