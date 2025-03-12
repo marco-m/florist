@@ -122,6 +122,44 @@ func Chgrp(fpath string, groupname string) error {
 	return nil
 }
 
+// Mkdir creates the directory 'fpath' with absolute permissions 'perm' (does
+// not considers umask) and sets its user to 'owner' and its group to 'group'.
+// If the directory 'fpath' already exists, Mkdir does not consider this as an
+// error and proceeds, eventually overriding the previous ownership and
+// permissions.
+func Mkdir(fpath string, perm os.FileMode, owner string, group string) error {
+	err := os.Mkdir(fpath, perm)
+	if err != nil && !errors.Is(err, fs.ErrExist) {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+
+	theUser, err := user.Lookup(owner)
+	if err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+	uid, err := strconv.Atoi(theUser.Uid)
+	if err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+	theGroup, err := user.LookupGroup(group)
+	if err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+	gid, err := strconv.Atoi(theGroup.Gid)
+	if err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+
+	if err := os.Chmod(fpath, perm); err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+	if err := os.Chown(fpath, uid, gid); err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+
+	return nil
+}
+
 // CopyFile copies file srcPath to dstPath, with mode and owner. The source and
 // destination files reside in the "real" filesystem.
 // Notes:
