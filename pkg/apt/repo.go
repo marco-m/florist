@@ -13,6 +13,9 @@ import (
 )
 
 // AddRepo securely adds an APT repo with corresponding PGP key.
+// NOTE After having called AddRepo, you MUST call [Refresh] for the new repo
+// to be seen by a subsequent [Install].
+//
 // See: https://wiki.debian.org/DebianRepository/UseThirdParty
 //
 // Example:
@@ -70,7 +73,7 @@ func AddRepo(
 	}
 
 	repoListDir := "/etc/apt/sources.list.d/"
-	if err := os.MkdirAll(repoListDir, 0755); err != nil {
+	if err := os.MkdirAll(repoListDir, 0o755); err != nil {
 		return fmt.Errorf("%s: %s", fn, err)
 	}
 	repoLine := fmt.Sprintf("deb [arch=%s signed-by=%s] %s %s stable\n",
