@@ -27,8 +27,7 @@ type Inst struct {
 	Users []string
 }
 
-type Conf struct {
-}
+type Conf struct{}
 
 func (fl *Flower) String() string {
 	return Name
@@ -63,7 +62,7 @@ func (fl *Flower) Install() error {
 		return err
 	}
 	log.Info("Update APT repos (needed since we just added one)")
-	if err := apt.Update(0 * time.Second); err != nil {
+	if err := apt.Refresh(0 * time.Second); err != nil {
 		return err
 	}
 
@@ -84,7 +83,7 @@ func (fl *Flower) Install() error {
     "https://registry.ipv6.docker.com"
   ]
 }`
-	if err := os.WriteFile("/etc/docker/daemon.json", []byte(conf), 0644); err != nil {
+	if err := os.WriteFile("/etc/docker/daemon.json", []byte(conf), 0o644); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
