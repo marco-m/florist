@@ -302,6 +302,15 @@ func User() *user.User {
 	return currentUser
 }
 
+// Group returns the primary group of the current user, as set by Init.
+func Group() *user.Group {
+	if currentUser == nil {
+		panic("florist.Group: must call florist.MainInt before")
+	}
+	group, _ := user.LookupGroupId(currentUser.Gid)
+	return group
+}
+
 func CacheValidity() time.Duration {
 	if osPkgCacheValidity == 0 {
 		panic("florist.CacheValidity: must call florist.MainInt before")

@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"os"
 	"os/user"
-	"path"
 	"path/filepath"
 	"strconv"
 	"text/template"
@@ -58,14 +57,14 @@ func FileExists(fpath string) (bool, error) {
 	return false, err
 }
 
-// WriteFile writes data to fname and sets the mode and owner of fname.
-// If also creates any missing directories in the path, if any.
-func WriteFile(fname string, data string, mode os.FileMode, owner string) error {
-	if err := os.MkdirAll(path.Dir(fname), 0o700); err != nil {
-		return fmt.Errorf("florist.WriteFile: %s", err)
-	}
-
-	Log().Debug("write-file", "name", fname)
+// WriteFile writes 'data' to 'fname' and sets 'mode', 'owner' and 'group' of
+// 'fname'. WriteFile will fail if the base directory of 'fname' doesn't exist.
+// This is done on purpose to ensure that the caller addresses explicitly the
+// ownership and permissions of the path segments containing 'fname'.
+func WriteFile(fname string, data string,
+	mode os.FileMode, owner string, group string,
+) error {
+	Log().Debug("WriteFile", "name", fname)
 	if err := os.WriteFile(fname, []byte(data), mode); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
@@ -74,8 +73,10 @@ func WriteFile(fname string, data string, mode os.FileMode, owner string) error 
 	if err := os.Chmod(fname, mode); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
-
 	if err := Chown(fname, owner); err != nil {
+		return fmt.Errorf("florist.WriteFile: %s", err)
+	}
+	if err := Chgrp(fname, group); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
 
@@ -121,6 +122,44 @@ func Chgrp(fpath string, groupname string) error {
 	return nil
 }
 
+// Mkdir creates the directory 'fpath' with absolute permissions 'perm' (does
+// not considers umask) and sets its user to 'owner' and its group to 'group'.
+// If the directory 'fpath' already exists, Mkdir does not consider this as an
+// error and proceeds, eventually overriding the previous ownership and
+// permissions.
+func Mkdir(fpath string, perm os.FileMode, owner string, group string) error {
+	err := os.Mkdir(fpath, perm)
+	if err != nil && !errors.Is(err, fs.ErrExist) {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+
+	theUser, err := user.Lookup(owner)
+	if err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+	uid, err := strconv.Atoi(theUser.Uid)
+	if err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+	theGroup, err := user.LookupGroup(group)
+	if err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+	gid, err := strconv.Atoi(theGroup.Gid)
+	if err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+
+	if err := os.Chmod(fpath, perm); err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+	if err := os.Chown(fpath, uid, gid); err != nil {
+		return fmt.Errorf("florist.Mkdir: %s", err)
+	}
+
+	return nil
+}
+
 // CopyFile copies file srcPath to dstPath, with mode and owner. The source and
 // destination files reside in the "real" filesystem.
 // Notes:
@@ -130,7 +169,7 @@ func CopyFile(
 	srcPath string, dstPath string,
 	mode os.FileMode, owner string,
 ) error {
-	return copyfile(nil, srcPath, dstPath, mode, owner)
+	return copyFile(nil, srcPath, dstPath, mode, owner)
 }
 
 // CopyFileFs copies file srcPath to dstPath, with mode and owner. The source
@@ -143,7 +182,7 @@ func CopyFileFs(
 	srcFs fs.FS, srcPath string, dstPath string,
 	mode os.FileMode, owner string,
 ) error {
-	return copyfile(srcFs, srcPath, dstPath, mode, owner)
+	return copyFile(srcFs, srcPath, dstPath, mode, owner)
 }
 
 // TemplateFromText renders the template 'tmplText' with data 'tmplData'.
@@ -237,7 +276,7 @@ func renderText(tmplText string, tmplData any, tmplName string,
 }
 
 // Does not read the whole file in memory.
-func copyfile(
+func copyFile(
 	srcFs fs.FS, srcPath string, dstPath string,
 	mode os.FileMode, owner string,
 ) error {

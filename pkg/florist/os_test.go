@@ -1,97 +1,62 @@
-package florist
+package florist_test
 
 import (
-	"bytes"
+	"os"
+	"os/user"
+	"path/filepath"
 	"testing"
-	"testing/fstest"
-	"text/template"
 
+	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/rosina"
 )
 
-func TestUnderstandTemplate(t *testing.T) {
-	type Inventory struct {
-		Material string
-		Count    uint
-	}
-	sweaters := Inventory{Material: "wool", Count: 17}
-	tmpl, err := template.New("name").Parse("{{.Count}} items are made of {{.Material}}")
-	rosina.AssertNoError(t, err)
+func TestMkdirNonExistingDirSuccess(t *testing.T) {
+	fPath := filepath.Join(t.TempDir(), "foo")
+	owner, group := whoami(t)
 
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, sweaters)
+	err := florist.Mkdir(fPath, 0o664, owner, group)
 	rosina.AssertNoError(t, err)
-
-	rosina.AssertTextEqual(t, buf.String(), "17 items are made of wool", "rendered")
 }
 
-func TestUnderstandTemplateFailure(t *testing.T) {
-	type Inventory struct {
-		Material string
-		Count    uint
-	}
-	sweaters := Inventory{Material: "wool", Count: 17}
-	tmpl, err := template.New("name").Parse("{{.Banana}} items are made of {{.Material}}")
+func TestMkdirExistingDirSuccess(t *testing.T) {
+	fPath := filepath.Join(t.TempDir(), "foo")
+	owner, group := whoami(t)
+	perm := os.FileMode(0o664)
+
+	// Make the existing directory, with different permissions.
+	err := os.Mkdir(fPath, 0o400)
 	rosina.AssertNoError(t, err)
 
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, sweaters)
-	rosina.AssertErrorContains(t, err,
-		`template: name:1:2: executing "name" at <.Banana>: can't evaluate field Banana in type florist.Inventory`)
+	// SUT
+	err = florist.Mkdir(fPath, perm, owner, group)
+	rosina.AssertNoError(t, err)
+
+	// Verify SUT has proceeded in the implementation and changed permissions.
+	fi, err := os.Stat(fPath)
+	rosina.AssertNoError(t, err)
+	rosina.AssertEqual(t, fi.Mode().Perm(), perm, "permissions")
 }
 
-func TestRenderTemplate(t *testing.T) {
-	type FruitBox struct {
-		Amount int
-		Fruit  string
-	}
-	type testCase struct {
-		name        string
-		tplContents string
-		sepL, sepR  string
-		want        string
-	}
+func TestMkdirFailure(t *testing.T) {
+	fPath := filepath.Join(t.TempDir(), "foo")
+	owner, group := "non-existing", "non-existing"
+	perm := os.FileMode(0o664)
 
-	run := func(t *testing.T, tc testCase) {
-		srcPath := "fruits.txt.tpl"
-		fruitBox := &FruitBox{Amount: 42, Fruit: "bananas"}
-		fsys := fstest.MapFS{
-			srcPath: &fstest.MapFile{Data: []byte(tc.tplContents)},
-		}
+	// Make the existing directory, with different permissions.
+	err := os.Mkdir(fPath, 0o400)
+	rosina.AssertNoError(t, err)
 
-		rendered, err := renderTemplate(fsys, srcPath, fruitBox, tc.sepL, tc.sepR)
+	// SUT
+	err = florist.Mkdir(fPath, perm, owner, group)
+	rosina.AssertErrorContains(t, err, "unknown user")
+}
 
-		rosina.AssertNoError(t, err)
-		rosina.AssertTextEqual(t, rendered, tc.want, "rendered")
-	}
+// whoami returns the user name and group name of the current user.
+func whoami(t *testing.T) (string, string) {
+	theUser, err := user.Current()
+	rosina.AssertNoError(t, err)
+	theGroup, err := user.LookupGroupId(theUser.Gid)
+	rosina.AssertNoError(t, err)
 
-	testCases := []testCase{
-		{
-			name:        "default separators",
-			tplContents: "{{.Amount}} kg of {{.Fruit}}",
-			sepL:        "",
-			sepR:        "",
-			want:        "42 kg of bananas",
-		},
-		{
-			name:        "custom separators",
-			tplContents: "<<.Amount>> kg of <<.Fruit>>",
-			sepL:        "<<",
-			sepR:        ">>",
-			want:        "42 kg of bananas",
-		},
-		{
-			name:        "custom separators, preserves default",
-			tplContents: "<<.Amount>> kg {{ of <<.Fruit>>",
-			sepL:        "<<",
-			sepR:        ">>",
-			want:        "42 kg {{ of bananas",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
+	return theUser.Name, theGroup.Name
 }

@@ -130,7 +130,8 @@ func (fl *Flower) Configure() error {
 		}
 	}()
 	log.Debug("write-authkey-file", "path", keyFile)
-	if err := florist.WriteFile(keyFile, fl.AuthKey, 0o600, "root"); err != nil {
+	if err := florist.WriteFile(keyFile, fl.AuthKey,
+		0o600, "root", "root"); err != nil {
 		return errorf("writing the authkey file: %s", err)
 	}
 
@@ -173,7 +174,8 @@ func installExes(
 	owner string,
 ) error {
 	log.Info("Download tailscale package")
-	url := fmt.Sprintf("https://pkgs.tailscale.com/stable/tailscale_%s_amd64.tgz", version)
+	nameVersArch := fmt.Sprintf("tailscale_%s_amd64", version)
+	url := fmt.Sprintf("https://pkgs.tailscale.com/stable/%s.tgz", nameVersArch)
 	client := &http.Client{Timeout: 30 * time.Second}
 	tarPath, err := florist.NetFetch(client, url, florist.SHA256, hash,
 		florist.WorkDir)
@@ -190,34 +192,38 @@ func installExes(
 	// tailscaled
 	//
 
-	name := "tailscaled"
-	extracted := path.Join(workdir, name)
-	log.Info("unarchive", "name", name, "dst", extracted)
-	if err := florist.UntarOne(tarPath, name, extracted); err != nil {
-		return err
+	{
+		name := "tailscaled"
+		inner := path.Join(nameVersArch, name)
+		extracted := path.Join(workdir, name)
+		log.Info("unarchive", "name", name, "dst", extracted)
+		if err := florist.UntarOne(tarPath, inner, extracted); err != nil {
+			return err
+		}
+		dst := path.Join(SbinDir, name)
+		log.Info("install", "name", extracted, "dst", dst)
+		if err := florist.CopyFile(extracted, dst, 0o755, owner); err != nil {
+			return err
+		}
 	}
-	dst := path.Join(SbinDir, name)
-	log.Info("install", "name", extracted, "dst", dst)
-	if err := florist.CopyFile(extracted, dst, 0o755, owner); err != nil {
-		return err
-	}
-
 	//
 	// tailscale
 	//
 
-	name = "tailscale"
-	extracted = path.Join(workdir, name)
-	log.Info("unarchive", "name", name, "dst", extracted)
-	if err := florist.UntarOne(tarPath, name, extracted); err != nil {
-		return err
+	{
+		name := "tailscale"
+		inner := path.Join(nameVersArch, name)
+		extracted := path.Join(workdir, name)
+		log.Info("unarchive", "name", name, "dst", extracted)
+		if err := florist.UntarOne(tarPath, inner, extracted); err != nil {
+			return err
+		}
+		dst := path.Join(BinDir, name)
+		log.Info("install", "name", extracted, "dst", dst)
+		if err := florist.CopyFile(extracted, dst, 0o755, owner); err != nil {
+			return err
+		}
 	}
-	dst = path.Join(BinDir, name)
-	log.Info("install", "name", extracted, "dst", dst)
-	if err := florist.CopyFile(extracted, dst, 0o755, owner); err != nil {
-		return err
-	}
-
 	return nil
 }
 

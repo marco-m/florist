@@ -55,8 +55,9 @@ func (fl *Flower) Install() error {
 	}
 
 	username := florist.User().Username
+	groupname := florist.Group().Name
 	dstPath := filepath.Join(fl.Inst.DstDir, "install.txt")
-	if err := florist.WriteFile(dstPath, rendered, 0o600, username); err != nil {
+	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
@@ -75,8 +76,9 @@ Aroma: {{.Aroma}}
 	}
 
 	username := florist.User().Username
+	groupname := florist.Group().Name
 	dstPath := filepath.Join(fl.Inst.DstDir, "configure.txt")
-	if err := florist.WriteFile(dstPath, rendered, 0o600, username); err != nil {
+	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 

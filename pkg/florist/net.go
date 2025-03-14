@@ -46,24 +46,24 @@ func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDi
 		}
 	}
 
-	if err := os.MkdirAll(dstDir, 0775); err != nil {
-		return "", fmt.Errorf("NetDetch: %w", err)
+	if err := os.MkdirAll(dstDir, 0o775); err != nil {
+		return "", fmt.Errorf("NetFetch: %w", err)
 	}
 	dst, err := os.Create(dstPath)
 	if err != nil {
-		return "", fmt.Errorf("NetDetch: %w", err)
+		return "", fmt.Errorf("NetFetch: %w", err)
 	}
 	defer dst.Close()
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return "", fmt.Errorf("NetDetch: %w", err)
+		return "", fmt.Errorf("NetFetch: %w", err)
 	}
 
 	start := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("NetDetch: %w", err)
+		return "", fmt.Errorf("NetFetch: %w", err)
 	}
 	defer resp.Body.Close()
 
