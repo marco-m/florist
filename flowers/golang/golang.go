@@ -14,7 +14,7 @@ import (
 
 	"github.com/creasty/defaults"
 
-	"github.com/marco-m/florist/pkg/envpath"
+	"github.com/marco-m/florist/pkg/envvar"
 	"github.com/marco-m/florist/pkg/florist"
 )
 
@@ -119,7 +119,7 @@ func (fl *Flower) Install() error {
 	}
 	log.Info("Installed Go", "path", GOROOT)
 
-	return envpath.Add(log, "go", "$HOME/go/bin")
+	return envvar.AddPaths(log, "go", "$HOME/go/bin")
 }
 
 func (fl *Flower) Configure() error {
