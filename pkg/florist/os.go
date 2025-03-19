@@ -195,7 +195,7 @@ func TemplateFromText(tmplText string, tmplData any, tmplName string) (string, e
 }
 
 // TemplateFromFs reads file srcPath in filesystem srcFs and renders its contents
-// // as a template with data tmplData.
+// as a template with data tmplData.
 func TemplateFromFs(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
 	Log().Debug("TemplateFromFs", "file-name", srcPath)
 	return renderTemplate(srcFs, srcPath, tmplData, "", "")
