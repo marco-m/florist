@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -206,6 +207,23 @@ func TemplateFromFs(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
 func TemplateFromFsWithDelims(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
 	Log().Debug("TemplateFromFsWithDelims", "file-name", srcPath)
 	return renderTemplate(srcFs, srcPath, tmplData, "<<", ">>")
+}
+
+// RenderFile renders the template in 'srcFs/srcFile' with the data in 'fl' and
+// writes it to 'dstFile', with permissions 'mode' and 'owner' and 'group'.
+// The template must use the delimiters '<<' and '>>'.
+func RenderFile(log *slog.Logger, srcFs fs.FS, srcFile string, dstFile string,
+	mode fs.FileMode, owner string, group string, fl any,
+) error {
+	log.Info("rendering file", "src", srcFile, "dst", dstFile)
+	rendered, err := TemplateFromFsWithDelims(srcFs, srcFile, fl)
+	if err != nil {
+		return err
+	}
+	if err := WriteFile(dstFile, rendered, mode, owner, group); err != nil {
+		return err
+	}
+	return nil
 }
 
 // renderTemplate reads file srcPath in filesystem srcFs and renders its contents
