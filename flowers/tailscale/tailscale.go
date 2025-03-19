@@ -121,7 +121,11 @@ func (fl *Flower) Configure() error {
 	errorf := makeErrorf(Name + ".configure")
 	log := florist.Log().With("flower", Name+".configure")
 
-	keyFile := filepath.Join(florist.WorkDir, Name, "authkey")
+	tmpDir, err := os.MkdirTemp("", "florist-tailscale")
+	if err != nil {
+		return errorf("creating temporary dir for tailscale auth key: %s", err)
+	}
+	keyFile := filepath.Join(tmpDir, "authkey")
 	defer func() {
 		if err := os.Remove(keyFile); err != nil {
 			log.Error("remove-authkey-file", "path", keyFile, "err", err)
