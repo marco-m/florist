@@ -3,13 +3,14 @@ package docker
 
 import (
 	"fmt"
-	"os"
+	"os/exec"
 	"time"
 
 	"github.com/creasty/defaults"
 
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/platform"
 	"github.com/marco-m/florist/pkg/systemd"
 )
 
@@ -49,17 +50,43 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log().With("flower", Name+".install")
+	const step = Name + ".install"
+	errorf := makeErrorf(step)
+	log := florist.Log().With("flower", step)
+
+	osInfo, err := platform.CollectInfo()
+	if err != nil {
+		return errorf("%s", err)
+	}
+
+	// I got bitten multiple times by using the Debian or Ubuntu APT packages to
+	// install Docker. Let's use the recommended method instead.
+	// References:
+	// https://docs.docker.com/engine/install/debian/
+	// https://docs.docker.com/engine/install/ubuntu/
 
 	log.Info("Add Docker upstream APT repository")
-	// https://docs.docker.com/engine/install/debian/
-	if err := apt.AddRepo(
-		"docker",
-		"https://download.docker.com/linux/debian/gpg",
-		"1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570",
-		"https://download.docker.com/linux/debian",
-	); err != nil {
-		return err
+	switch osInfo.Id {
+	case "debian":
+		if err := apt.AddRepo(
+			"docker",
+			"https://download.docker.com/linux/debian/gpg",
+			"1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570",
+			"https://download.docker.com/linux/debian",
+		); err != nil {
+			return errorf("%s", err)
+		}
+	case "ubuntu":
+		if err := apt.AddRepo(
+			"docker",
+			"https://download.docker.com/linux/ubuntu/gpg",
+			"1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570",
+			"https://download.docker.com/linux/ubuntu",
+		); err != nil {
+			return errorf("%s", err)
+		}
+	default:
+		return errorf("unsupported distribution: %s", osInfo.Id)
 	}
 	log.Info("Update APT repos (needed since we just added one)")
 	if err := apt.Refresh(0 * time.Second); err != nil {
@@ -71,21 +98,25 @@ func (fl *Flower) Install() error {
 		"docker-ce",
 		"docker-ce-cli",
 		"containerd.io",
+		"docker-buildx-plugin",
+		"docker-compose-plugin",
 	); err != nil {
 		return fmt.Errorf("%s: %s", fl, err)
 	}
 
-	log.Info("Enable IPv6 for the Docker daemon")
-	// https://github.com/docker/hub-feedback/issues/2165#issuecomment-1173017573
-	conf := `
-{
-  "registry-mirrors": [
-    "https://registry.ipv6.docker.com"
-  ]
-}`
-	if err := os.WriteFile("/etc/docker/daemon.json", []byte(conf), 0o644); err != nil {
-		return fmt.Errorf("%s: %s", fl, err)
-	}
+	// Seems not needed anymore since 2023-09 ?
+	//
+	// 	log.Info("Enable IPv6 for the Docker daemon")
+	// 	// https://github.com/docker/hub-feedback/issues/2165#issuecomment-1173017573
+	// 	conf := `
+	// {
+	//   "registry-mirrors": [
+	//     "https://registry.ipv6.docker.com"
+	//   ]
+	// }`
+	// 	if err := os.WriteFile("/etc/docker/daemon.json", []byte(conf), 0o644); err != nil {
+	// 		return fmt.Errorf("%s: %s", fl, err)
+	// 	}
 
 	log.Info("Restart the Docker daemon")
 	if err := systemd.Restart("docker"); err != nil {
@@ -103,5 +134,30 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
+	const step = Name + ".configure"
+	errorf := makeErrorf(step)
+	log := florist.Log().With("flower", step)
+
+	log.Info("docker-sanity-check", "status", "running")
+
+	if err := florist.CmdRun(log, exec.Command("docker", "run", "--rm", "hello-world")); err != nil {
+		return errorf("%s", err)
+	}
+	if err := florist.CmdRun(log, exec.Command("docker", "system", "prune", "--force")); err != nil {
+		return errorf("%s", err)
+	}
+
+	// TODO: after system prune, we can remove all images:
+	// Remove:
+	// docker rmi $(docker images -a -q)
+
+	log.Info("docker-sanity-check", "status", "passed")
+
 	return nil
+}
+
+func makeErrorf(prefix string) func(format string, a ...any) error {
+	return func(format string, a ...any) error {
+		return fmt.Errorf(prefix+": "+format, a...)
+	}
 }

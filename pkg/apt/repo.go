@@ -1,15 +1,16 @@
 package apt
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/platform"
 )
 
 // AddRepo securely adds an APT repo with corresponding PGP key.
@@ -40,13 +41,6 @@ func AddRepo(
 	const fn = "apt.AddRepo"
 	log := florist.Log().With("fn", fn)
 
-	log.Info("Install packages needed to add a repo")
-	if err := Install(
-		"gpg",
-	); err != nil {
-		return fmt.Errorf("%s: %s", fn, err)
-	}
-
 	log.Info("Download PGP key", "url", keyURL)
 	client := &http.Client{Timeout: 15 * time.Second}
 	keyPath, err := florist.NetFetch(client, keyURL, florist.SHA256, keyHash, florist.WorkDir)
@@ -54,39 +48,33 @@ func AddRepo(
 		return fmt.Errorf("%s: %s", fn, err)
 	}
 
-	keyDst := fmt.Sprintf("/usr/share/keyrings/%s-archive-keyring.gpg", name)
-	log.Info("Install PGP key", "dst", keyDst)
-	// delete key file if present, to avoid gpg going into interactive mode
-	os.Remove(keyDst)
-	cmd := exec.Command("gpg", "--dearmor", "-o", keyDst, keyPath)
-	if err := florist.CmdRun(log, cmd); err != nil {
+	const keyringsDir = "/etc/apt/keyrings"
+	keyDst := filepath.Join(keyringsDir, "docker.asc")
+	if err := florist.Mkdir(keyringsDir, 0o755, "root", "root"); err != nil {
 		return fmt.Errorf("%s: %s", fn, err)
 	}
 
-	arch, err := exec.Command("dpkg", "--print-architecture").Output()
-	if err != nil {
+	log.Info("Install PGP key", "dst", keyDst)
+	if err := florist.CopyFile(keyPath, keyDst, 0o644, "root"); err != nil {
 		return fmt.Errorf("%s: %s", fn, err)
 	}
-	codename, err := exec.Command("lsb_release", "-cs").Output()
+
+	arch := runtime.GOARCH
+	osInfo, err := platform.CollectInfo()
 	if err != nil {
 		return fmt.Errorf("%s: %s", fn, err)
 	}
 
 	repoListDir := "/etc/apt/sources.list.d/"
+	repoListPath := path.Join(repoListDir, name+".list")
 	if err := os.MkdirAll(repoListDir, 0o755); err != nil {
 		return fmt.Errorf("%s: %s", fn, err)
 	}
+
 	repoLine := fmt.Sprintf("deb [arch=%s signed-by=%s] %s %s stable\n",
-		string(bytes.TrimSpace(arch)), keyDst, repoURL, string(bytes.TrimSpace(codename)))
-	repoListPath := path.Join(repoListDir, name+".list")
-	// write repoline to repolistpath
+		arch, keyDst, repoURL, osInfo.Codename)
 	log.Debug("write file", "repoline", repoLine, "repoListPath", repoListPath)
-	fi, err := os.Create(repoListPath)
-	if err != nil {
-		return fmt.Errorf("%s: %s", fn, err)
-	}
-	defer fi.Close()
-	if _, err := fi.WriteString(repoLine); err != nil {
+	if err := florist.WriteFile(repoListPath, repoLine, 0o644, "root", "root"); err != nil {
 		return fmt.Errorf("%s: %s", fn, err)
 	}
 
