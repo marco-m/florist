@@ -68,15 +68,16 @@ func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDi
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("NetFetch: received %d %s (GET %s)",
-			resp.StatusCode, http.StatusText(resp.StatusCode), url)
+		return "", fmt.Errorf("NetFetch: received %d %s (GET %s) (elapsed: %v)",
+			resp.StatusCode, http.StatusText(resp.StatusCode), url, time.Since(start))
 	}
 
 	hasher.Reset()
 	mw := io.MultiWriter(dst, hasher)
 
 	if _, err := io.Copy(mw, resp.Body); err != nil {
-		return "", fmt.Errorf("NetFetch: saving %s to %s: %w", url, dstPath, err)
+		return "", fmt.Errorf("NetFetch: saving %s to %s: %w (elapsed: %v)",
+			url, dstPath, err, time.Since(start))
 	}
 	elapsed := time.Since(start).Round(time.Millisecond)
 	log.Debug("downloaded", "elapsed", elapsed)
