@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/rosina"
+	"github.com/marco-m/rosina/assert"
 )
 
 func TestUserAddSuccessVM(t *testing.T) {
@@ -12,7 +12,7 @@ func TestUserAddSuccessVM(t *testing.T) {
 
 	err := florist.UserAdd("beppe")
 
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "florist.UserAdd")
 }
 
 func TestSupplementaryGroupsFailureVM(t *testing.T) {
@@ -20,7 +20,7 @@ func TestSupplementaryGroupsFailureVM(t *testing.T) {
 
 	err := florist.SupplementaryGroups("beppe", "banana")
 
-	rosina.AssertErrorContains(t, err, "group 'banana' does not exist")
+	assert.ErrorContains(t, err, "group 'banana' does not exist")
 }
 
 func TestUserSystemAddSuccessVM(t *testing.T) {
@@ -28,5 +28,5 @@ func TestUserSystemAddSuccessVM(t *testing.T) {
 
 	err := florist.UserSystemAdd("maniglia", "/opt/maniglia")
 
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "florist.UserSystemAdd")
 }

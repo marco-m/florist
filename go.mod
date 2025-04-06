@@ -7,7 +7,7 @@ require (
 	github.com/alexflint/go-arg v1.5.1
 	github.com/cakturk/go-netstat v0.0.0-20200220111822-e5b49efee7a5
 	github.com/creasty/defaults v1.8.0
-	github.com/marco-m/rosina v0.0.4
+	github.com/marco-m/rosina v0.1.1
 	github.com/rogpeppe/go-internal v1.13.1
 )
 

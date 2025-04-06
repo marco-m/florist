@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/marco-m/florist/pkg/sets"
-	"github.com/marco-m/rosina"
+	"github.com/marco-m/rosina/assert"
 )
 
 func TestFromInt(t *testing.T) {
@@ -20,9 +20,9 @@ func TestFromInt(t *testing.T) {
 		s := sets.From(tc.items...)
 		sorted := s.OrderedList()
 
-		rosina.AssertEqual(t, s.Size(), tc.wantSize, "set size")
-		rosina.AssertDeepEqual(t, sorted, tc.wantList, "set ordered list")
-		rosina.AssertEqual(t, s.String(), tc.wantString, "set string")
+		assert.Equal(t, s.Size(), tc.wantSize, "set size")
+		assert.DeepEqual(t, sorted, tc.wantList, "set ordered list")
+		assert.Equal(t, s.String(), tc.wantString, "set string")
 	}
 
 	testCases := []testCase{
@@ -67,9 +67,9 @@ func TestFromString(t *testing.T) {
 		s := sets.From(tc.items...)
 		sorted := s.OrderedList()
 
-		rosina.AssertEqual(t, s.Size(), tc.wantSize, "set size")
-		rosina.AssertDeepEqual(t, sorted, tc.wantList, "set ordered list")
-		rosina.AssertEqual(t, s.String(), tc.wantString, "set string")
+		assert.Equal(t, s.Size(), tc.wantSize, "set size")
+		assert.DeepEqual(t, sorted, tc.wantList, "set ordered list")
+		assert.Equal(t, s.String(), tc.wantString, "set string")
 	}
 
 	testCases := []testCase{
@@ -99,7 +99,7 @@ func TestDifference(t *testing.T) {
 		result := tc.s.Difference(tc.x)
 		sorted := result.OrderedList()
 
-		rosina.AssertDeepEqual(t, sorted, tc.wantList, "set ordered list")
+		assert.DeepEqual(t, sorted, tc.wantList, "set ordered list")
 	}
 
 	testCases := []testCase{
@@ -152,7 +152,7 @@ func TestIntersection(t *testing.T) {
 		result := tc.s.Intersection(tc.x)
 		sorted := result.OrderedList()
 
-		rosina.AssertDeepEqual(t, sorted, tc.wantList, "set ordered list")
+		assert.DeepEqual(t, sorted, tc.wantList, "set ordered list")
 	}
 
 	testCases := []testCase{
@@ -211,7 +211,7 @@ func TestUnion(t *testing.T) {
 		result := tc.s.Union(tc.x)
 		sorted := result.OrderedList()
 
-		rosina.AssertDeepEqual(t, sorted, tc.wantList, "set ordered list")
+		assert.DeepEqual(t, sorted, tc.wantList, "set ordered list")
 	}
 
 	testCases := []testCase{
@@ -271,8 +271,8 @@ func TestRemoveFound(t *testing.T) {
 
 		found := s.Remove(tc.remove)
 
-		rosina.AssertDeepEqual(t, s.OrderedList(), tc.wantList, "set ordered list")
-		rosina.AssertTrue(t, found, "found")
+		assert.DeepEqual(t, s.OrderedList(), tc.wantList, "set ordered list")
+		assert.True(t, found, "found")
 	}
 
 	testCases := []testCase{
@@ -307,8 +307,8 @@ func TestRemoveNotFound(t *testing.T) {
 
 		found := s.Remove(tc.remove)
 
-		rosina.AssertDeepEqual(t, s.OrderedList(), tc.items, "set ordered list")
-		rosina.AssertFalse(t, found, "found")
+		assert.DeepEqual(t, s.OrderedList(), tc.items, "set ordered list")
+		assert.False(t, found, "found")
 	}
 
 	testCases := []testCase{
@@ -341,7 +341,7 @@ func TestAdd(t *testing.T) {
 		for _, item := range tc.items {
 			s.Add(item)
 		}
-		rosina.AssertDeepEqual(t, s.OrderedList(), tc.wantList, "set ordered list")
+		assert.DeepEqual(t, s.OrderedList(), tc.wantList, "set ordered list")
 	}
 
 	testCases := []testCase{

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/marco-m/florist/pkg/cloudinit"
-	"github.com/marco-m/rosina"
+	"github.com/marco-m/rosina/assert"
 )
 
 func TestCloudConfigRender(t *testing.T) {
@@ -35,7 +35,7 @@ func TestCloudConfigRender(t *testing.T) {
 	// MarshalIndent adds newlines, so that the inner file will be written
 	// by cloud-init with newlines. No need for additional escaping.
 	innerJson, err := json.MarshalIndent(inner, "", "  ")
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "JSON encoding inner")
 
 	runCmd := "/path/foo bar --inner /path/inner.json"
 	cloudConfig := cloudinit.CloudConfig{
@@ -49,6 +49,6 @@ func TestCloudConfigRender(t *testing.T) {
 		},
 	}
 	rendered, err := cloudConfig.Render()
-	rosina.AssertNoError(t, err)
-	rosina.AssertTextEqual(t, string(rendered), want, "rendered")
+	assert.NoError(t, err, "cloudConfig.Render")
+	assert.Equal(t, string(rendered), want, "rendered")
 }

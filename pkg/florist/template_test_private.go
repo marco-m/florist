@@ -6,7 +6,7 @@ import (
 	"testing/fstest"
 	"text/template"
 
-	"github.com/marco-m/rosina"
+	"github.com/marco-m/rosina/assert"
 )
 
 func TestUnderstandTemplate(t *testing.T) {
@@ -16,13 +16,13 @@ func TestUnderstandTemplate(t *testing.T) {
 	}
 	sweaters := Inventory{Material: "wool", Count: 17}
 	tmpl, err := template.New("name").Parse("{{.Count}} items are made of {{.Material}}")
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "template.New")
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, sweaters)
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "template.Execute")
 
-	rosina.AssertTextEqual(t, buf.String(), "17 items are made of wool", "rendered")
+	assert.Equal(t, buf.String(), "17 items are made of wool", "rendered")
 }
 
 func TestUnderstandTemplateFailure(t *testing.T) {
@@ -32,11 +32,11 @@ func TestUnderstandTemplateFailure(t *testing.T) {
 	}
 	sweaters := Inventory{Material: "wool", Count: 17}
 	tmpl, err := template.New("name").Parse("{{.Banana}} items are made of {{.Material}}")
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "template.New")
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, sweaters)
-	rosina.AssertErrorContains(t, err,
+	assert.ErrorContains(t, err,
 		`template: name:1:2: executing "name" at <.Banana>: can't evaluate field Banana in type florist.Inventory`)
 }
 
@@ -61,8 +61,8 @@ func TestRenderTemplate(t *testing.T) {
 
 		rendered, err := renderTemplate(fsys, srcPath, fruitBox, tc.sepL, tc.sepR)
 
-		rosina.AssertNoError(t, err)
-		rosina.AssertTextEqual(t, rendered, tc.want, "rendered")
+		assert.NoError(t, err, "renderTemplate")
+		assert.Equal(t, rendered, tc.want, "rendered")
 	}
 
 	testCases := []testCase{

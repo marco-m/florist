@@ -7,13 +7,13 @@ import (
 
 	"github.com/marco-m/florist/flowers/consul/consulserver"
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/rosina"
+	"github.com/marco-m/rosina/assert"
 )
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "florist.LowLevelInit")
 
 	fl := consulserver.Flower{
 		Inst: consulserver.Inst{
@@ -22,16 +22,16 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 		},
 	}
 	err = fl.Init()
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "fl.Init")
 
 	err = fl.Install()
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "fl.Install")
 }
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "florist.LowLevelInit")
 
 	// FIXME Since not compatible with a client install, I should wipe client installs before...
 	// at this point, should I do it as a Flower method, Unistall(), or should I do it grossly only here?
@@ -53,7 +53,7 @@ func TestConsulServerInstallFailureVM(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.flower.Init()
-			rosina.AssertErrorContains(t, err, tc.wantErr)
+			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}
 }
@@ -63,5 +63,5 @@ func TestConsulClientConfigureVM(t *testing.T) {
 
 	// FIXME WRITEME
 	// cfgFile := path.Join(consul.CfgDir, filepath.Base(consulserver.ConfigFile))
-	//	rosina.AssertFileContains(t,cfgFile, "Port 1234\n")
+	//	assert.FileContains(t,cfgFile, "Port 1234\n")
 }
