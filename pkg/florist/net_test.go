@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/rosina"
+	"github.com/marco-m/rosina/assert"
 )
 
 func TestNetFetchMockSuccess(t *testing.T) {
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "florist.LowLevelInit")
 	dir := t.TempDir()
 	hash := "b493d48364afe44d11c0165cf470a4164d1e2609911ef998be868d46ade3de4e"
 	client := &http.Client{Timeout: 1 * time.Second}
@@ -28,8 +28,8 @@ func TestNetFetchMockSuccess(t *testing.T) {
 	defer ts.Close()
 
 	path, err := florist.NetFetch(client, ts.URL, florist.SHA256, hash, dir)
-	rosina.AssertNoError(t, err)
-	rosina.AssertFileEqualsString(t, path, contents)
+	assert.NoError(t, err, "florist.NetFetch")
+	assert.FileEqualsString(t, path, contents)
 }
 
 func TestNetFetchMockFailure(t *testing.T) {
@@ -67,7 +67,7 @@ func TestNetFetchMockFailure(t *testing.T) {
 			url := fmt.Sprintf("%s/%s", ts.URL, strconv.Itoa(tcN))
 			_, err := florist.NetFetch(client, url, florist.SHA256, tc.hash, dir)
 
-			rosina.AssertErrorContains(t, err, tc.wantErr)
+			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}
 }

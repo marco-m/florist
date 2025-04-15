@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marco-m/rosina"
+	"github.com/marco-m/rosina/assert"
 
 	"github.com/marco-m/florist/flowers/sshd"
 	"github.com/marco-m/florist/pkg/florist"
@@ -15,18 +15,18 @@ func TestSshdInstallSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "florist.LowLevelInit")
 
 	fl := sshd.Flower{
 		Inst: sshd.Inst{},
 	}
 	err = fl.Init()
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "fl.Init")
 
 	err = fl.Install()
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "fl.Install")
 
-	rosina.AssertFileContains(t, sshd.SshdConfigDst, "Port 22\n")
+	assert.FileContains(t, sshd.SshdConfigDst, "Port 22\n")
 }
 
 func TestSshdConfigureSuccess(t *testing.T) {
@@ -38,7 +38,7 @@ func TestSshdConfigureSuccess(t *testing.T) {
 		SshHostEd25519KeyCertPub = "ssh-ed25519-cert-v01@openssh.com AAAAIHNzaC1lZDI1NTE5LWNlcnQtdjAxQG9wZW5zc2guY29tAAAAICKzG6B7ncoyduo40F9j09SKmNHmN0fBB/88EKhUrKGQAAAAIFLAbr5vAYA6o0A1RCK/z1xDBWe7PEssR7lu9UtWo4ZVAAAAAAAAAAAAAAACAAAAE2NvbnRyb2xsZXItb3Jzb2xhYnMAAAAAAAAAAAAAAAD//////////wAAAAAAAAAAAAAAAAAAADMAAAALc3NoLWVkMjU1MTkAAAAgemiCHSBWFPq5PWhEGrBoOIMAlqNFC/e3kyKsYoYCzyoAAABTAAAAC3NzaC1lZDI1NTE5AAAAQO2pYU1CkGRyQK7PjaE/8r6aoKZEwkLfEtlpoDtmLtfxckMPxh3xPp3K2Jrkkn+2YAi92PYmeHhNEELBd82h6gA= controller\n"
 	)
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "florist.LowLevelInit")
 
 	fl := sshd.Flower{
 		Inst: sshd.Inst{},
@@ -50,15 +50,15 @@ func TestSshdConfigureSuccess(t *testing.T) {
 		},
 	}
 	err = fl.Init()
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "fl.Init")
 
 	err = fl.Configure()
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "fl.Configure")
 
-	rosina.AssertFileEqualsString(t, sshd.SshHostEd25519KeyDst,
+	assert.FileEqualsString(t, sshd.SshHostEd25519KeyDst,
 		SshHostEd25519Key)
-	rosina.AssertFileEqualsString(t, sshd.SshHostEd25519KeyPubDst,
+	assert.FileEqualsString(t, sshd.SshHostEd25519KeyPubDst,
 		SshHostEd25519KeyPub)
-	rosina.AssertFileEqualsString(t, sshd.SshHostEd25519KeyCertPubDst,
+	assert.FileEqualsString(t, sshd.SshHostEd25519KeyCertPubDst,
 		SshHostEd25519KeyCertPub)
 }

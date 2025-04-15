@@ -7,22 +7,22 @@ import (
 
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/rosina"
+	"github.com/marco-m/rosina/assert"
 )
 
 func TestAptUpdateVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "florist.LowLevelInit")
 
 	err = apt.Update(florist.CacheValidity())
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "apt.Update")
 }
 
 func TestAptInstallVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	err := apt.Install("ripgrep")
-	rosina.AssertNoError(t, err)
+	assert.NoError(t, err, "apt.Install")
 }
