@@ -52,12 +52,12 @@ func UnzipOne(zipPath string, name string, dstPath string) error {
 }
 
 // UntarOne extracts file 'name' from tar file 'tarPath', expected to be
-// compressed with gzip,  and saves it to 'dstPath'.
+// compressed with gzip, and saves it to 'dstPath'.
 //
 // Examples:
 //
-//   - Flat archive, extract file "foo":             UntarOne(tarPath, "foo", dst)
-//   - Hierarchical archive, extract file "bar/foo": UntarOne(tarPath, "bar/foo", dst)
+//   - Flat archive, extract file "foo":              UntarOne(tarPath, "foo", dst)
+//   - Hierarchical archive, extract file "bar/foo":  UntarOne(tarPath, "bar/foo", dst)
 func UntarOne(tarPath string, name string, dstPath string) error {
 	log := Log().With("tarPath", tarPath, "name", name, "dstPath", dstPath)
 	log.Debug("untar-one")
@@ -87,7 +87,7 @@ func UntarOne(tarPath string, name string, dstPath string) error {
 			return fmt.Errorf("UntarOne: reading %s: %s", tarPath, err)
 		}
 		if !filepath.IsLocal(header.Name) {
-			return fmt.Errorf("UntarOne: reading %s: found insecure name %q",
+			return fmt.Errorf("UntarOne: reading %s: found insecure path %q",
 				tarPath, header.Name)
 		}
 		if header.Name == name {
@@ -114,6 +114,66 @@ func UntarOne(tarPath string, name string, dstPath string) error {
 		return fmt.Errorf("UntarOne: copy to dst: %s", err)
 	}
 	log.Debug("untar-one", "status", "written")
+
+	return nil
+}
+
+// UntarAll extracts all files from tar file 'tarPath', expected to be compressed with
+// gzip, and saves them to directory 'dstDir', which must exist beforehand.
+// In case the archive is hierarchical, UntarAll flattens any directory. This behavior
+// might change.
+func UntarAll(tarPath string, dstDir string, perm os.FileMode, owner string, group string) error {
+	const fn = "UntarAll"
+	log := Log().With("fn", fn)
+	errorf := makeErrorf(fn)
+
+	log.Debug(fn, "phase", "starting", "tarPath", tarPath, "dstDir", dstDir)
+
+	fi, err := os.Open(tarPath)
+	if err != nil {
+		return errorf("%w", err)
+	}
+	defer fi.Close()
+
+	gzRd, err := gzip.NewReader(fi)
+	if err != nil {
+		return errorf("creating gzip reader for %s: %s", tarPath, err)
+	}
+	defer gzRd.Close()
+
+	tarRd := tar.NewReader(gzRd)
+
+	for {
+		header, err := tarRd.Next()
+		if err == io.EOF {
+			break // End of archive
+		}
+		if err != nil {
+			return errorf("reading %s: %s", tarPath, err)
+		}
+		if !filepath.IsLocal(header.Name) {
+			return errorf("reading %s: found insecure path %q", tarPath, header.Name)
+		}
+		if header.Typeflag != tar.TypeReg {
+			// Skip any non-regular file.
+			continue
+		}
+		dstPath := filepath.Join(dstDir, header.Name)
+		log.Debug(fn, "phase", "copying", "dst", dstPath)
+		dst, err := os.Create(dstPath)
+		if err != nil {
+			return errorf("creating dst file: %s", err)
+		}
+		if err := ChOwnMod(dstPath, perm, owner, group); err != nil {
+			return errorf("changing owner/mode for file: %s", err)
+		}
+
+		_, err = io.Copy(dst, tarRd)
+		if err != nil {
+			return errorf("copy to dst: %s", err)
+		}
+		log.Info(fn, "phase", "written", "dst", dstPath)
+	}
 
 	return nil
 }
