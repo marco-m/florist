@@ -84,6 +84,23 @@ func WriteFile(fname string, data string,
 	return nil
 }
 
+// WhoAmI returns the user and group of the current user, as strings.
+func WhoAmI() (string, string, error) {
+	errorf := makeErrorf("WhoAmI")
+
+	theUser, err := user.Current()
+	if err != nil {
+		return "", "", errorf("looking up current user: %s", err)
+	}
+
+	group, err := user.LookupGroupId(theUser.Gid)
+	if err != nil {
+		return "", "", errorf("looking up primary group: %s", err)
+	}
+
+	return theUser.Username, group.Name, nil
+}
+
 // Chown sets the owner of 'fpath' to the user ID and primary group ID of 'username'.
 // See also [Chgrp].
 func Chown(fpath string, username string) error {
@@ -119,6 +136,38 @@ func Chgrp(fpath string, groupname string) error {
 	}
 	if err := os.Chown(fpath, uid, gid); err != nil {
 		return fmt.Errorf("florist.chgrp: %s", err)
+	}
+	return nil
+}
+
+// ChOwnMod sets 'mode', 'owner' and 'group' of file 'name'.
+func ChOwnMod(name string, mode os.FileMode, owner string, group string) error {
+	errorf := makeErrorf("ChOwnMod")
+
+	theOwner, err := user.Lookup(owner)
+	if err != nil {
+		return errorf("%s", err)
+	}
+	uid, err := strconv.Atoi(theOwner.Uid)
+	if err != nil {
+		return errorf("%s", err)
+	}
+
+	theGroup, err := user.LookupGroup(group)
+	if err != nil {
+		return errorf("%s", err)
+	}
+	gid, err := strconv.Atoi(theGroup.Gid)
+	if err != nil {
+		return errorf("%s", err)
+	}
+
+	if err := os.Chown(name, uid, gid); err != nil {
+		return errorf("%s", err)
+	}
+
+	if err := os.Chmod(name, mode); err != nil {
+		return errorf("%s", err)
 	}
 	return nil
 }

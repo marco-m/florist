@@ -4,6 +4,7 @@ package florist
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"testing"
@@ -36,5 +37,11 @@ func SkipIfNotDisposableHost(t *testing.T) {
 	_, err := os.Stat("/opt/florist/disposable")
 	if errors.Is(err, fs.ErrNotExist) {
 		t.Skip("skip: this host is not disposable")
+	}
+}
+
+func makeErrorf(prefix string) func(format string, a ...any) error {
+	return func(format string, a ...any) error {
+		return fmt.Errorf(prefix+": "+format, a...)
 	}
 }
