@@ -21,7 +21,7 @@ tasks:
 
   lint:
     cmds:
-      - golangci-lint run ./...
+      - staticcheck ./...
 
   test:all:
     desc: Run all the unit tests; makes sense only if invoking from the VM.
@@ -89,5 +89,5 @@ tasks:
   install:deps:
     desc: Install tool dependencies.
     cmds:
-      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      - go install honnef.co/go/tools/cmd/staticcheck@latest
       - go install gotest.tools/gotestsum@latest
