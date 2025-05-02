@@ -10,15 +10,14 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"provisioner-1": func() int {
-			return florist.MainInt(&florist.Options{
+	testscript.Main(m, map[string]func(){
+		"provisioner-1": func() {
+			os.Exit(florist.MainInt(&florist.Options{
 				SetupFn:        setup,
 				PreConfigureFn: preConfigure,
-			},
-			)
+			}))
 		},
-	}))
+	})
 }
 
 // Look at testdata/*.txt and testdata/*.txtar for the actual tests.

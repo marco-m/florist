@@ -12,5 +12,6 @@ import (
 func Platform() string {
 	// Although strings.Title is deprecated, it works well with runtime.GOOS,
 	// which I assume never has whitespace it it.
+	//lint:ignore SA1019 it works well with runtime.GOOS
 	return strings.Title(runtime.GOOS)
 }

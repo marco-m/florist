@@ -67,3 +67,24 @@ func TestUntarOne(t *testing.T) {
 		t.Run(tc.wantName, func(t *testing.T) { test(t, tc) })
 	}
 }
+
+func TestUntarAll(t *testing.T) {
+	florist.LowLevelInit(io.Discard, "Info", 24*time.Hour)
+	dstDir := t.TempDir()
+	owner, group, err := florist.WhoAmI()
+	if err != nil {
+		t.Fatalf("WhoAmI: %s", err)
+	}
+
+	tarPath := "testdata/archive/two-files.tgz"
+	err = florist.UntarAll(tarPath, dstDir, 0o644, owner, group)
+	if err != nil {
+		t.Fatalf("UntarAll: tar=%s, dst=%s: %s", tarPath, dstDir, err)
+	}
+
+	for _, fi := range []string{"file1.txt", "file2.txt"} {
+		have := filepath.Join(dstDir, fi)
+		want := filepath.Join("testdata/archive", fi)
+		assert.FileEqualsFile(t, have, want)
+	}
+}

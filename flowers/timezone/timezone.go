@@ -66,7 +66,7 @@ func (fl *Flower) Install() error {
 	// See "man hwclock" on Linux for a detailed explanation.
 
 	// Names are the same as "man ln": ln -s target linkname
-	target := path.Join("/usr/share/zoneinfo", fl.Timezone)
+	target := path.Join(zoneinfoDir, fl.Timezone)
 	linkname := "/etc/localtime"
 
 	// Before removing the current localtime to allow the symlink, let's
