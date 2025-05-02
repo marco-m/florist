@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/marco-m/florist/pkg/sets"
 )
 
 // UnzipOne extracts file 'name' from ZIP file 'zipPath' and saves it to 'dstPath'.
@@ -118,16 +120,22 @@ func UntarOne(tarPath string, name string, dstPath string) error {
 	return nil
 }
 
-// UntarAll extracts all files from tar file 'tarPath', expected to be compressed with
-// gzip, and saves them to directory 'dstDir', which must exist beforehand.
-// In case the archive is hierarchical, UntarAll flattens any directory. This behavior
-// might change.
-func UntarAll(tarPath string, dstDir string, perm os.FileMode, owner string, group string) error {
-	const fn = "UntarAll"
+// UntarSome extracts the files in tar file 'tarPath' that match the list in 'some'. File
+// 'tarPath' is expected to be compressed with gzip. UntarSome saves the matching files to
+// directory 'dstDir', which must exist beforehand, and applies to them 'perm', 'owner'
+// and 'group'. UntarSome disregards the file permissions and ownrship that are present in
+// the tarfile. If any file in 'some' is not found, UntarSome returns an error. In case
+// the archive is hierarchical, UntarSome flattens any directory. This behavior might
+// change. See also [UntarAll].
+func UntarSome(tarPath, dstDir string, some []string, perm os.FileMode, owner, group string) error {
+	fn := "UntarSome"
+	if some == nil {
+		fn = "UntarAll"
+	}
 	log := Log().With("fn", fn)
 	errorf := makeErrorf(fn)
 
-	log.Debug(fn, "phase", "starting", "tarPath", tarPath, "dstDir", dstDir)
+	log.Debug(fn, "phase", "starting", "tarPath", tarPath, "dstDir", dstDir, "some", some)
 
 	fi, err := os.Open(tarPath)
 	if err != nil {
@@ -142,6 +150,8 @@ func UntarAll(tarPath string, dstDir string, perm os.FileMode, owner string, gro
 	defer gzRd.Close()
 
 	tarRd := tar.NewReader(gzRd)
+	wanted := sets.From(some...)
+	found := sets.New[string](wanted.Size())
 
 	for {
 		header, err := tarRd.Next()
@@ -158,6 +168,19 @@ func UntarAll(tarPath string, dstDir string, perm os.FileMode, owner string, gro
 			// Skip any non-regular file.
 			continue
 		}
+		if wanted.Size() > 0 {
+			// Depending on how the tarfile has been created, the same relative path "foo"
+			// could be encoded in two ways: "header.Name = foo" or "header.Name = ./foo".
+			// We need to normalize.
+			canonicalName := filepath.Clean(header.Name)
+			if !wanted.Contains(canonicalName) {
+				log.Debug(fn, "skip", header.Name, "canonical", canonicalName)
+				continue
+			} else {
+				found.Add(canonicalName)
+			}
+		}
+
 		dstPath := filepath.Join(dstDir, header.Name)
 		log.Debug(fn, "phase", "copying", "dst", dstPath)
 		dst, err := os.Create(dstPath)
@@ -174,6 +197,22 @@ func UntarAll(tarPath string, dstDir string, perm os.FileMode, owner string, gro
 		}
 		log.Info(fn, "phase", "written", "dst", dstPath)
 	}
+	if wanted.Size() > 0 {
+		notFound := wanted.Difference(found)
+		if notFound.Size() > 0 {
+			return errorf("some files not found: %s", notFound)
+		}
+	}
 
 	return nil
+}
+
+// UntarAll extracts all files from tar file 'tarPath'. File 'tarPath' is expected to be
+// compressed with gzip. UntarSome saves the matching files to directory 'dstDir', which
+// must exist beforehand, and applies to them 'perm', 'owner' and 'group'. UntarAll
+// disregards the file permissions and ownrship that are present in the tarfile. In case
+// the archive is hierarchical, UntarAll flattens any directory. This behavior might
+// change. See also [UntarSome].
+func UntarAll(tarPath, dstDir string, perm os.FileMode, owner, group string) error {
+	return UntarSome(tarPath, dstDir, nil, perm, owner, group)
 }

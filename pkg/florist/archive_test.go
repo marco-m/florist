@@ -21,7 +21,7 @@ func TestUnzipOne(t *testing.T) {
 	test := func(t *testing.T, tc testCase) {
 		dstPath := filepath.Join(dstDir, tc.wantName)
 
-		err := florist.UnzipOne("testdata/archive/two-files.zip",
+		err := florist.UnzipOne("testdata/archive/archive.zip",
 			tc.wantName, dstPath)
 
 		assert.NoError(t, err, "florist.UnzipOne")
@@ -50,7 +50,7 @@ func TestUntarOne(t *testing.T) {
 	test := func(t *testing.T, tc testCase) {
 		dstPath := filepath.Join(dstDir, tc.wantName)
 
-		err := florist.UntarOne("testdata/archive/two-files.tgz",
+		err := florist.UntarOne("testdata/archive/archive.tgz",
 			tc.wantName, dstPath)
 
 		assert.NoError(t, err, "florist.UntarOne")
@@ -68,6 +68,28 @@ func TestUntarOne(t *testing.T) {
 	}
 }
 
+func TestUntarSome(t *testing.T) {
+	florist.LowLevelInit(io.Discard, "Info", 24*time.Hour)
+	dstDir := t.TempDir()
+	owner, group, err := florist.WhoAmI()
+	if err != nil {
+		t.Fatalf("WhoAmI: %s", err)
+	}
+
+	tarPath := "testdata/archive/archive.tgz"
+	some := []string{"file3", "file4"}
+	err = florist.UntarSome(tarPath, dstDir, some, 0o644, owner, group)
+	if err != nil {
+		t.Fatalf("UntarAll: tar=%s, dst=%s: %s", tarPath, dstDir, err)
+	}
+
+	for _, fi := range []string{"file3", "file4"} {
+		have := filepath.Join(dstDir, fi)
+		want := filepath.Join("testdata/archive", fi)
+		assert.FileEqualsFile(t, have, want)
+	}
+}
+
 func TestUntarAll(t *testing.T) {
 	florist.LowLevelInit(io.Discard, "Info", 24*time.Hour)
 	dstDir := t.TempDir()
@@ -76,13 +98,13 @@ func TestUntarAll(t *testing.T) {
 		t.Fatalf("WhoAmI: %s", err)
 	}
 
-	tarPath := "testdata/archive/two-files.tgz"
+	tarPath := "testdata/archive/archive.tgz"
 	err = florist.UntarAll(tarPath, dstDir, 0o644, owner, group)
 	if err != nil {
 		t.Fatalf("UntarAll: tar=%s, dst=%s: %s", tarPath, dstDir, err)
 	}
 
-	for _, fi := range []string{"file1.txt", "file2.txt"} {
+	for _, fi := range []string{"file1.txt", "file2.txt", "file3", "file4"} {
 		have := filepath.Join(dstDir, fi)
 		want := filepath.Join("testdata/archive", fi)
 		assert.FileEqualsFile(t, have, want)
