@@ -19,4 +19,8 @@ require (
 	golang.org/x/tools v0.32.0 // indirect
 )
 
-retract [v0.3.0, v0.3.1]
+retract (
+	v0.4.3
+	v0.3.1
+	v0.3.0
+)
