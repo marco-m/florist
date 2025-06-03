@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"dario.cat/mergo"
 )
 
 type Config struct {
@@ -17,12 +15,8 @@ type Config struct {
 
 func NewConfig(settingsPath string) (*Config, error) {
 	cfg := &Config{settingsPath: settingsPath}
-	settings := make(map[string]string)
-	if err := parse(cfg.settingsPath, &settings); err != nil {
+	if err := parse(cfg.settingsPath, &cfg.settings); err != nil {
 		return nil, fmt.Errorf("NewConfig: parsing %s: %s", cfg.settingsPath, err)
-	}
-	if err := mergo.Merge(&cfg.settings, settings); err != nil {
-		return nil, fmt.Errorf("NewConfig: merging: %s", err)
 	}
 	return cfg, nil
 }
