@@ -20,31 +20,39 @@ exec provisioner-1 configure -h
 cmp stdout configure-help.txt
 
 -- top-level-help.txt --
-provisioner-1 -- A 🌼 florist 🌺 provisioner.
-Usage: provisioner-1 [--log-level LEVEL] <command> [<args>]
+provisioner-1 -- A 🌼 florist 🌺 provisioner
 
-Options:
-  --log-level LEVEL      log level [default: INFO]
-  --help, -h             display this help and exit
+Usage: provisioner-1 <command> [options]
 
 Commands:
-  list                   list the flowers and their files
-  install
-  configure
--- install-help.txt --
-provisioner-1 -- A 🌼 florist 🌺 provisioner.
-Usage: provisioner-1 install
 
-Global options:
-  --log-level LEVEL      log level [default: INFO]
-  --help, -h             display this help and exit
--- configure-help.txt --
-provisioner-1 -- A 🌼 florist 🌺 provisioner.
-Usage: provisioner-1 configure [--settings SETTINGS]
+ list          list the flowers and their files
+ install       install the flowers
+ configure     configure the flowers
 
 Options:
-  --settings SETTINGS    Settings file (JSON) [default: /opt/florist/config.json]
 
-Global options:
-  --log-level LEVEL      log level [default: INFO]
-  --help, -h             display this help and exit
+ --log-level LOG-LEVEL    set the log level (default: INFO)
+
+ -h, --help               Print this help and exit
+
+-- install-help.txt --
+provisioner-1 install -- install the flowers
+
+Usage: provisioner-1 install [options]
+
+Options:
+
+ -h, --help    Print this help and exit
+
+-- configure-help.txt --
+provisioner-1 configure -- configure the flowers
+
+Usage: provisioner-1 configure [options]
+
+Options:
+
+ --settings SETTINGS    Settings file (JSON) (default: /opt/florist/config.json)
+
+ -h, --help             Print this help and exit
+

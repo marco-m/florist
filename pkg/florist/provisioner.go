@@ -1,6 +1,7 @@
 package florist
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -10,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/alexflint/go-arg"
+	"github.com/marco-m/clim"
 )
 
 const (
@@ -25,18 +26,6 @@ var (
 	// floristLog is the logger for the whole florist module. Set by Main.
 	floristLog *slog.Logger
 )
-
-type cliArgs struct {
-	LogLevel  string         `arg:"--log-level" help:"log level" placeholder:"LEVEL" default:"INFO"`
-	List      *listArgs      `arg:"subcommand:list" help:"list the flowers and their files"`
-	Install   *installArgs   `arg:"subcommand:install"`
-	Configure *configureArgs `arg:"subcommand:configure"`
-}
-
-func (cliArgs) Description() string {
-	prog := filepath.Base(os.Args[0])
-	return fmt.Sprintf("%s -- A 🌼 florist 🌺 provisioner.", prog)
-}
 
 // The Options passed to [MainInt]. For an example, see florist/example/main.go
 type Options struct {
@@ -70,18 +59,67 @@ type Options struct {
 //	        PostConfigureFn: postConfigure
 //	    }))
 //	}
+//
+// See also [MainErr].
 func MainInt(opts *Options) int {
-	if err := MainErr(opts); err != nil {
-		fmt.Fprintf(os.Stderr, "\n%s\n", err)
-		return 1
+	err := MainErr(os.Args, opts)
+	if err == nil {
+		return 0
 	}
-	return 0
+	if errors.Is(err, clim.ErrHelp) {
+		fmt.Fprintln(os.Stdout, err)
+		return 0
+	}
+	fmt.Fprintln(os.Stderr, err)
+	return 1
+}
+
+type App struct {
+	LogLevel string
+	//
+	start time.Time
+	log   *slog.Logger
+	prov  *Provisioner
+	opts  *Options
 }
 
 // MainErr is a ready-made function for the main() of your installer.
 // See also [MainInt].
-func MainErr[T *struct{}](opts *Options) error {
-	start := time.Now()
+func MainErr(args []string, opts *Options) error {
+	prog := filepath.Base(os.Args[0])
+	app := App{
+		start: time.Now(),
+		prov:  newProvisioner(),
+		opts:  opts,
+	}
+
+	cli, err := clim.NewTop[App](prog, "A 🌼 florist 🌺 provisioner", nil)
+	if err != nil {
+		return err
+	}
+
+	if err := cli.AddFlags(
+		&clim.Flag{
+			Value: clim.String(&app.LogLevel, "INFO"),
+			Long:  "log-level", Help: "set the log level",
+		}); err != nil {
+		return err
+	}
+
+	if err := newListCmd(cli); err != nil {
+		return err
+	}
+	if err := newInstallCmd(cli); err != nil {
+		return err
+	}
+	if err := newConfigureCmd(cli); err != nil {
+		return err
+	}
+
+	action, err := cli.Parse(args[1:])
+	if err != nil {
+		return err
+	}
 
 	if currentUser != nil {
 		return fmt.Errorf("florist.Main: function already called")
@@ -100,138 +138,28 @@ func MainErr[T *struct{}](opts *Options) error {
 		return fmt.Errorf("florist.Main: PreConfigureFn is nil")
 	}
 
-	var args cliArgs
-	p := arg.MustParse(&args)
-	if p.Subcommand() == nil {
-		return fmt.Errorf("missing command")
-	}
-
-	if err := LowLevelInit(opts.LogOutput, args.LogLevel, opts.OsPkgCacheValidity); err != nil {
+	if err := LowLevelInit(opts.LogOutput, app.LogLevel, opts.OsPkgCacheValidity); err != nil {
 		return err
 	}
 
-	prov := newProvisioner()
-	if err := opts.SetupFn(prov); err != nil {
+	app.log = Log()
+
+	if err := opts.SetupFn(app.prov); err != nil {
 		return fmt.Errorf("florist.Main: setup: %s", err)
 	}
 
-	timelog := func(fn func() error) error {
-		log := Log()
-		log.Info("starting", "command-line", os.Args)
-		err := fn()
-		elapsed := time.Since(start).Round(time.Millisecond)
-		if err != nil {
-			log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
-			return err
-		}
-		log.Info("exiting", "status", "success", "elapsed", elapsed)
-		return nil
-	}
-
-	switch {
-	case args.List != nil:
-		return args.List.Run(prov)
-	case args.Install != nil:
-		return timelog(func() error {
-			return args.Install.Run(prov)
-		})
-	case args.Configure != nil:
-		return timelog(func() error {
-			return args.Configure.Run(prov, opts.PreConfigureFn, opts.PostConfigureFn)
-		})
-	default:
-		return fmt.Errorf("internal error: unwired command: %s", p.SubcommandNames())
-	}
+	return action(app)
 }
 
-type listArgs struct{}
-
-func (cmd *listArgs) Run(prov *Provisioner) error {
-	for _, k := range prov.ordered {
-		v := prov.flowers[k]
-		if err := v.Init(); err != nil {
-			return err
-		}
-		fmt.Printf("%s -- %s\n", v, v.Description())
-		for _, fi := range v.Embedded() {
-			fmt.Printf("  %s\n", fi)
-		}
-	}
-	return nil
-}
-
-type installArgs struct{}
-
-func (cmd *installArgs) Run(prov *Provisioner) error {
-	log := Log()
-	log.Info("installing", "flower-size", len(prov.flowers),
-		"flowers", prov.ordered)
-
-	for _, k := range prov.ordered {
-		fl := prov.flowers[k]
-		log.Info("installing", "flower", fl.String())
-		if err := fl.Init(); err != nil {
-			return fmt.Errorf("install: %s", err)
-		}
-		if err := fl.Install(); err != nil {
-			return err
-		}
-	}
-
-	return customizeMotd("installed", prov.rootDir)
-}
-
-type configureArgs struct {
-	Settings string `help:"Settings file (JSON)" default:"/opt/florist/config.json"`
-}
-
-func (cmd *configureArgs) Run(
-	prov *Provisioner,
-	preConfigure func(prov *Provisioner, config *Config) (any, error),
-	postConfigure func(prov *Provisioner, config *Config, bag any) error,
-) error {
-	log := Log()
-	config, err := NewConfig(cmd.Settings)
+func timelog(run func() error, app App) error {
+	app.log.Info("starting", "command-line", os.Args)
+	err := run()
+	elapsed := time.Since(app.start).Round(time.Millisecond)
 	if err != nil {
-		return fmt.Errorf("configure: %s", err)
+		app.log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
+		return err
 	}
-
-	log.Info("running-preConfigure")
-	var bag any
-	if bag, err = preConfigure(prov, config); err != nil {
-		return fmt.Errorf("configure: preConfigure: %s", err)
-	}
-	if err := config.Errors(); err != nil {
-		return fmt.Errorf("configure: %s", err)
-	}
-
-	log.Info("configuring-each-flower", "flowers-size", len(prov.flowers),
-		"flowers", prov.ordered)
-
-	for _, k := range prov.ordered {
-		fl := prov.flowers[k]
-		log.Info("configuring", "flower", fl.String())
-		if err := fl.Init(); err != nil {
-			return fmt.Errorf("configure: %s", err)
-		}
-		if err := fl.Configure(); err != nil {
-			return fmt.Errorf("configure: %s", err)
-		}
-	}
-
-	if err := customizeMotd("configured", prov.rootDir); err != nil {
-		return fmt.Errorf("configure: %s", err)
-	}
-
-	if postConfigure != nil {
-		log.Info("postConfigure-running")
-		if err := postConfigure(prov, config, bag); err != nil {
-			return fmt.Errorf("configure: postConfigure: %s", err)
-		}
-	} else {
-		log.Info("postConfigure-nothing-to-run")
-	}
-
+	app.log.Info("exiting", "status", "success", "elapsed", elapsed)
 	return nil
 }
 
