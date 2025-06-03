@@ -44,6 +44,32 @@ func TestConfigGetFailure(t *testing.T) {
 	}
 }
 
+func TestConfigGetDefaultValueFound(t *testing.T) {
+	cfg := setupConfig(t, t.TempDir(), map[string]string{"existing-key": "ciccio"})
+
+	val := cfg.GetDefault("existing-key", "banana")
+	if have, want := val, "ciccio"; have != want {
+		t.Errorf("have: %q; want: %q", have, want)
+	}
+
+	if err := cfg.Errors(); err != nil {
+		t.Errorf("error: %s", err)
+	}
+}
+
+func TestConfigGetDefaultValueNotFound(t *testing.T) {
+	cfg := setupConfig(t, t.TempDir(), map[string]string{"existing-key": "ciccio"})
+
+	val := cfg.GetDefault("non-existing-key", "banana")
+	if have, want := val, "banana"; have != want {
+		t.Errorf("have: %q; want: %q", have, want)
+	}
+
+	if err := cfg.Errors(); err != nil {
+		t.Errorf("error: %s", err)
+	}
+}
+
 func TestConfigLookupSuccess(t *testing.T) {
 	cfg := setupConfig(t, t.TempDir(), map[string]string{"existing-key": "ciccio"})
 

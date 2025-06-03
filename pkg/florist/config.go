@@ -50,6 +50,16 @@ func (cfg *Config) Get(k string) string {
 	return v
 }
 
+// GetDefault returns the value of key k if found, or defValue if not found.
+// No error is possible.
+func (cfg *Config) GetDefault(k string, defValue string) string {
+	v, found := cfg.settings[k]
+	if !found {
+		return defValue
+	}
+	return v
+}
+
 // Lookup returns the value of key k if found. If the key is missing, it returns
 // an error. Contrary to Get, it does not append a lookup failure to the errors
 // returned by Errors.
