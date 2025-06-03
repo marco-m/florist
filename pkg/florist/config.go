@@ -48,9 +48,10 @@ func parse(path string, data any) error {
 // If on the other end you want to know immediately if the key is missing, use
 // Lookup.
 func (cfg *Config) Get(k string) string {
-	v, err := cfg.Lookup(k)
-	if err != nil {
-		cfg.errs = append(cfg.errs, err.Error())
+	v, found := cfg.settings[k]
+
+	if !found {
+		cfg.errs = append(cfg.errs, fmt.Sprintf("key '%s': not found", k))
 	}
 	return v
 }
@@ -68,7 +69,7 @@ func (cfg *Config) Lookup(k string) (string, error) {
 
 func (cfg *Config) Errors() error {
 	if len(cfg.errs) > 0 {
-		return fmt.Errorf("%s (files: %s)", strings.Join(cfg.errs, "; "),
+		return fmt.Errorf("%s (file: %s)", strings.Join(cfg.errs, "; "),
 			cfg.settingsPath)
 	}
 	return nil
