@@ -58,7 +58,7 @@ func (cmd *configureCmd) Run(app App) error {
 			}
 		}
 
-		if err := customizeMotd("configured", app.prov.rootDir); err != nil {
+		if err := customizeMotd("configured", app.opts.RootDir); err != nil {
 			return fmt.Errorf("configure: %s", err)
 		}
 

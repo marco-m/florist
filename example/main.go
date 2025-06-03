@@ -18,7 +18,6 @@ func main() {
 }
 
 func setup(prov *florist.Provisioner) error {
-	prov.UseWorkdir() // FIXME what is this???
 	err := prov.AddFlowers(
 		&daisy.Flower{
 			Inst: daisy.Inst{

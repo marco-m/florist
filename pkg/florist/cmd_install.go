@@ -30,7 +30,7 @@ func (cmd *installCmd) Run(app App) error {
 				return err
 			}
 		}
-		return customizeMotd("installed", app.prov.rootDir)
+		return customizeMotd("installed", app.opts.RootDir)
 	}
 
 	return timelog(run, app)
