@@ -144,25 +144,40 @@ func TestProvisionerIntermediateErrorsKeepsGoing(t *testing.T) {
 			)
 		},
 		PreConfigureFn: func(prov *florist.Provisioner, config *florist.Config) (any, error) {
-			spy = append(spy, "PreConfigureFn")
-			return nil, nil
+			err := errors.New("E3")
+			spy = append(spy, "PreConfigureFn."+err.Error())
+			return nil, err
 		},
 		PostConfigureFn: func(prov *florist.Provisioner, config *florist.Config, bag any) error {
-			spy = append(spy, "PostConfigureFn")
+			spy = append(spy,
+				"PostConfigureFn.<nil>",
+				"PostConfigureFn.Provisioner.Errors."+stringErr(florist.JoinErrors(prov.Errors()...)),
+			)
 			return nil
 		},
 	}
 	cmdline := []string{"program", "configure", "--settings=testdata/simple.json"}
 	err := florist.MainErr(cmdline, opts)
-	if have, want := err.Error(), "configure: E1"; have != want {
-		t.Errorf("have: %s; want: %s", have, want)
+	{
+		have := err.Error()
+		want := "configure: preconfigure: E3; flower init: E1; flower configure: E2"
+		if have != want {
+			t.Errorf("error mismatch:\nhave: %s\nwant: %s", have, want)
+		}
 	}
-	want := []string{
-		"SetupFn",
-		"PreConfigureFn",
-		"SpyFlower.Init.A.E1",
-	}
-	if diff := cmp.Diff(want, spy); diff != "" {
-		t.Errorf("spy mismatch:\n--- want\n+++ have\n%s", diff)
+	{
+		want := []string{
+			"SetupFn",
+			"PreConfigureFn.E3",
+			"SpyFlower.Init.A.E1",
+			"SpyFlower.Configure.A.E2",
+			"SpyFlower.Init.B.<nil>",
+			"SpyFlower.Configure.B.<nil>",
+			"PostConfigureFn.<nil>",
+			"PostConfigureFn.Provisioner.Errors.preconfigure: E3; flower init: E1; flower configure: E2",
+		}
+		if diff := cmp.Diff(want, spy); diff != "" {
+			t.Errorf("spy mismatch:\n--- want\n+++ have\n%s", diff)
+		}
 	}
 }

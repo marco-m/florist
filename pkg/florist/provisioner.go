@@ -173,6 +173,13 @@ func timelog(run func() error, app App) error {
 type Provisioner struct {
 	flowers map[string]Flower
 	ordered []string
+	errs    []error
+}
+
+func (prov *Provisioner) Errors() []error {
+	dst := make([]error, len(prov.errs))
+	copy(dst, prov.errs)
+	return dst
 }
 
 func newProvisioner() *Provisioner {
