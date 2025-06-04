@@ -64,10 +64,11 @@ type Options struct {
 // Usage:
 //
 //	func main() {
-//		os.Exit(florist.MainInt(&florist.Options{
-//			SetupFn:     setup,
-//			ConfigureFn: configure,
-//		}))
+//	    os.Exit(florist.MainInt(&florist.Options{
+//	        SetupFn:         setup,
+//	        PreConfigureFn:  preConfigure,
+//	        PostConfigureFn: postConfigure
+//	    }))
 //	}
 func MainInt(opts *Options) int {
 	if err := MainErr(opts); err != nil {
@@ -114,28 +115,33 @@ func MainErr[T *struct{}](opts *Options) error {
 		return fmt.Errorf("florist.Main: setup: %s", err)
 	}
 
-	log := Log()
-	var err error
+	timelog := func(fn func() error) error {
+		log := Log()
+		log.Info("starting", "command-line", os.Args)
+		err := fn()
+		elapsed := time.Since(start).Round(time.Millisecond)
+		if err != nil {
+			log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
+			return err
+		}
+		log.Info("exiting", "status", "success", "elapsed", elapsed)
+		return nil
+	}
+
 	switch {
 	case args.List != nil:
 		return args.List.Run(prov)
 	case args.Install != nil:
-		log.Info("starting", "command-line", os.Args)
-		err = args.Install.Run(prov)
+		return timelog(func() error {
+			return args.Install.Run(prov)
+		})
 	case args.Configure != nil:
-		log.Info("starting", "command-line", os.Args)
-		err = args.Configure.Run(prov, opts.PreConfigureFn, opts.PostConfigureFn)
+		return timelog(func() error {
+			return args.Configure.Run(prov, opts.PreConfigureFn, opts.PostConfigureFn)
+		})
 	default:
 		return fmt.Errorf("internal error: unwired command: %s", p.SubcommandNames())
 	}
-
-	elapsed := time.Since(start).Round(time.Millisecond)
-	if err != nil {
-		log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
-		return err
-	}
-	log.Info("exiting", "status", "success", "elapsed", elapsed)
-	return nil
 }
 
 type listArgs struct{}
