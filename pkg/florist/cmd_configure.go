@@ -67,7 +67,11 @@ func (cmd *configureCmd) Run(app App) error {
 			app.log.Info("postconfigure-nothing-to-run")
 		}
 
-		if err := customizeMotd("configured", app.opts.RootDir); err != nil {
+		status := "✅ success"
+		if len(app.prov.errs) > 0 {
+			status = "❌ failure"
+		}
+		if err := customizeMotd("configured", status, app.opts.RootDir); err != nil {
 			app.prov.errs = append(app.prov.errs, err)
 		}
 

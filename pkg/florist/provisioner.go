@@ -215,12 +215,12 @@ func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
 }
 
 // root is a hack to ease testing.
-func customizeMotd(op string, rootDir string) error {
+func customizeMotd(op string, status string, rootDir string) error {
 	log := Log()
 	now := time.Now().UTC().Round(time.Second)
-	line := fmt.Sprintf("%s 🌼 florist 🌺 System %s\n", now, op)
+	line := fmt.Sprintf("%s 🌼 florist 🌺 System %s (%s)\n", now, op, status)
 	name := path.Join(rootDir, "/etc/motd")
-	log.Debug("customize-motd", "target", name, "operation", op)
+	log.Debug("customize-motd", "target", name, "operation", op, "status", status)
 
 	if err := os.MkdirAll(path.Dir(name), 0o755); err != nil {
 		return err
