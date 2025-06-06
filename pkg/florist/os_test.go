@@ -58,5 +58,5 @@ func whoami(t *testing.T) (string, string) {
 	theGroup, err := user.LookupGroupId(theUser.Gid)
 	assert.NoError(t, err, "user.LookupGroupId")
 
-	return theUser.Name, theGroup.Name
+	return theUser.Username, theGroup.Name
 }

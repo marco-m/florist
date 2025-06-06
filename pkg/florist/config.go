@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"dario.cat/mergo"
 )
 
 type Config struct {
@@ -17,12 +15,8 @@ type Config struct {
 
 func NewConfig(settingsPath string) (*Config, error) {
 	cfg := &Config{settingsPath: settingsPath}
-	settings := make(map[string]string)
-	if err := parse(cfg.settingsPath, &settings); err != nil {
+	if err := parse(cfg.settingsPath, &cfg.settings); err != nil {
 		return nil, fmt.Errorf("NewConfig: parsing %s: %s", cfg.settingsPath, err)
-	}
-	if err := mergo.Merge(&cfg.settings, settings); err != nil {
-		return nil, fmt.Errorf("NewConfig: merging: %s", err)
 	}
 	return cfg, nil
 }
@@ -48,9 +42,20 @@ func parse(path string, data any) error {
 // If on the other end you want to know immediately if the key is missing, use
 // Lookup.
 func (cfg *Config) Get(k string) string {
-	v, err := cfg.Lookup(k)
-	if err != nil {
-		cfg.errs = append(cfg.errs, err.Error())
+	v, found := cfg.settings[k]
+
+	if !found {
+		cfg.errs = append(cfg.errs, fmt.Sprintf("key '%s': not found", k))
+	}
+	return v
+}
+
+// GetDefault returns the value of key k if found, or defValue if not found.
+// No error is possible.
+func (cfg *Config) GetDefault(k string, defValue string) string {
+	v, found := cfg.settings[k]
+	if !found {
+		return defValue
 	}
 	return v
 }
@@ -68,7 +73,7 @@ func (cfg *Config) Lookup(k string) (string, error) {
 
 func (cfg *Config) Errors() error {
 	if len(cfg.errs) > 0 {
-		return fmt.Errorf("%s (files: %s)", strings.Join(cfg.errs, "; "),
+		return fmt.Errorf("%s (file: %s)", strings.Join(cfg.errs, "; "),
 			cfg.settingsPath)
 	}
 	return nil
