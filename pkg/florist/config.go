@@ -16,7 +16,7 @@ type Config struct {
 func NewConfig(settingsPath string) (*Config, error) {
 	cfg := &Config{settingsPath: settingsPath}
 	if err := parse(cfg.settingsPath, &cfg.settings); err != nil {
-		return nil, fmt.Errorf("NewConfig: parsing %s: %s", cfg.settingsPath, err)
+		return cfg, fmt.Errorf("NewConfig: parsing %s: %s", cfg.settingsPath, err)
 	}
 	return cfg, nil
 }
