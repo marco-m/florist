@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"strconv"
 	"strings"
 )
 
@@ -80,6 +81,44 @@ func UserSystemAdd(username string, homedir string) error {
 	cmd := exec.Command(
 		"adduser",
 		"--system", "--group",
+		"--home", homedir,
+		"--gecos", fmt.Sprintf(`"user %s"`, username),
+		username)
+	if err := CmdRun(log, cmd); err != nil {
+		return fmt.Errorf("user: add: %s", err)
+	}
+	log.Debug("user-system-add", "status", "user added")
+
+	newUser, err := user.Lookup(username)
+	if err != nil {
+		return fmt.Errorf("user: lookup: %s", err)
+	}
+
+	if newUser.HomeDir != homedir {
+		return fmt.Errorf("user %s: homedir: have: %s, want: %s",
+			username, newUser.HomeDir, homedir)
+	}
+	if err := os.Chmod(newUser.HomeDir, 0o755); err != nil {
+		return fmt.Errorf("user %s: %s", username, err)
+	}
+
+	return nil
+}
+
+// UserSystemAdd adds the system user 'username', group 'username' and force userid to a
+// given number, with home directory 'homedir' and mode 0o755.
+func UserSystemAddWithUID(username string, homedir string, uid int) error {
+	log := Log().With("user", username)
+
+	if _, err := user.Lookup(username); err == nil {
+		log.Debug("user-system-add", "status", "user already present")
+		return nil
+	}
+
+	cmd := exec.Command(
+		"adduser",
+		"--system", "--group",
+		"--uid", strconv.Itoa(uid),
 		"--home", homedir,
 		"--gecos", fmt.Sprintf(`"user %s"`, username),
 		username)

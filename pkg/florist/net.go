@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -89,4 +90,29 @@ func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDi
 	log.Debug("", "dstPath", dstPath)
 
 	return dstPath, nil
+}
+
+// InstanceIP checks if any of the ips in input ips list belong to the given network CIDR
+func InstanceIP(ips []string, networkCIDR string) (net.IP, error) {
+	_, network, err := net.ParseCIDR(networkCIDR)
+	if err != nil {
+		return nil, fmt.Errorf("invalid network CIDR: %s, error: %s", network, err)
+	}
+
+	var match net.IP
+	for _, ip := range ips {
+		ip := net.ParseIP(ip)
+		if ip == nil {
+			continue
+		}
+
+		if network.Contains(ip) {
+			match = ip
+			break
+		}
+	}
+	if match == nil {
+		return nil, fmt.Errorf("none of the IPs in: %s belong to %s network", ips, networkCIDR)
+	}
+	return match, nil
 }
