@@ -113,3 +113,28 @@ func PublicIPs() ([]string, error) {
 
 	return ips, nil
 }
+
+// PrivateIP returns the first matching IP that belongs to the given network CIDR.
+func PrivateIP(cidr string) (string, error) {
+	_, network, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", fmt.Errorf("network CIDR: %s: error: %s", cidr, err)
+	}
+
+	ips, err := PrivateIPs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, addr := range ips {
+		ip := net.ParseIP(addr)
+		if ip == nil {
+			continue
+		}
+
+		if network.Contains(ip) {
+			return ip.String(), nil
+		}
+	}
+	return "", fmt.Errorf("none of the private IPs belongs to %s network", cidr)
+}
