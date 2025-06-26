@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"strconv"
 	"strings"
 )
 
@@ -67,9 +68,18 @@ func SupplementaryGroups(username string, groups ...string) error {
 	return nil
 }
 
-// UserSystemAdd adds the system user 'username' and group 'username', with
-// home directory 'homedir' and mode 0o755.
+// UserSystemAdd adds the system user 'username' with home directory 'homedir'.
+// The user group will be 'username' and the mode of the home directory will be 0o755.
+// See also [UserSystemAddWithUID].
 func UserSystemAdd(username string, homedir string) error {
+	return UserSystemAddWithUID(username, homedir, -1)
+}
+
+// UserSystemAddWithUID adds the system user 'username' with home directory 'homedir'
+// and user ID 'uid'. In case the user ID is already taken, UserSystemAddWithUID will fail.
+// The user group will be 'username' and the mode of the home directory will be 0o755.
+// Normally this is not the right function to use: see [UserSystemAdd] instead.
+func UserSystemAddWithUID(username string, homedir string, uid int) error {
 	log := Log().With("user", username)
 
 	if _, err := user.Lookup(username); err == nil {
@@ -77,12 +87,18 @@ func UserSystemAdd(username string, homedir string) error {
 		return nil
 	}
 
-	cmd := exec.Command(
-		"adduser",
-		"--system", "--group",
+	cmdFlags := []string{
+		username,
+		"--system",
+		"--group",
 		"--home", homedir,
 		"--gecos", fmt.Sprintf(`"user %s"`, username),
-		username)
+	}
+	if uid != -1 {
+		cmdFlags = append(cmdFlags, "--uid", strconv.Itoa(uid))
+	}
+
+	cmd := exec.Command("adduser", cmdFlags...)
 	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("user: add: %s", err)
 	}
