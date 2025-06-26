@@ -41,14 +41,14 @@ func setup(prov *florist.Provisioner) error {
 		},
 		&task.Flower{
 			Inst: task.Inst{
-				Version: "3.21.0",
-				Hash:    "7232508b0040398b3dcce5d92dfe05f65723680eab2017f3cee6c0a7cf9dd6c1",
+				Version: "3.44.0",
+				Hash:    "d6c9c0a14793659766ee0c06f9843452942ae6982a3151c6bbd78959c1682b82",
 			},
 		},
 		&golang.Flower{
 			Inst: golang.Inst{
-				Version: "1.22.0",
-				Hash:    "f6c8a87aa03b92c4b0bf3d558e28ea03006eb29db78917daec5cfb6ec1046265",
+				Version: "1.24.4",
+				Hash:    "77e5da33bb72aeaef1ba4418b6fe511bc4d041873cbf82e5aa6318740df98717",
 			},
 		},
 		&fishshell.Flower{
