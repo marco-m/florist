@@ -39,9 +39,9 @@ func ListFs(fsys fs.FS) []string {
 	return files
 }
 
-// Return true if file 'fpath' exists.
+// FileExists returns true if file 'fpath' exists.
 // WARNING Checking for file existence is racy and in certain cases can lead
-// to security vulnerabilities. Think twice before using this. In the majority
+// to security vulnerabilities (TOCTOU). Think twice before using this. In the majority
 // of cases, you can simply skip the existence check, since the next operation
 // will fail in any case if the file doesn't exist.
 //

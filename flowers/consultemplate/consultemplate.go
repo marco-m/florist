@@ -83,7 +83,10 @@ func (fl *Flower) Install() error {
 	log := slog.With("flower", Name+".install")
 
 	log.Info("Add system user 'consul-template'")
-	if err := florist.UserSystemAdd("consul-template", HomeDir); err != nil {
+	if err := florist.UserAdd("consul-template", &florist.UserAddArgs{
+		System:  true,
+		HomeDir: HomeDir,
+	}); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 

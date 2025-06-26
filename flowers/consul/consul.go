@@ -23,7 +23,10 @@ const (
 // CommonInstall performs the install steps common to the client and the server.
 func CommonInstall(log *slog.Logger, version string, hash string) error {
 	log.Info("Add system user", "user", Username)
-	if err := florist.UserSystemAdd(Username, HomeDir); err != nil {
+	if err := florist.UserAdd(Username, &florist.UserAddArgs{
+		System:  true,
+		HomeDir: HomeDir,
+	}); err != nil {
 		return err
 	}
 
@@ -32,7 +35,7 @@ func CommonInstall(log *slog.Logger, version string, hash string) error {
 	}
 
 	log.Info("Create cfg dir", "dst", CfgDir)
-	if err := os.MkdirAll(CfgDir, 0755); err != nil {
+	if err := os.MkdirAll(CfgDir, 0o755); err != nil {
 		return err
 	}
 
@@ -60,7 +63,7 @@ func installConsulExe(log *slog.Logger, version string, hash string) error {
 
 	exeDst := path.Join(BinDir, "consul")
 	log.Info("Install consul executable", "dst", exeDst)
-	if err := florist.CopyFile(extracted, exeDst, 0755, "root"); err != nil {
+	if err := florist.CopyFile(extracted, exeDst, 0o755, "root"); err != nil {
 		return err
 	}
 
