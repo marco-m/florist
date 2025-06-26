@@ -1,32 +1,40 @@
 package florist_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/rosina/assert"
 )
 
-func TestUserAddSuccessVM(t *testing.T) {
+func TestUserAddSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	err := florist.UserAdd("beppe")
-
-	assert.NoError(t, err, "florist.UserAdd")
+	if err != nil {
+		t.Errorf("\nhave error: %s\nwant: <no error>", err)
+	}
 }
 
-func TestSupplementaryGroupsFailureVM(t *testing.T) {
+func TestSupplementaryGroupsFailure(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	err := florist.SupplementaryGroups("beppe", "banana")
-
-	assert.ErrorContains(t, err, "group 'banana' does not exist")
+	if err == nil {
+		t.Fatalf("\nhave: <no error>\nwant: non-nil error")
+	}
+	have := err.Error()
+	needle := "group 'banana' does not exist"
+	if !strings.Contains(have, needle) {
+		t.Errorf("\nerror message:    %s\ndoes not contain: %s", have, needle)
+	}
 }
 
-func TestUserSystemAddSuccessVM(t *testing.T) {
+func TestUserSystemAddSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
 	err := florist.UserSystemAdd("maniglia", "/opt/maniglia")
-
-	assert.NoError(t, err, "florist.UserSystemAdd")
+	if err != nil {
+		t.Errorf("\nhave error: %s\nwant: <no error>", err)
+	}
 }
