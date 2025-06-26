@@ -121,7 +121,9 @@ func (fl *Flower) Install() error {
 
 	for _, username := range fl.Users {
 		log.Info("adding user to 'docker' supplementary group", "user", username)
-		if err := florist.SupplementaryGroups(username, "docker"); err != nil {
+		if err := florist.UserMod(username, florist.UserModOpts{
+			Groups: []string{"docker"},
+		}); err != nil {
 			return fmt.Errorf("%s: %s", fl, err)
 		}
 	}

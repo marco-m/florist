@@ -51,4 +51,4 @@ task:
   # Leave this step at the end of the task.
   check_coverage_script: |
     # The passed COVERAGE value is the one from destructive tests.
-    ./task check-coverage COVERAGE='33.6%'
+    ./task check-coverage COVERAGE='34.0%'
