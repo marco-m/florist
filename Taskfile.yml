@@ -65,13 +65,14 @@ tasks:
     - vagrant ssh-config > ssh.config.vagrant
     # For some reason, vagrant adds "LogLevel FATAL" to the generated file.
     # We want the default logging level instead.
-    - sed -i "" 's/LogLevel FATAL//' ssh.config.vagrant
+    - sed -i.bak 's/LogLevel FATAL//' ssh.config.vagrant
+    - rm ssh.config.vagrant.bak
     # Mark this VM as a target for destructive tests.
     - ssh -F ssh.config.vagrant florist-dev sudo mkdir -p /opt/florist/disposable
     # Provision the VM with the "dev" bouquet.
     - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/dev install"
     # Install other deps. I am unsure this is the best approach...
-    - ssh -F ssh.config.vagrant florist-dev "GOBIN=/usr/local/bin sudo --preserve-env=GOBIN task -d florist install-deps"
+    - ssh -F ssh.config.vagrant florist-dev "GOBIN=/usr/local/bin sudo --preserve-env=GOBIN task -d florist install:deps"
       # Take snapshot, name `pristine`
     - vagrant snapshot save pristine
     - vagrant halt
