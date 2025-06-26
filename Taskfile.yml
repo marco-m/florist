@@ -135,6 +135,32 @@ tasks:
       - task: pulumi
         vars:
           CLI_ARGS: up {{if eq .preview "no"}}--skip-preview{{end}}
+      - task: wait-for-conn
+      - task: pulumi:init-vm
+
+  # Rethink all this and use a Flower instead ???
+  # I even already have one, for when I could use a local VM with 
+  pulumi:init-vm:
+    cmds:
+      # - >-
+      #   ssh -F ssh.config.pulumi root@{{.ADDR}}
+      #   "mkdir -p /opt/florist &&
+      #   mkdir -p /opt/florist/disposable &&
+      #   mkdir -p /opt/florist/test &&
+      #   curl --location --fail-with-body --no-progress-meter https://go.dev/dl/{{.GO_PKG}} -o {{.GO_PKG}} &&
+      #   rm -rf /usr/local/go && tar -C /usr/local -xzf {{.GO_PKG}}"
+      # - task: build:dev
+      - >-
+        gokr-rsync --quiet -P -a -t -e "ssh -F ssh.config.pulumi"
+        ./bin/linux/dev
+        root@[{{.ADDR}}]:/opt/florist/
+      - >-
+        ssh -F ssh.config.pulumi root@{{.ADDR}}
+        "/opt/florist/dev --log-level=debug install"
+    vars:
+      GO_PKG: go1.24.5.linux-amd64.tar.gz
+      ADDR:
+        sh: envchain florist pulumi -C pulumi stack output IPv6
 
   pulumi:down:
     desc: Run pulumi down.
@@ -171,11 +197,6 @@ tasks:
   pulumi:test:
     desc: Build, upload and run the tests on the cloud VM.
     cmds:
-      - >-
-        ssh -F ssh.config.pulumi root@{{.ADDR}}
-        "mkdir -p /opt/florist &&
-        mkdir -p /opt/florist/disposable &&
-        mkdir -p /opt/florist/test"
       - task: pulumi:upload
       - ssh -F ssh.config.pulumi root@{{.ADDR}} "time /opt/florist/test/runtests.sh"
     vars:
