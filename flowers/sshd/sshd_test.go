@@ -2,6 +2,7 @@ package sshd_test
 
 import (
 	"io"
+	"os"
 	"testing"
 	"time"
 
@@ -13,6 +14,9 @@ import (
 
 func TestSshdInstallSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
+	if os.Getenv("FLORIST_MANUAL_TEST") != "ssh" {
+		t.Skip("This test breaks the SSH configuration. Run it only locally by setting env var FLORIST_MANUAL_TEST=ssh")
+	}
 
 	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
 	assert.NoError(t, err, "florist.LowLevelInit")
@@ -31,6 +35,9 @@ func TestSshdInstallSuccess(t *testing.T) {
 
 func TestSshdConfigureSuccess(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
+	if os.Getenv("FLORIST_MANUAL_TEST") != "ssh" {
+		t.Skip("This test breaks the SSH configuration. Run it only locally by setting env var FLORIST_MANUAL_TEST=ssh")
+	}
 
 	const (
 		SshHostEd25519Key        = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACBSwG6+bwGAOqNANUQiv89cQwVnuzxLLEe5bvVLVqOGVQAAAJDCUHL+wlBy\n/gAAAAtzc2gtZWQyNTUxOQAAACBSwG6+bwGAOqNANUQiv89cQwVnuzxLLEe5bvVLVqOGVQ\nAAAEByQPIGdxQvT+KK9Gb1pZSHOxeKuTFZinuOMqLdUXtTQ1LAbr5vAYA6o0A1RCK/z1xD\nBWe7PEssR7lu9UtWo4ZVAAAACmNvbnRyb2xsZXIBAgM=\n-----END OPENSSH PRIVATE KEY-----\n"

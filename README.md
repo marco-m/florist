@@ -60,17 +60,6 @@ Florist supports [Go text templates] with multiple functions:
 
 ee `os_test.go` for an example.
 
-## Default values
-
-Thanks to the [defaults package], you can set default values for flowers fields (pun intended!), with or without text templates:
-
-```go
-type Flower struct {
-    FilesFS fs.FS
-    Port    int `default:"22"`
-}
-```
-
 ## Secrets
 
 In general, do NOT store any secret on the image at image build time (`florist install`). Instead, inject secrets only in the running instance (`florist configure`).
@@ -85,20 +74,18 @@ For a real-world example, see the orsolabs project (FIXME ADD LINK)
 
 ## Usage
 
-```text
-$ ./example -h
-example -- A 🌼 florist 🌺 provisioner.
-Usage: example [--log-level LEVEL] <command> [<args>]
-
-Options:
-  --log-level LEVEL      log level [default: INFO]
-  --help, -h             display this help and exit
-
-Commands:
-  list                   list the flowers and their files
-  install
-  configure
-```
+    $ ./example -h
+    example -- A 🌼 florist 🌺 provisioner.
+    Usage: example [--log-level LEVEL] <command> [<args>]
+    
+    Options:
+      --log-level LEVEL      log level [default: INFO]
+      --help, -h             display this help and exit
+    
+    Commands:
+      list                   list the flowers and their files
+      install
+      configure
 
 ## Usage with Packer
 
@@ -108,22 +95,20 @@ Commands:
 
 Excerpt HCL configuration:
 
-```HCL
-build {
-  source "<provider>.cfg" {
-    ...
-  }
-
-  provisioner "file" {
-    source      = "path/to/<project>-florist"
-    destination = "/tmp/<project>-florist"
-  }
-
-  provisioner "shell" {
-    inline = ["sudo /tmp/<project>-florist install <BOUQUET>"]
-  }
-}
-```
+    build {
+      source "<provider>.cfg" {
+        ...
+      }
+    
+      provisioner "file" {
+        source      = "path/to/<project>-florist"
+        destination = "/tmp/<project>-florist"
+      }
+    
+      provisioner "shell" {
+        inline = ["sudo /tmp/<project>-florist install <BOUQUET>"]
+      }
+    }
 
 ## The development environment
 
@@ -139,14 +124,28 @@ Said in another way, a normal Florist target is bare-metal or a VM, not a contai
 
 - Install [Vagrant](https://developer.hashicorp.com/vagrant/install).
 - Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+- Install QEMU and the Vagrant QEMU plugin. For macos: brew install qemu
+
+    vagrant plugin install vagrant-qemu
 
 We use VM snapshots, so that we can quickly restore a pristine environment.
 
 Prepare a VM from scratch, provision and take a snapshot. You need to do this only once:
 
-```text
-task vm:init
-```
+    task vm:init
+
+## Prepare Pulumi and Hetzner Cloud
+
+1. Install `hcloud`, the [Hetzner CLI](https://github.com/hetznercloud/cli).
+2. In the [Hetzner console](https://console.hetzner.com), create a project, name it `florist`.
+3. In the project, add the **public** key of your SSH key, name it `florist`.
+4. In the project, create an API token and store it securely:
+
+       envchain --set florist HCLOUD_TOKEN
+
+5. Store the Pulumi passphrase in envchain:
+
+       envchain --set florist PULUMI_CONFIG_PASSPHRASE
 
 ## Developing your installer/flowers
 
@@ -154,22 +153,20 @@ You can do all development on the VM, or use the VM only to run the installer an
 
 This is the normal sequence to perform when developing.
 
-```text
-## Restore snapshot and restart VM
-$ task vm:restore
-
-## Connect to the VM directly (bypass vagrant, way faster)
-$ ssh -F ssh.config.vagrant florist-dev
-... System installed by 🌼 florist 🌺
-
-## == following happens in the VM ==
-
-## The florist/ directory is a shared mount with the host
-vagrant@florist-dev:~$ cd florist
-
-## Check out the example installer
-vagrant@florist-dev $ ./bin/example-florist -h
-```
+    ## Restore snapshot and restart VM
+    $ task vm:restore
+    
+    ## Connect to the VM directly (bypass vagrant, way faster)
+    $ ssh -F ssh.config.vagrant florist-dev
+    ... System installed by 🌼 florist 🌺
+    
+    ## == following happens in the VM ==
+    
+    ## The florist/ directory is a shared mount with the host
+    vagrant@florist-dev:~$ cd florist
+    
+    ## Check out the example installer
+    vagrant@florist-dev $ ./bin/example-florist -h
 
 Then:
 
@@ -190,11 +187,9 @@ When preparing the VM, target `vm:init` will create directory `opt/florist/dispo
 
 Tests that exercise a destructive functionality begin with
 
-```go
-func TestSshAddAuthorizedKeysVM(t *testing.T) {
-    florist.SkipIfNotDisposableHost(t)
-    ...
-```
+    func TestSshAddAuthorizedKeysVM(t *testing.T) {
+        florist.SkipIfNotDisposableHost(t)
+        ...
 
 so that they will be skipped when running by mistake on the host. You can use the same conventions for your own tests.
 
@@ -206,30 +201,29 @@ Note that the flowers themselves are _not_ protected by the equivalent of `SkipI
 
 This will restore a pristine VM snapshot (very fast) and run the tests (leaving the VM running):
 
-```text
-task test:all:vm:clean
-```
+    task test:all:vm:clean
 
 ### From the guest, run the tests
 
-```text
-## Connect to the VM directly (bypass vagrant, way faster)
-$ ssh -F ssh.config.vagrant florist-dev
+    ## Connect to the VM directly (bypass vagrant, way faster)
+    $ ssh -F ssh.config.vagrant florist-dev
+    
+    ## == following happens in the VM ==
+    
+    ## The florist/ directory is a shared mount with the host
+    vagrant@florist-dev:~$ cd florist
+    vagrant@florist-dev:~$ sudo task test:all
 
-## == following happens in the VM ==
+### Testing with a VM in Hetzner Cloud
 
-## The florist/ directory is a shared mount with the host
-vagrant@florist-dev:~$ cd florist
-vagrant@florist-dev:~$ sudo task test:all
-```
+See the Taskfile targets with prefix `pulumi`. Full cycle:
 
-### Log files
+    task pulumi:all
 
-The cloud-init logs are at
+### Useful files to troubleshoot
 
-- `/var/log/cloud-init-output.log`
-
-The cloud-config file and other configuration information is at `/var/lib/cloud/instance/user-data.txt`
+- The cloud-init logs are at `/var/log/cloud-init-output.log`
+- The cloud-config file and other configuration information is at `/var/lib/cloud/instance/user-data.txt`
 
 ## Examples
 
@@ -238,4 +232,3 @@ See directory [examples/](examples) for example installers.
 See section [Development](#prepare-for-development) for how to run the example installer in the VM.
 
 [Go text templates]: https://pkg.go.dev/text/template
-[defaults package]:  https://github.com/creasty/defaults
