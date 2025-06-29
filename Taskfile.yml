@@ -122,11 +122,15 @@ tasks:
     desc: Build and upload tests to the VM.
     cmds:
       - rm -rf ./bin/*
-      - GOOS=linux GOARCH=amd64 go test -cover -c ./... -o ./bin/
+      # Build test2json from the Go stdlib, needed by gotestsum
+      - >-
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
+        -o ./bin/test2json -ldflags="-s -w" cmd/test2json
+      - GOOS=linux GOARCH=amd64 go test -cover -c ./... -o ./bin/ > /dev/null
       - >-
         gokr-rsync --quiet -P -a -t -e "ssh -F ssh.config.pulumi"
-        ./bin/*.test pkg/florist/testdata ./pulumi/runtests.sh
-        root@[{{.ADDR}}]:/opt/florist/test/
+        ./bin/*.test ./bin/test2json pkg/florist/testdata ./pulumi/runtests.sh
+        root@[{{.ADDR}}]:/opt/florist/test/ 2> /dev/null
     vars:
       ADDR:
         sh: envchain florist pulumi -C pulumi stack output IPv6
