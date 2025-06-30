@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"strconv"
 	"strings"
 )
 
@@ -67,22 +68,41 @@ func SupplementaryGroups(username string, groups ...string) error {
 	return nil
 }
 
+type UserAddOpt struct {
+	UID int
+}
+
 // UserSystemAdd adds the system user 'username' and group 'username', with
 // home directory 'homedir' and mode 0o755.
-func UserSystemAdd(username string, homedir string) error {
+func UserSystemAdd(username string, homedir string, opts ...UserAddOpt) error {
 	log := Log().With("user", username)
+
+	optsCount := len(opts)
+	if optsCount > 0 && optsCount != 1 {
+		return fmt.Errorf("UserSystemAdd: have %d options; want only one", optsCount)
+	}
 
 	if _, err := user.Lookup(username); err == nil {
 		log.Debug("user-system-add", "status", "user already present")
 		return nil
 	}
 
-	cmd := exec.Command(
-		"adduser",
-		"--system", "--group",
+	cmdFlags := []string{
+		username,
+		"--system",
+		"--group",
 		"--home", homedir,
 		"--gecos", fmt.Sprintf(`"user %s"`, username),
-		username)
+	}
+
+	if optsCount != 0 {
+		if opts[0].UID != -1 {
+			cmdFlags = append(cmdFlags, "--uid", strconv.Itoa(opts[0].UID))
+		}
+		// do any future opts processing here...
+	}
+
+	cmd := exec.Command("adduser", cmdFlags...)
 	if err := CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("user: add: %s", err)
 	}
