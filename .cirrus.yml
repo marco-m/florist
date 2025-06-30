@@ -1,0 +1,19 @@
+task:
+  container:
+    image: golang:latest
+    # https://cirrus-ci.org/guide/linux/#kvm-enabled-privileged-containers
+    # kvm: true
+  modules_cache:
+    fingerprint_script: cat go.sum
+    folder: $GOPATH/pkg/mod
+  get_script: go get ./...
+  build_script: go build -v ./...
+  test_script: |
+    go install gotest.tools/gotestsum@latest
+    curl --location --fail-with-body --no-progress-meter https://github.com/go-task/task/releases/download/v3.44.0/task_linux_amd64.tar.gz -o task_linux_amd64.tar.gz
+    tar xzf task_linux_amd64.tar.gz
+    ./task check-coverage
+  lint_script: |
+    go install honnef.co/go/tools/cmd/staticcheck@latest
+    go vet ./...
+    staticcheck ./...

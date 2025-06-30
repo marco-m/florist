@@ -1,8 +1,17 @@
 # florist/Taskfile (see https://taskfile.dev)
 
 version: '3'
+set: [pipefail]
 
 tasks:
+
+  pre-commit:
+    cmds:
+      - task: build
+      - task: lint
+      - task: check-coverage
+      - cmd: go mod tidy
+
   build:example:
     desc: Build the example provisioner.
     cmds:
@@ -21,12 +30,33 @@ tasks:
 
   lint:
     cmds:
+      - go vet ./...
       - staticcheck ./...
 
-  test:all:
+  check-coverage:
+    vars:
+      COVERAGE:
+        map:
+          darwin: '23.7%'
+          linux: '24.0%'
+    cmds:
+      - go clean -testcache
+      - task: test
+      - cmd: |
+          have=$(go tool cover -func ./bin/coverage.out | grep ^total: | awk '{print $3}')
+          if [ $have != {{index .COVERAGE OS}} ]; then
+            echo "Coverage changed: have: $have; want: {{index .COVERAGE OS}}"
+            exit 1
+          else
+            echo "Coverage: $have"
+          fi
+        silent: true
+
+  test:
     desc: Run all the unit tests; makes sense only if invoking from the VM.
     cmds:
-      - gotestsum -- -count=1 -coverprofile=./bin/cover.out ./...
+      - mkdir -p ./bin
+      - gotestsum -- -count=1 -coverprofile=./bin/coverage.out ./...
 
   test:all:vm:clean:
     desc: Run all the tests on a VM from a clean snapshot
@@ -50,7 +80,7 @@ tasks:
   browser:
     desc: "Show code coverage in browser (usage: task test:<subtarget> browser)"
     cmds:
-      - go tool cover -html=./bin/cover.out
+      - go tool cover -html=./bin/coverage.out
 
   clean:
     desc: Remove the build artifacts
