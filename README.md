@@ -1,5 +1,8 @@
 # 🌼 florist 🌺
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/marco-m/florist.svg)](https://pkg.go.dev/github.com/marco-m/florist)
+[![Build Status](https://api.cirrus-ci.com/github/marco-m/florist.svg?branch=master)](https://cirrus-ci.com/github/marco-m/florist)
+
 A bare-bones and opinionated Go module to create a **non-idempotent**, **one-file-contains-everything** provisioner (install and configure).
 
 ## Status
