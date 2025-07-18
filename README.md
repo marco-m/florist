@@ -1,5 +1,8 @@
 # 🌼 florist 🌺
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/marco-m/florist.svg)](https://pkg.go.dev/github.com/marco-m/florist)
+[![Build Status](https://api.cirrus-ci.com/github/marco-m/florist.svg?branch=master)](https://cirrus-ci.com/github/marco-m/florist)
+
 A bare-bones and opinionated Go module to create a **non-idempotent**, **one-file-contains-everything** provisioner (install and configure).
 
 ## Status
@@ -183,7 +186,7 @@ As such, you don't want to run the installer on your development machine. Same r
 
 The convention taken by the tests to reduce the possibility of an error is the following.
 
-When preparing the VM, target `vm:init` will create directory `opt/florist/disposable`; its presence means that the machine can be subjected to destructive tests.
+When preparing the VM, target `vm:init` will create directory `/opt/florist/disposable`; its presence means that the machine can be subjected to destructive tests.
 
 Tests that exercise a destructive functionality begin with
 
