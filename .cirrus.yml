@@ -30,10 +30,6 @@ task:
   modules_cache:
     fingerprint_script: cat go.sum
     folder: $GOPATH/pkg/mod
-  # explore_script: |
-  #   ps aux
-  #   systemctl status
-  #   exit 1
   install_go_script: |
     curl --location --fail-with-body --no-progress-meter https://go.dev/dl/${GO_PKG} -o ${GO_PKG}
     rm -rf /usr/local/go && tar -C /usr/local -xzf ${GO_PKG}
@@ -46,7 +42,8 @@ task:
     go install gotest.tools/gotestsum@latest
     curl --location --fail-with-body --no-progress-meter https://github.com/go-task/task/releases/download/${TASKFILE_VERSION}/task_linux_amd64.tar.gz -o task_linux_amd64.tar.gz
     tar xzf task_linux_amd64.tar.gz
-    ./task check-coverage
+    # The passed COVERAGE is the one from destructive tests.
+    ./task check-coverage COVERAGE='28.6%'
   lint_script: |
     go install honnef.co/go/tools/cmd/staticcheck@latest
     go vet ./...
