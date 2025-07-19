@@ -33,18 +33,30 @@ tasks:
       - go vet ./...
       - staticcheck ./...
 
+  test:
+    desc: Run all the unit tests; makes sense only if invoking from the VM.
+    cmds:
+      - mkdir -p ./bin
+      # - go clean -testcache
+      - gotestsum -- -count=1 -coverprofile=./bin/coverage.out ./...
+
+  test:all:vm:clean:
+    desc: Run all the tests on a VM from a clean snapshot
+    cmds:
+      - task: _vm:restore
+      - task: test:all:vm:dirty
+
   check-coverage:
+    desc: 'Usage: task test check-coverage'
     vars:
       # This coverage is for non-destructive tests (host NOT disposable).
       COVERAGE_MAP:
         map:
-          darwin: '23.7%'
+          darwin: '24.7%'
           linux: '24.0%'
       # Can be set from command-line, see usage in .cirrus.yml
       COVERAGE: '{{default (index .COVERAGE_MAP OS) .COVERAGE}}'
     cmds:
-      - go clean -testcache
-      - task: test
       - cmd: |
           have=$(go tool cover -func ./bin/coverage.out | grep ^total: | awk '{print $3}')
           if [ $have != {{.COVERAGE}} ]; then
@@ -54,18 +66,6 @@ tasks:
             echo "Coverage: $have"
           fi
         silent: true
-
-  test:
-    desc: Run all the unit tests; makes sense only if invoking from the VM.
-    cmds:
-      - mkdir -p ./bin
-      - gotestsum -- -count=1 -coverprofile=./bin/coverage.out ./...
-
-  test:all:vm:clean:
-    desc: Run all the tests on a VM from a clean snapshot
-    cmds:
-      - task: _vm:restore
-      - task: test:all:vm:dirty
 
   test:all:vm:dirty:
     desc: |

@@ -36,14 +36,17 @@ task:
   get_go_deps_script: go get ./...
   build_script: go build -v ./...
   test_script: |
+    export FLORIST_MANUAL_TEST=ssh
     #env | sort
     # YEAH Enable Florist destructive tests!
     mkdir -p /opt/florist/disposable
     go install gotest.tools/gotestsum@latest
     curl --location --fail-with-body --no-progress-meter https://github.com/go-task/task/releases/download/${TASKFILE_VERSION}/task_linux_amd64.tar.gz -o task_linux_amd64.tar.gz
     tar xzf task_linux_amd64.tar.gz
-    # The passed COVERAGE is the one from destructive tests.
-    ./task check-coverage COVERAGE='28.6%'
+    ./task test
+  check_coverage_script: |
+    # The passed COVERAGE value is the one from destructive tests.
+    ./task check-coverage COVERAGE='30.6%'
   lint_script: |
     go install honnef.co/go/tools/cmd/staticcheck@latest
     go vet ./...
