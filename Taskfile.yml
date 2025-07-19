@@ -38,7 +38,7 @@ tasks:
       # This coverage is for non-destructive tests (host NOT disposable).
       COVERAGE_MAP:
         map:
-          darwin: '23.7%'
+          darwin: '24.3%'
           linux: '24.0%'
       # Can be set from command-line, see usage in .cirrus.yml
       COVERAGE: '{{default (index .COVERAGE_MAP OS) .COVERAGE}}'
