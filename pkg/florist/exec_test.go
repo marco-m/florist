@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/marco-m/florist/internal"
 	"github.com/marco-m/florist/pkg/florist"
@@ -71,14 +72,27 @@ func TestHelperProcess(*testing.T) {
 		return
 	}
 
-	// optional: validation logic
+	//
+	// This code runs in a separate OS process from the tests!!!
+	//
 
 	// Simulate a process, run by florist.CmdRun(), that writes to stdout and stderr.
+
+	// WARNING The sleeps are to cause a context switch between this process and the test
+	// process, so that we can check for the correct ordering (see
+	// TestCmdRunProcWritesToStdoutAndStderr). This is inherently fragile and not really
+	// needed to test that the SUT behaves correctly. As such, we might delete the sleeps
+	// and not check the ordering anymore if this turns out to be flaky.
 	fmt.Fprintf(os.Stdout, "line 1 to stdout\n")
+	time.Sleep(10 * time.Millisecond)
 	fmt.Fprintf(os.Stderr, "line 2 to stderr\n")
+	time.Sleep(10 * time.Millisecond)
 	fmt.Fprintf(os.Stdout, "line 3 to stdout\n")
+	time.Sleep(10 * time.Millisecond)
 	fmt.Fprintf(os.Stderr, "line 4 to stderr\n")
+	time.Sleep(10 * time.Millisecond)
 	fmt.Fprintf(os.Stdout, "line 5 to stdout\n")
+	time.Sleep(10 * time.Millisecond)
 	fmt.Fprintf(os.Stderr, "line 6 to stderr\n")
 
 	os.Exit(0)
@@ -107,14 +121,12 @@ func TestCmdRunProcWritesToStdoutAndStderr(t *testing.T) {
 	have := buf.String()
 	have = have[strings.Index(have, "\n"):]
 
-	// NOTE the ordering is wrong: first all writes to stdout, then all writes to stderr.
-	// This shows that the implementation is wrong.
 	want := `
 level=DEBUG msg=cmd-run stdout="line 1 to stdout"
-level=DEBUG msg=cmd-run stdout="line 3 to stdout"
-level=DEBUG msg=cmd-run stdout="line 5 to stdout"
 level=DEBUG msg=cmd-run stderr="line 2 to stderr"
+level=DEBUG msg=cmd-run stdout="line 3 to stdout"
 level=DEBUG msg=cmd-run stderr="line 4 to stderr"
+level=DEBUG msg=cmd-run stdout="line 5 to stdout"
 level=DEBUG msg=cmd-run stderr="line 6 to stderr"
 `
 	if text := diff.TextDiff("want", "have", want, have); text != "" {
