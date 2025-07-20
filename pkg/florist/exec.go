@@ -2,6 +2,7 @@ package florist
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"log/slog"
 	"os/exec"
@@ -11,7 +12,6 @@ import (
 // CmdRun runs 'cmd', redirecting its stdout and stderr to 'log.Debug'.
 // CmdRun blocks until 'cmd' terminates.
 func CmdRun(log *slog.Logger, cmd *exec.Cmd) error {
-	const truncLen = 160
 	log.Debug("cmd-run", "cmd", cmd.String())
 
 	stdout, err := cmd.StdoutPipe()
@@ -29,11 +29,13 @@ func CmdRun(log *slog.Logger, cmd *exec.Cmd) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		var splitter Splitter
 		outScanner := bufio.NewScanner(stdout)
+		outScanner.Split(splitter.ScanWithLength)
 		for outScanner.Scan() {
 			line := outScanner.Text()
 			if line != "" {
-				log.Debug("cmd-run", "stdout", truncate(line, truncLen))
+				log.Debug("cmd-run", "stdout", line)
 			}
 		}
 		if err := outScanner.Err(); err != nil {
@@ -46,11 +48,12 @@ func CmdRun(log *slog.Logger, cmd *exec.Cmd) error {
 	var errLines []string
 	go func() {
 		defer wg.Done()
+		var splitter Splitter
 		errScanner := bufio.NewScanner(stderr)
+		errScanner.Split(splitter.ScanWithLength)
 		for errScanner.Scan() {
 			line := errScanner.Text()
 			if line != "" {
-				line = truncate(line, truncLen)
 				errLines = append(errLines, line)
 				log.Debug("cmd-run", "stderr", line)
 			}
@@ -75,9 +78,51 @@ func CmdRun(log *slog.Logger, cmd *exec.Cmd) error {
 	return nil
 }
 
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
+const maxLineLen = 160
+
+// Splitter keeps state for [Splitter.ScanWithLength], meant to be passed to a
+// bufio.Scanner.
+// The zero value of Splitter uses a MaxLineLen of [maxLineLen].
+type Splitter struct {
+	MaxLineLen int
+}
+
+// ScanWithLength is a split function for a bufio.Scanner that returns each line of text.
+// If the line is longer than [Splitter.MaxLineLen], then ScanWithLength returns the first
+// [Splitter.MaxLineLen] bytes (the rest of the line will be reurned in subsequent calls
+// to Scan).
+// Based on ScanLines from stdlib bufio/scan.go
+func (sp *Splitter) ScanWithLength(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if sp.MaxLineLen == 0 {
+		sp.MaxLineLen = maxLineLen
 	}
-	return s[:n] + "..."
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+
+	if i := bytes.IndexByte(data, '\n'); i >= 0 && i <= sp.MaxLineLen {
+		// We have a full newline-terminated line and it is not too long.
+		return i + 1, dropCR(data[0:i]), nil
+	}
+
+	// If line is too long, let's split it.
+	if len(data) >= sp.MaxLineLen {
+		return sp.MaxLineLen, data[0:sp.MaxLineLen], nil
+	}
+
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), dropCR(data), nil
+	}
+	// Request more data.
+	return 0, nil, nil
+}
+
+// dropCR drops a terminal \r from the data.
+// Taken from stdlib bufio/scan.go
+func dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		return data[0 : len(data)-1]
+	}
+	return data
 }
