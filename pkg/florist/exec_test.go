@@ -1,11 +1,13 @@
 package florist_test
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -132,4 +134,43 @@ level=DEBUG msg=cmd-run stderr="line 6 to stderr"
 	if text := diff.TextDiff("want", "have", want, have); text != "" {
 		t.Errorf("\nlog mismatch:\n%s", text)
 	}
+}
+
+func TestCustomSplitter(t *testing.T) {
+	type testCase struct {
+		name      string
+		input     string
+		wantLines []string
+	}
+
+	test := func(tc testCase) {
+		t.Helper()
+
+		splitter := florist.Splitter{MaxLineLen: 7}
+		scanner := bufio.NewScanner(strings.NewReader(tc.input))
+		scanner.Split(splitter.ScanWithLength)
+
+		var lines []string
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+		}
+
+		if err := scanner.Err(); err != nil {
+			t.Errorf("\n%q scanner:\nhave error: %s\nwant: <no error>", tc.name, err)
+		}
+		if !slices.Equal(lines, tc.wantLines) {
+			t.Errorf("\n%q lines mismatch:\nhave: %v\nwant: %v", tc.name, lines, tc.wantLines)
+		}
+	}
+
+	test(testCase{
+		name:      "no newlines",
+		input:     "a123456b123456c123",
+		wantLines: []string{"a123456", "b123456", "c123"},
+	})
+	test(testCase{
+		name:      "some newlines",
+		input:     "a12\nb123456c1234\nd12",
+		wantLines: []string{"a12", "b123456", "c1234", "d12"},
+	})
 }
