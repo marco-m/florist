@@ -21,7 +21,7 @@ tasks:
     desc: Build the provisioner for the project
     cmds:
       - go build -o bin/dev ./florist/roles/dev
-      - GOOS=linux go build -o bin/linux/dev ./florist/roles/dev
+      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/linux/dev ./florist/roles/dev
 
   build:
     desc: Test successful build.
@@ -149,11 +149,11 @@ tasks:
       #   mkdir -p /opt/florist/test &&
       #   curl --location --fail-with-body --no-progress-meter https://go.dev/dl/{{.GO_PKG}} -o {{.GO_PKG}} &&
       #   rm -rf /usr/local/go && tar -C /usr/local -xzf {{.GO_PKG}}"
-      # - task: build:dev
+      - task: build:dev
       - >-
         gokr-rsync --quiet -P -a -t -e "ssh -F ssh.config.pulumi"
         ./bin/linux/dev
-        root@[{{.ADDR}}]:/opt/florist/
+        root@[{{.ADDR}}]:/opt/florist/ 2> /dev/null
       - >-
         ssh -F ssh.config.pulumi root@{{.ADDR}}
         "/opt/florist/dev --log-level=debug install"
@@ -218,7 +218,6 @@ tasks:
         vars: {preview: no}
       - task: pulumi:up
         vars: {preview: no}
-      - task: wait-for-conn
       - task: pulumi:test
       - task: pulumi:down
         vars: {preview: no}

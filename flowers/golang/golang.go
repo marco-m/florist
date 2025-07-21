@@ -2,6 +2,7 @@
 package golang
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -99,25 +101,36 @@ func (fl *Flower) Install() error {
 	if err := os.RemoveAll(GOROOT); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
-	// TODO iterate in go/bin/ and remove symlinks
+
 	log.Debug("Moving Go into place")
 	if err := os.Rename(path.Join(florist.WorkDir, "go"), GOROOT); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	log.Debug("Creating symbolic links")
-	binDir := path.Join(GOROOT, "bin")
-	dirEntries, err := os.ReadDir(binDir)
+	goBinDir := path.Join(GOROOT, "bin")
+	goBinaries, err := os.ReadDir(goBinDir)
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
-	for _, de := range dirEntries {
-		if err := os.Symlink(path.Join(binDir, de.Name()),
-			path.Join("/usr/local/bin", de.Name())); err != nil {
+	for _, de := range goBinaries {
+		oldname := path.Join(goBinDir, de.Name())
+		newname := path.Join("/usr/local/bin", de.Name())
+		// Remove old Go symlink (if any). If no previous Go installation, the symlink
+		// will not exist and os.Remove will return an error, so we don't check for it.
+		os.Remove(newname)
+		if err := os.Symlink(oldname, newname); err != nil {
 			return fmt.Errorf("%s: %s", Name, err)
 		}
 	}
-	log.Info("Installed Go", "path", GOROOT)
+
+	// Smoke test for the installation.
+	goExe := filepath.Join(goBinDir, "go")
+	output, err := exec.Command(goExe, "version").Output()
+	if err != nil {
+		return fmt.Errorf("%s: doing Go install smoke test: %s", Name, err)
+	}
+	log.Info("Installed Go", "path", GOROOT, "smoke", string(bytes.TrimSpace(output)))
 
 	return envvar.AddPaths(log, "go", "$HOME/go/bin")
 }

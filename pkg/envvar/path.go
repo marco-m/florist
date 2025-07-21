@@ -38,7 +38,8 @@ func Add(k, v string) error {
 }
 
 // AddPaths appends 'paths' to the system PATH, for POSIX shells and for the
-// Fish shell.
+// Fish shell. Parameter 'name' is the name of the configuration file under the shell
+// config directory.
 //
 // The never-ending pain of shells and something apparently as simple as adding
 // to the PATH environment variable. Sigh.

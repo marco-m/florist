@@ -38,7 +38,6 @@ func run(ctx *pulumi.Context) error {
 					Protocol:    pulumi.String("icmp"),
 					SourceIps:   pulumi.StringArray{AnyIPv4, AnyIPv6},
 				},
-
 				&hcloud.FirewallRuleArgs{
 					Description: pulumi.String("inbound SSH"),
 					Direction:   pulumi.String("in"),
@@ -72,8 +71,9 @@ func run(ctx *pulumi.Context) error {
 		PublicNets: hcloud.ServerPublicNetArray{
 			&hcloud.ServerPublicNetArgs{
 				// Public IPv4, extra cost. Enable if needed.
+				// Must enable to be able to reach among others github.com :-(
 				// https://docs.hetzner.com/cloud/servers/primary-ips/overview#pricing
-				Ipv4Enabled: pulumi.BoolPtr(false),
+				Ipv4Enabled: pulumi.BoolPtr(true),
 				// Public IPv6, no extra cost.
 				Ipv6Enabled: pulumi.BoolPtr(true),
 			},

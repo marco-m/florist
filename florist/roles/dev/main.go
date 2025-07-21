@@ -47,14 +47,14 @@ func setup(prov *florist.Provisioner) error {
 		},
 		&golang.Flower{
 			Inst: golang.Inst{
-				Version: "1.24.4",
-				Hash:    "77e5da33bb72aeaef1ba4418b6fe511bc4d041873cbf82e5aa6318740df98717",
+				Version: "1.24.5",
+				Hash:    "10ad9e86233e74c0f6590fe5426895de6bf388964210eac34a6d83f38918ecdc",
 			},
 		},
 		&fishshell.Flower{
 			Inst: fishshell.Inst{
-				Usernames:    []string{"vagrant"},
-				SetAsDefault: true,
+				Usernames:    []string{"root", "vagrant"},
+				SetAsDefault: false,
 			},
 		},
 	)
