@@ -45,7 +45,8 @@ func Refresh(cacheValidity time.Duration) error {
 	}
 
 	cacheAge := time.Since(cacheModTime).Truncate(time.Second)
-	log.Debug("cache-info", "cache-validity", cacheValidity, "cache-age", cacheAge)
+	log.Debug("cache-info", "cache-validity", cacheValidity,
+		"cache-age", florist.HumanDuration(cacheAge))
 	if cacheAge < cacheValidity {
 		log.Debug("", "cache", "valid")
 		return nil
