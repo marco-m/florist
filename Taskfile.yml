@@ -80,7 +80,7 @@ tasks:
     cmds:
       - ssh -F ssh.config.vagrant florist-vagrant sudo sntp --step 0.pool.ntp.org
 
-  browser:
+  coverage:browser:
     desc: "Show code coverage in browser (usage: task test:<subtarget> browser)"
     cmds:
       - go tool cover -html=./bin/coverage.out
@@ -135,6 +135,7 @@ tasks:
         vars:
           CLI_ARGS: up {{if eq .preview "no"}}--skip-preview{{end}}
       - task: wait-for-conn
+      - task: pulumi:mutagen:start
       - task: pulumi:init-vm
 
   pulumi:init-vm:
@@ -143,8 +144,7 @@ tasks:
       - rsync --quiet -P -a -t ./bin/linux/dev florist-hcloud:/opt/florist/
       - ssh florist-hcloud "mkdir -p /opt/florist/disposable"
       - ssh florist-hcloud "/opt/florist/dev --log-level=debug install"
-    vars:
-      GO_PKG: go1.24.5.linux-amd64.tar.gz
+      - ssh florist-hcloud "go install gotest.tools/gotestsum@latest"
 
   pulumi:refresh:
     desc: Run pulumi refresh.
@@ -158,6 +158,7 @@ tasks:
   pulumi:down:
     desc: Run pulumi down.
     cmds:
+      - task: pulumi:mutagen:stop
       - task: pulumi
         vars:
           # To understand the fundamental --run-program, see
@@ -169,25 +170,10 @@ tasks:
     cmds:
       - ssh florist-hcloud
 
-  pulumi:upload:
-    desc: Build and upload tests to the VM.
-    cmds:
-      - rm -rf ./bin/*
-      # Build test2json from the Go stdlib, needed by gotestsum
-      - >-
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
-        -o ./bin/test2json -ldflags="-s -w" cmd/test2json
-      - GOOS=linux GOARCH=amd64 go test -cover -c ./... -o ./bin/ > /dev/null
-      - >-
-        rsync --quiet -P -a -t
-        ./bin/*.test ./bin/test2json pkg/florist/testdata ./pulumi/runtests.sh
-        florist-hcloud:/opt/florist/test/
-
   pulumi:test:
-    desc: Build, upload and run the tests on the cloud VM.
+    desc: Run the tests on the cloud VM.
     cmds:
-      - task: pulumi:upload
-      - ssh florist-hcloud "time /opt/florist/test/runtests.sh"
+      - ssh florist-hcloud 'fish -c "cd florist && task test"'
 
   wait-for-conn:
     cmds:
@@ -215,6 +201,35 @@ tasks:
       - envchain florist pulumi -C pulumi {{.CLI_ARGS}}
     vars:
       env: dev
+
+  pulumi:mutagen:start:
+    cmds:
+      # One way from localhost to target.
+      - |
+        mutagen sync create \
+        --name=florist-hcloud-src \
+        --sync-mode=one-way-replica \
+        --ignore='/.git/' \
+        --ignore='/.jj/' \
+        --ignore='/bin/' \
+        ~/src/hw/florist florist-hcloud:~/florist
+      # Bring back coverage data from target to localhost.
+      - |
+        mutagen sync create \
+        --name=florist-hcloud-cover \
+        --sync-mode=two-way-safe \
+        --ignore='*' \
+        --ignore='!cover*' \
+        ~/src/hw/florist/bin florist-hcloud:~/florist/bin
+
+
+
+  pulumi:mutagen:stop:
+    cmds:
+      - mutagen sync terminate florist-hcloud-src
+      - mutagen sync terminate florist-hcloud-cover
+      - mutagen sync list
+    ignore_error: true
 
   hcloud:
     desc: >

@@ -29,7 +29,7 @@ func setup(prov *florist.Provisioner) error {
 		&ospackages.Flower{
 			Inst: ospackages.Inst{
 				Add: []string{
-					"build-essential",
+					//"build-essential",
 					"sntp",
 					"ripgrep",
 					"rsync", // Needed by Jetbrains Goland SSH run target.
@@ -54,7 +54,7 @@ func setup(prov *florist.Provisioner) error {
 		&fishshell.Flower{
 			Inst: fishshell.Inst{
 				Usernames:    []string{"root", "vagrant"},
-				SetAsDefault: false,
+				SetAsDefault: true,
 			},
 		},
 	)
