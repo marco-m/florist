@@ -150,6 +150,16 @@ Prepare a VM from scratch, provision and take a snapshot. You need to do this on
 
        envchain --set florist PULUMI_CONFIG_PASSPHRASE
 
+## Add ssh.config.pulumi
+
+The Pulumi program will generate the SSH config file `ssh.config.pulumi` in the top-level directory.
+
+At the beginning (must be at the beginning) of your `$HOME/.ssh/config` file, add the line
+
+    Include ~/path/to/florist/ssh.config.pulumi
+
+Then, you can simply do `ssh florist-hcloud` without the need to specify the flag `-F ssh.config.pulumi`, nor to ssh nor to any utility (such as rsync, mutagen, scp) that uses ssh.
+
 ## Developing your installer/flowers
 
 You can do all development on the VM, or use the VM only to run the installer and the tests and do the development and build on the host. It is up to your convenience.

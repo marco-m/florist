@@ -49,7 +49,7 @@ func mainErr(args []string) error {
 			Long:  "max-wait", Label: "DURATION", Help: "Max wait time before giving up",
 		},
 		&clim.Flag{
-			Value: clim.Duration(&app.PollInterval, 1*time.Second),
+			Value: clim.Duration(&app.PollInterval, 2*time.Second),
 			Long:  "poll-interval", Label: "DURATION", Help: "Poll interval",
 		},
 		&clim.Flag{

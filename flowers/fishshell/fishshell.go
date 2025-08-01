@@ -79,13 +79,13 @@ func (fl *Flower) Install() error {
 	log.Info("Configure fish shell functions system-wide")
 	// # This provides the FQDN hostname in the prompt
 	if err := florist.CopyFileFs(fl.Fsys, PromptFileSrc, PromptFileDst,
-		0644, "root"); err != nil {
+		0o644, "root"); err != nil {
 		return err
 	}
 
 	log.Info("Configure fish shell system-wide")
 	if err := florist.CopyFileFs(fl.Fsys, ConfigFileSrc, ConfigFileDst,
-		0644, "root"); err != nil {
+		0o644, "root"); err != nil {
 		return err
 	}
 
@@ -106,7 +106,7 @@ func (fl *Flower) Install() error {
 		}
 	}
 	if found == 0 {
-		return fmt.Errorf("%s: could not find any users (%s)", Name,
+		return fmt.Errorf("%s: could not find any user among: %s", Name,
 			fl.Usernames)
 	}
 

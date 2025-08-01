@@ -21,7 +21,7 @@ tasks:
     desc: Build the provisioner for the project
     cmds:
       - go build -o bin/dev ./florist/roles/dev
-      - GOOS=linux go build -o bin/linux/dev ./florist/roles/dev
+      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/linux/dev ./florist/roles/dev
 
   build:
     desc: Test successful build.
@@ -73,14 +73,14 @@ tasks:
       (faster but inaccurate and flaky)
     cmds:
       - task: vm:set_date
-      - ssh -F ssh.config.vagrant florist-dev "cd florist && sudo task test:all"
+      - ssh -F ssh.config.vagrant florist-vagrant "cd florist && sudo task test:all"
 
   vm:set_date:
     desc: Set the current date in the VM (expects the VM to be running).
     cmds:
-      - ssh -F ssh.config.vagrant florist-dev sudo sntp --step 0.pool.ntp.org
+      - ssh -F ssh.config.vagrant florist-vagrant sudo sntp --step 0.pool.ntp.org
 
-  browser:
+  coverage:browser:
     desc: "Show code coverage in browser (usage: task test:<subtarget> browser)"
     cmds:
       - go tool cover -html=./bin/coverage.out
@@ -103,11 +103,11 @@ tasks:
     - sed -i.bak 's/LogLevel FATAL//' ssh.config.vagrant
     - rm ssh.config.vagrant.bak
     # Mark this VM as a target for destructive tests.
-    - ssh -F ssh.config.vagrant florist-dev sudo mkdir -p /opt/florist/disposable
+    - ssh -F ssh.config.vagrant florist-vagrant sudo mkdir -p /opt/florist/disposable
     # Provision the VM with the "dev" bouquet.
-    - ssh -F ssh.config.vagrant florist-dev sudo "./florist/bin/linux/dev install"
+    - ssh -F ssh.config.vagrant florist-vagrant sudo "./florist/bin/linux/dev install"
     # Install other deps. I am unsure this is the best approach...
-    - ssh -F ssh.config.vagrant florist-dev "GOBIN=/usr/local/bin sudo --preserve-env=GOBIN task -d florist install:deps"
+    - ssh -F ssh.config.vagrant florist-vagrant "GOBIN=/usr/local/bin sudo --preserve-env=GOBIN task -d florist install:deps"
       # Take snapshot, name `pristine`
     - vagrant snapshot save pristine
     - vagrant halt
@@ -127,7 +127,6 @@ tasks:
     cmds:
       - go install honnef.co/go/tools/cmd/staticcheck@latest
       - go install gotest.tools/gotestsum@latest
-      - go install github.com/gokrazy/rsync/cmd/gokr-rsync@latest
 
   pulumi:up:
     desc: Run pulumi up.
@@ -135,52 +134,46 @@ tasks:
       - task: pulumi
         vars:
           CLI_ARGS: up {{if eq .preview "no"}}--skip-preview{{end}}
+      - task: wait-for-conn
+      - task: pulumi:mutagen:start
+      - task: pulumi:init-vm
+
+  pulumi:init-vm:
+    cmds:
+      - task: build:dev
+      - rsync --quiet -P -a -t ./bin/linux/dev florist-hcloud:/opt/florist/
+      - ssh florist-hcloud "mkdir -p /opt/florist/disposable"
+      - ssh florist-hcloud "/opt/florist/dev --log-level=debug install"
+      - ssh florist-hcloud "go install gotest.tools/gotestsum@latest"
+
+  pulumi:refresh:
+    desc: Run pulumi refresh.
+    cmds:
+      - task: pulumi
+        vars:
+          # To understand the fundamental --run-program, see
+          # https://www.pulumi.com/blog/improved-refresh-destroy-experience/
+          CLI_ARGS: refresh --run-program {{if eq .preview "no"}}--skip-preview{{end}}
 
   pulumi:down:
     desc: Run pulumi down.
     cmds:
+      - task: pulumi:mutagen:stop
       - task: pulumi
         vars:
-          CLI_ARGS: down {{if eq .preview "no"}}--skip-preview{{end}}
+          # To understand the fundamental --run-program, see
+          # https://www.pulumi.com/blog/improved-refresh-destroy-experience/
+          CLI_ARGS: down --run-program {{if eq .preview "no"}}--skip-preview{{end}}
 
   pulumi:ssh:
     desc: Connect to the cloud VM.
     cmds:
-      - ssh -F ssh.config.pulumi root@{{.ADDR}}
-    vars:
-      ADDR:
-        sh: envchain florist pulumi -C pulumi stack output IPv6
-
-  pulumi:upload:
-    desc: Build and upload tests to the VM.
-    cmds:
-      - rm -rf ./bin/*
-      # Build test2json from the Go stdlib, needed by gotestsum
-      - >-
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
-        -o ./bin/test2json -ldflags="-s -w" cmd/test2json
-      - GOOS=linux GOARCH=amd64 go test -cover -c ./... -o ./bin/ > /dev/null
-      - >-
-        gokr-rsync --quiet -P -a -t -e "ssh -F ssh.config.pulumi"
-        ./bin/*.test ./bin/test2json pkg/florist/testdata ./pulumi/runtests.sh
-        root@[{{.ADDR}}]:/opt/florist/test/ 2> /dev/null
-    vars:
-      ADDR:
-        sh: envchain florist pulumi -C pulumi stack output IPv6
+      - ssh florist-hcloud
 
   pulumi:test:
-    desc: Build, upload and run the tests on the cloud VM.
+    desc: Run the tests on the cloud VM.
     cmds:
-      - >-
-        ssh -F ssh.config.pulumi root@{{.ADDR}}
-        "mkdir -p /opt/florist &&
-        mkdir -p /opt/florist/disposable &&
-        mkdir -p /opt/florist/test"
-      - task: pulumi:upload
-      - ssh -F ssh.config.pulumi root@{{.ADDR}} "time /opt/florist/test/runtests.sh"
-    vars:
-      ADDR:
-        sh: envchain florist pulumi -C pulumi stack output IPv6
+      - ssh florist-hcloud 'fish -c "cd florist && task test"'
 
   wait-for-conn:
     cmds:
@@ -197,7 +190,6 @@ tasks:
         vars: {preview: no}
       - task: pulumi:up
         vars: {preview: no}
-      - task: wait-for-conn
       - task: pulumi:test
       - task: pulumi:down
         vars: {preview: no}
@@ -209,6 +201,35 @@ tasks:
       - envchain florist pulumi -C pulumi {{.CLI_ARGS}}
     vars:
       env: dev
+
+  pulumi:mutagen:start:
+    cmds:
+      # One way from localhost to target.
+      - |
+        mutagen sync create \
+        --name=florist-hcloud-src \
+        --sync-mode=one-way-replica \
+        --ignore='/.git/' \
+        --ignore='/.jj/' \
+        --ignore='/bin/' \
+        ~/src/hw/florist florist-hcloud:~/florist
+      # Bring back coverage data from target to localhost.
+      - |
+        mutagen sync create \
+        --name=florist-hcloud-cover \
+        --sync-mode=two-way-safe \
+        --ignore='*' \
+        --ignore='!cover*' \
+        ~/src/hw/florist/bin florist-hcloud:~/florist/bin
+
+
+
+  pulumi:mutagen:stop:
+    cmds:
+      - mutagen sync terminate florist-hcloud-src
+      - mutagen sync terminate florist-hcloud-cover
+      - mutagen sync list
+    ignore_error: true
 
   hcloud:
     desc: >
