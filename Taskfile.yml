@@ -168,7 +168,7 @@ tasks:
   pulumi:ssh:
     desc: Connect to the cloud VM.
     cmds:
-      - ssh florist-hcloud
+      - ssh florist-hcloud fish {{.CLI_ARGS}}
 
   pulumi:test:
     desc: Run the tests on the cloud VM.
@@ -178,7 +178,7 @@ tasks:
   wait-for-conn:
     cmds:
       # Sometimes SSH is not ready yet when VM just created :-/
-      -  go run ./cmd/wait-for-conn --verbose --max-wait=20s --address [{{.ADDR}}]:22
+      -  go run ./cmd/wait-for-conn --verbose --max-wait=30s --address [{{.ADDR}}]:22
     vars:
       ADDR:
         sh: envchain florist pulumi -C pulumi stack output IPv6
