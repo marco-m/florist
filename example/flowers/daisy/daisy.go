@@ -6,6 +6,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"path/filepath"
 
 	"github.com/creasty/defaults"
@@ -75,7 +76,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log().With("flower", Name+".install")
+	log := slog.With("flower", Name+".install")
 	userName := florist.User().Username
 
 	dstPath := filepath.Join(fl.Inst.DstDir, InstallPlainFileDst)
@@ -103,7 +104,7 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log().With("flower", Name+".configure")
+	log := slog.With("flower", Name+".configure")
 
 	dstPath := filepath.Join(fl.Inst.DstDir, ConfigTmplFileDst)
 	log.Debug("installing file (templated)", "src", ConfigTmplFileSrc, "dst", dstPath)

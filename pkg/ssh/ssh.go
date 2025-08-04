@@ -3,6 +3,7 @@ package ssh
 import (
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -16,7 +17,7 @@ import (
 // the files matching '*.pub' below fsys, where HOME is the home directory of
 // username.
 func AddAuthorizedKeys(username string, fsys fs.FS) error {
-	log := florist.Log().With("user", username)
+	log := slog.With("user", username)
 	log.Info("adding SSH authorized_keys")
 
 	theUser, err := user.Lookup(username)
@@ -40,7 +41,7 @@ func AddAuthorizedKeys(username string, fsys fs.FS) error {
 
 	// If $HOME/.ssh doesn't exist, create it, correct owner and permissions.
 	sshDir := filepath.Join(theUser.HomeDir, ".ssh")
-	if err := os.MkdirAll(sshDir, 0700); err != nil {
+	if err := os.MkdirAll(sshDir, 0o700); err != nil {
 		return fmt.Errorf("AddAuthorizedKeys: %s", err)
 	}
 	if err := florist.Chown(sshDir, username); err != nil {
@@ -48,7 +49,7 @@ func AddAuthorizedKeys(username string, fsys fs.FS) error {
 	}
 
 	authorizedKeysPath := filepath.Join(sshDir, "authorized_keys")
-	fi, err := os.OpenFile(authorizedKeysPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	fi, err := os.OpenFile(authorizedKeysPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("AddAuthorizedKeys: %s", err)
 	}

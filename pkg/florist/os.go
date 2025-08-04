@@ -65,7 +65,7 @@ func FileExists(fpath string) (bool, error) {
 func WriteFile(fname string, data string,
 	mode os.FileMode, owner string, group string,
 ) error {
-	Log().Debug("WriteFile", "name", fname)
+	slog.Debug("WriteFile", "name", fname)
 	if err := os.WriteFile(fname, []byte(data), mode); err != nil {
 		return fmt.Errorf("florist.WriteFile: %s", err)
 	}
@@ -239,14 +239,14 @@ func CopyFileFs(
 // Parameter 'tmplName' is used for debugging purposes, a typical example is
 // the template file name.
 func TemplateFromText(tmplText string, tmplData any, tmplName string) (string, error) {
-	Log().Debug("TemplateFromText")
+	slog.Debug("TemplateFromText")
 	return renderText(tmplText, tmplData, tmplName, "", "")
 }
 
 // TemplateFromFs reads file srcPath in filesystem srcFs and renders its contents
 // as a template with data tmplData.
 func TemplateFromFs(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
-	Log().Debug("TemplateFromFs", "file-name", srcPath)
+	slog.Debug("TemplateFromFs", "file-name", srcPath)
 	return renderTemplate(srcFs, srcPath, tmplData, "", "")
 }
 
@@ -254,7 +254,7 @@ func TemplateFromFs(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
 // contents as a template with data tmplData, with "<<", ">>" as template delimiters.
 // This is useful to escape the default delimiters "{{", "}}" in the template.
 func TemplateFromFsWithDelims(srcFs fs.FS, srcPath string, tmplData any) (string, error) {
-	Log().Debug("TemplateFromFsWithDelims", "file-name", srcPath)
+	slog.Debug("TemplateFromFsWithDelims", "file-name", srcPath)
 	return renderTemplate(srcFs, srcPath, tmplData, "<<", ">>")
 }
 

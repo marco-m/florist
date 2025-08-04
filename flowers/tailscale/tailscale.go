@@ -92,7 +92,7 @@ func (fl *Flower) Init() error {
 
 func (fl *Flower) Install() error {
 	errorf := makeErrorf(Name + ".install")
-	log := florist.Log().With("flower", Name+".install")
+	log := slog.With("flower", Name+".install")
 
 	if err := installExes(log, fl.Version, fl.Hash, "root"); err != nil {
 		return errorf("%s", err)
@@ -119,7 +119,7 @@ func (fl *Flower) Install() error {
 
 func (fl *Flower) Configure() error {
 	errorf := makeErrorf(Name + ".configure")
-	log := florist.Log().With("flower", Name+".configure")
+	log := slog.With("flower", Name+".configure")
 
 	tmpDir, err := os.MkdirTemp("", "florist-tailscale")
 	if err != nil {

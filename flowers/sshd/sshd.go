@@ -20,6 +20,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os/exec"
 	"strings"
 
@@ -86,13 +87,13 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log().With("flower", Name+".install")
+	log := slog.With("flower", Name+".install")
 	log.Debug("nothing-to-do")
 	return nil
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log().With("flower", Name+".configure")
+	log := slog.With("flower", Name+".configure")
 
 	log.Info("installing sshd configuration file",
 		"src", SshdConfigSrc, "dst", SshdConfigDst)
