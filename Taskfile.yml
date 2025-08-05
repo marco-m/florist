@@ -38,7 +38,9 @@ tasks:
     cmds:
       - mkdir -p ./bin
       # - go clean -testcache
-      - gotestsum -- -count=1 -coverprofile=./bin/coverage.out ./...
+      - gotestsum -- -count=1 -coverprofile=./bin/coverage.out {{.pkg}}
+    vars:
+      pkg: '{{.pkg | default "./..."}}'
 
   test:all:vm:clean:
     desc: Run all the tests on a VM from a clean snapshot
@@ -168,7 +170,7 @@ tasks:
   pulumi:ssh:
     desc: Connect to the cloud VM.
     cmds:
-      - ssh florist-hcloud
+      - ssh florist-hcloud fish {{.CLI_ARGS}}
 
   pulumi:test:
     desc: Run the tests on the cloud VM.
@@ -178,7 +180,7 @@ tasks:
   wait-for-conn:
     cmds:
       # Sometimes SSH is not ready yet when VM just created :-/
-      -  go run ./cmd/wait-for-conn --verbose --max-wait=20s --address [{{.ADDR}}]:22
+      -  go run ./cmd/wait-for-conn --verbose --max-wait=30s --address [{{.ADDR}}]:22
     vars:
       ADDR:
         sh: envchain florist pulumi -C pulumi stack output IPv6

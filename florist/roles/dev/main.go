@@ -53,8 +53,10 @@ func setup(prov *florist.Provisioner) error {
 		},
 		&fishshell.Flower{
 			Inst: fishshell.Inst{
-				Usernames:    []string{"root", "vagrant"},
-				SetAsDefault: true,
+				Usernames: []string{"root", "vagrant"},
+				// For some reasons, Fish as default shell breaks some non-interactive
+				// usages with ssh.
+				SetAsDefault: false,
 			},
 		},
 	)

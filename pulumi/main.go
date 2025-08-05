@@ -171,6 +171,7 @@ Host florist-hcloud
   UserKnownHostsFile /dev/null
   IdentityFile ~/.ssh/florist-id_ed25519
   IdentitiesOnly yes
+  RequestTTY yes
 `, serverName, ipv6Address, ipv4Address)
 	if err != nil {
 		return fmt.Errorf("createSSHConfig: %w", err)

@@ -2,13 +2,14 @@ package systemd
 
 import (
 	"fmt"
+	"log/slog"
 	"os/exec"
 
 	"github.com/marco-m/florist/pkg/florist"
 )
 
 func Enable(unit string) error {
-	log := florist.Log().With("pkg", "systemd").With("unit", unit)
+	log := slog.With("pkg", "systemd").With("unit", unit)
 
 	cmd := exec.Command("systemctl", "enable", unit)
 	if err := florist.CmdRun(log, cmd); err != nil {
@@ -18,7 +19,7 @@ func Enable(unit string) error {
 }
 
 func Start(unit string) error {
-	log := florist.Log().With("pkg", "systemd")
+	log := slog.With("pkg", "systemd")
 
 	cmd := exec.Command("systemctl", "start", unit)
 	if err := florist.CmdRun(log, cmd); err != nil {
@@ -28,7 +29,7 @@ func Start(unit string) error {
 }
 
 func Restart(unit string) error {
-	log := florist.Log().With("pkg", "systemd")
+	log := slog.With("pkg", "systemd")
 
 	cmd := exec.Command("systemctl", "restart", unit)
 	if err := florist.CmdRun(log, cmd); err != nil {
@@ -38,7 +39,7 @@ func Restart(unit string) error {
 }
 
 func Reload(unit string) error {
-	log := florist.Log().With("pkg", "systemd")
+	log := slog.With("pkg", "systemd")
 
 	cmd := exec.Command("systemctl", "reload", unit)
 	if err := florist.CmdRun(log, cmd); err != nil {
@@ -51,7 +52,7 @@ func Reload(unit string) error {
 // WARNING: in case the unit is stopped, Status will return an error.
 // There is a set of status code, that I might translate to Go errors.
 func Status(unit string) error {
-	log := florist.Log().With("pkg", "systemd")
+	log := slog.With("pkg", "systemd")
 
 	var cmd *exec.Cmd
 	if unit != "" {

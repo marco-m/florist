@@ -23,8 +23,6 @@ var (
 	currentUser *user.User
 	// osPkgCacheValidity is set by Main.
 	osPkgCacheValidity time.Duration
-	// floristLog is the logger for the whole florist module. Set by Main.
-	floristLog *slog.Logger
 )
 
 // The Options passed to [MainInt]. For an example, see florist/example/main.go
@@ -149,7 +147,7 @@ func MainErr(args []string, opts *Options) error {
 		return err
 	}
 
-	app.log = Log()
+	app.log = slog.Default()
 
 	if err := opts.SetupFn(app.prov); err != nil {
 		return fmt.Errorf("florist.Main: setup: %s", err)
@@ -216,11 +214,10 @@ func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
 
 // root is a hack to ease testing.
 func customizeMotd(op string, status string, rootDir string) error {
-	log := Log()
 	now := time.Now().UTC().Round(time.Second)
 	line := fmt.Sprintf("%s 🌼 florist 🌺 System %s (%s)\n", now, op, status)
 	name := path.Join(rootDir, "/etc/motd")
-	log.Debug("customize-motd", "target", name, "operation", op, "status", status)
+	slog.Debug("customize-motd", "target", name, "operation", op, "status", status)
 
 	if err := os.MkdirAll(path.Dir(name), 0o755); err != nil {
 		return err
@@ -260,13 +257,6 @@ func CacheValidity() time.Duration {
 	return osPkgCacheValidity
 }
 
-func Log() *slog.Logger {
-	if floristLog == nil {
-		panic("florist.Log: must call florist.MainInt before")
-	}
-	return floristLog
-}
-
 // LowLevelInit should be called only by low-level test code.
 // Absolutely do not call in non-test code! Call florist.MainInt instead!
 func LowLevelInit(logOutput io.Writer, logLevel string, cacheValidity time.Duration) error {
@@ -276,8 +266,8 @@ func LowLevelInit(logOutput io.Writer, logLevel string, cacheValidity time.Durat
 	}
 
 	prog := filepath.Base(os.Args[0])
-	floristLog = slog.New(slog.NewTextHandler(logOutput,
-		&slog.HandlerOptions{Level: level})).With("prog", prog)
+	slog.SetDefault(slog.New(slog.NewTextHandler(logOutput,
+		&slog.HandlerOptions{Level: level})).With("prog", prog))
 
 	// FIXME should this go below???
 	var err error

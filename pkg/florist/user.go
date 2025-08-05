@@ -2,6 +2,7 @@ package florist
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"os/user"
@@ -12,7 +13,7 @@ import (
 // Do nothing if user already present.
 // Password login is disabled (use SSH public key or use passwd)
 func UserAdd(username string) error {
-	log := Log().With("user", username)
+	log := slog.With("user", username)
 
 	log.Info("user-add")
 	if _, err := user.Lookup(username); err == nil {
@@ -45,7 +46,7 @@ func UserAdd(username string) error {
 // It is an error if any of 'groups' does not exist (create them beforehand
 // with GroupSystemAdd).
 func SupplementaryGroups(username string, groups ...string) error {
-	log := Log().With("user", username).With("groups", groups)
+	log := slog.With("user", username).With("groups", groups)
 
 	if len(groups) == 0 {
 		return fmt.Errorf("supplementary-groups: must specify at least one group (user: %s)",
@@ -70,7 +71,7 @@ func SupplementaryGroups(username string, groups ...string) error {
 // UserSystemAdd adds the system user 'username' and group 'username', with
 // home directory 'homedir' and mode 0o755.
 func UserSystemAdd(username string, homedir string) error {
-	log := Log().With("user", username)
+	log := slog.With("user", username)
 
 	if _, err := user.Lookup(username); err == nil {
 		log.Debug("user-system-add", "status", "user already present")
@@ -107,7 +108,7 @@ func UserSystemAdd(username string, homedir string) error {
 // GroupSystemAdd adds group 'groupname'. It is not an error if 'groupname'
 // already exists.
 func GroupSystemAdd(groupname string) error {
-	log := Log().With("group", groupname)
+	log := slog.With("group", groupname)
 
 	cmd := exec.Command("addgroup", "--system", groupname)
 	if err := CmdRun(log, cmd); err != nil {

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -24,7 +25,7 @@ const (
 // If the file in dstDir exists and the hash matches, it will not be
 // redownloaded.
 func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDir string) (string, error) {
-	log := Log().With("url", url)
+	log := slog.With("url", url)
 
 	if len(url) == 0 {
 		return "", fmt.Errorf("NetFetch: empty url")

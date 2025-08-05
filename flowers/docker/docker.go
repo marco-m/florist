@@ -3,6 +3,7 @@ package docker
 
 import (
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"time"
 
@@ -52,7 +53,7 @@ func (fl *Flower) Init() error {
 func (fl *Flower) Install() error {
 	const step = Name + ".install"
 	errorf := makeErrorf(step)
-	log := florist.Log().With("flower", step)
+	log := slog.With("flower", step)
 
 	osInfo, err := platform.CollectInfo()
 	if err != nil {
@@ -136,7 +137,7 @@ func (fl *Flower) Install() error {
 func (fl *Flower) Configure() error {
 	const step = Name + ".configure"
 	errorf := makeErrorf(step)
-	log := florist.Log().With("flower", step)
+	log := slog.With("flower", step)
 
 	log.Info("docker-sanity-check", "status", "running")
 

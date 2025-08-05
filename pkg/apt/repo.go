@@ -2,6 +2,7 @@ package apt
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -39,7 +40,7 @@ func AddRepo(
 	repoURL string,
 ) error {
 	const fn = "apt.AddRepo"
-	log := florist.Log().With("fn", fn)
+	log := slog.With("fn", fn)
 
 	log.Info("Download PGP key", "url", keyURL)
 	client := &http.Client{Timeout: 15 * time.Second}

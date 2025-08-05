@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"os/exec"
 	"sync"
@@ -25,8 +26,7 @@ func Update(cacheValidity time.Duration) error {
 	once.Do(func() {
 		updateErr = Refresh(cacheValidity)
 	})
-	florist.Log().Info("apt.Update", "elapsed",
-		time.Since(now).Truncate(time.Millisecond))
+	slog.Info("apt.Update", "elapsed", time.Since(now).Truncate(time.Millisecond))
 	return updateErr
 }
 
@@ -35,7 +35,7 @@ func Update(cacheValidity time.Duration) error {
 // [AddRepo].
 // Note that the function to use for the majority of cases is instead [Update].
 func Refresh(cacheValidity time.Duration) error {
-	log := florist.Log().With("fn", "apt.Update")
+	log := slog.With("fn", "apt.Update")
 	// Sigh. No method is robust :-/
 	// /var/lib/apt/lists
 	// /var/cache/apt/pkgcache.bin
@@ -62,7 +62,7 @@ func Refresh(cacheValidity time.Duration) error {
 }
 
 func Install(pkg ...string) error {
-	log := florist.Log().With("fn", "apt.Install")
+	log := slog.With("fn", "apt.Install")
 	log.Info("updating package cache")
 	if err := Update(florist.CacheValidity()); err != nil {
 		return err
@@ -82,7 +82,7 @@ func Install(pkg ...string) error {
 }
 
 func Remove(pkg ...string) error {
-	log := florist.Log().With("fn", "apt.Remove")
+	log := slog.With("fn", "apt.Remove")
 	log.Info("Removing", "packages", pkg)
 	args := []string{"remove", "-y"}
 	args = append(args, pkg...)

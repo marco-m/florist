@@ -31,8 +31,7 @@ type Inst struct {
 	Hash    string
 }
 
-type Conf struct {
-}
+type Conf struct{}
 
 func (fl *Flower) String() string {
 	return Name
@@ -60,7 +59,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log().With("flower", Name+".install")
+	log := slog.With("flower", Name+".install")
 
 	taskDst := "/usr/local/bin/task"
 	if installedTaskVersion(log, taskDst) == fl.Version {
@@ -111,7 +110,7 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log().With("flower", Name+".configure")
+	log := slog.With("flower", Name+".configure")
 	log.Debug("nothing to do")
 	return nil
 }

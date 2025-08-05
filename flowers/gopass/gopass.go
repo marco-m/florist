@@ -3,6 +3,7 @@ package gopass
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	url2 "net/url"
 	"os"
@@ -28,8 +29,7 @@ type Inst struct {
 	Hash    string
 }
 
-type Conf struct {
-}
+type Conf struct{}
 
 func (fl *Flower) String() string {
 	return Name
@@ -58,7 +58,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log().With("flower", Name+".install")
+	log := slog.With("flower", Name+".install")
 
 	log.Info("Installing dependencies for gopass")
 	if err := apt.Install(
@@ -88,7 +88,6 @@ func (fl *Flower) Install() error {
 	os.Remove(pkgPath)
 
 	return nil
-
 }
 
 func (fl *Flower) Configure() error {

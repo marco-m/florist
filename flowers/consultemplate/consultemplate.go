@@ -49,8 +49,7 @@ type Inst struct {
 	Fsys               fs.FS
 }
 
-type Conf struct {
-}
+type Conf struct{}
 
 func (fl *Flower) String() string {
 	return Name
@@ -81,7 +80,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log().With("flower", Name+".install")
+	log := slog.With("flower", Name+".install")
 
 	log.Info("Add system user 'consul-template'")
 	if err := florist.UserSystemAdd("consul-template", HomeDir); err != nil {
@@ -89,12 +88,12 @@ func (fl *Flower) Install() error {
 	}
 
 	log.Info("Create consul-template configuration dir", "dir", ConfigDir)
-	if err := os.MkdirAll(ConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(ConfigDir, 0o755); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	log.Info("Create consul-template templates dir", "dir", TemplatesDir)
-	if err := os.MkdirAll(TemplatesDir, 0755); err != nil {
+	if err := os.MkdirAll(TemplatesDir, 0o755); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
@@ -115,7 +114,7 @@ func (fl *Flower) Install() error {
 		src := path.Join(ConfigDirSrc, cfg)
 		dst := path.Join(ConfigDir, cfg)
 		log.Info("Install consul-template configuration file", "dst", dst)
-		if err := florist.CopyFileFs(fl.Fsys, src, dst, 0640, "root"); err != nil {
+		if err := florist.CopyFileFs(fl.Fsys, src, dst, 0o640, "root"); err != nil {
 			return fmt.Errorf("%s: %s", Name, err)
 		}
 	}
@@ -124,14 +123,14 @@ func (fl *Flower) Install() error {
 		src := path.Join(TemplatesDirSrc, tmpl)
 		dst := path.Join(TemplatesDir, tmpl)
 		log.Info("Install consul-template template file", "dst", dst)
-		if err := florist.CopyFileFs(fl.Fsys, src, dst, 0640, "root"); err != nil {
+		if err := florist.CopyFileFs(fl.Fsys, src, dst, 0o640, "root"); err != nil {
 			return fmt.Errorf("%s: %s", Name, err)
 		}
 	}
 
 	dst := path.Join("/etc/systemd/system/", filepath.Base(UnitFile))
 	log.Info("Install consul-template systemd unit file", "dst", dst)
-	if err := florist.CopyFileFs(fl.Fsys, UnitFile, dst, 0644, "root"); err != nil {
+	if err := florist.CopyFileFs(fl.Fsys, UnitFile, dst, 0o644, "root"); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
@@ -173,7 +172,7 @@ func installExe(
 
 	exe := path.Join(BinDir, "consul-template")
 	log.Info("Install consul-template", "dst", exe)
-	if err := florist.CopyFile(extracted, exe, 0755, owner); err != nil {
+	if err := florist.CopyFile(extracted, exe, 0o755, owner); err != nil {
 		return err
 	}
 

@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -14,7 +15,7 @@ import (
 
 // UnzipOne extracts file 'name' from ZIP file 'zipPath' and saves it to 'dstPath'.
 func UnzipOne(zipPath string, name string, dstPath string) error {
-	log := Log().With("zipPath", zipPath, "name", name, "dstPath", dstPath)
+	log := slog.With("zipPath", zipPath, "name", name, "dstPath", dstPath)
 	log.Debug("unzip-one")
 
 	rd, err := zip.OpenReader(zipPath)
@@ -61,7 +62,7 @@ func UnzipOne(zipPath string, name string, dstPath string) error {
 //   - Flat archive, extract file "foo":              UntarOne(tarPath, "foo", dst)
 //   - Hierarchical archive, extract file "bar/foo":  UntarOne(tarPath, "bar/foo", dst)
 func UntarOne(tarPath string, name string, dstPath string) error {
-	log := Log().With("tarPath", tarPath, "name", name, "dstPath", dstPath)
+	log := slog.With("tarPath", tarPath, "name", name, "dstPath", dstPath)
 	log.Debug("untar-one")
 
 	fi, err := os.Open(tarPath)
@@ -132,7 +133,7 @@ func UntarSome(tarPath, dstDir string, some []string, perm os.FileMode, owner, g
 	if some == nil {
 		fn = "UntarAll"
 	}
-	log := Log().With("fn", fn)
+	log := slog.With("fn", fn)
 	errorf := makeErrorf(fn)
 
 	log.Debug(fn, "phase", "starting", "tarPath", tarPath, "dstDir", dstDir, "some", some)

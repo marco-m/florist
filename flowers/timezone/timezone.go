@@ -3,6 +3,7 @@ package timezone
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 
@@ -60,7 +61,7 @@ func (fl *Flower) Init() error {
 }
 
 func (fl *Flower) Install() error {
-	log := florist.Log().With("flower", Name+".install")
+	log := slog.With("flower", Name+".install")
 
 	// We leave the RTC on UTC and modify only the local timezone.
 	// See "man hwclock" on Linux for a detailed explanation.
@@ -97,7 +98,7 @@ func (fl *Flower) Install() error {
 }
 
 func (fl *Flower) Configure() error {
-	log := florist.Log().With("flower", Name+".configure")
+	log := slog.With("flower", Name+".configure")
 	log.Debug("nothing to do")
 	return nil
 }
