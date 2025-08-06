@@ -1,9 +1,10 @@
-package florist
+package provisioner
 
 import (
 	"fmt"
 
 	"github.com/marco-m/clim"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 type configureCmd struct {
@@ -75,7 +76,7 @@ func (cmd *configureCmd) Run(app App) error {
 			app.prov.errs = append(app.prov.errs, err)
 		}
 
-		if err := JoinErrors(app.prov.errs...); err != nil {
+		if err := florist.JoinErrors(app.prov.errs...); err != nil {
 			return fmt.Errorf("configure: %s", err)
 		}
 		return nil

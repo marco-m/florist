@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 	"github.com/marco-m/rosina/assert"
 )
 
 func TestNetFetchMockSuccess(t *testing.T) {
-	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	assert.NoError(t, err, "florist.LowLevelInit")
+	err := provisioner.LowLevelInit(io.Discard, "INFO", time.Hour)
+	assert.NoError(t, err, "provisioner.LowLevelInit")
 	dir := t.TempDir()
 	hash := "b493d48364afe44d11c0165cf470a4164d1e2609911ef998be868d46ade3de4e"
 	client := &http.Client{Timeout: 1 * time.Second}

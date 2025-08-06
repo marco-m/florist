@@ -1,4 +1,4 @@
-package florist
+package provisioner
 
 import (
 	"errors"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/marco-m/clim"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 const (
@@ -156,20 +157,8 @@ func MainErr(args []string, opts *Options) error {
 	return action(app)
 }
 
-func timelog(run func() error, app App) error {
-	app.log.Info("starting", "command-line", os.Args)
-	err := run()
-	elapsed := time.Since(app.start).Round(time.Millisecond)
-	if err != nil {
-		app.log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
-		return err
-	}
-	app.log.Info("exiting", "status", "success", "elapsed", elapsed)
-	return nil
-}
-
 type Provisioner struct {
-	flowers map[string]Flower
+	flowers map[string]florist.Flower
 	ordered []string
 	errs    []error
 }
@@ -182,16 +171,16 @@ func (prov *Provisioner) Errors() []error {
 
 func newProvisioner() *Provisioner {
 	return &Provisioner{
-		flowers: make(map[string]Flower),
+		flowers: make(map[string]florist.Flower),
 	}
 }
 
 // Flowers returns
-func (prov *Provisioner) Flowers() map[string]Flower {
+func (prov *Provisioner) Flowers() map[string]florist.Flower {
 	return prov.flowers
 }
 
-func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
+func (prov *Provisioner) AddFlowers(flowers ...florist.Flower) error {
 	if len(prov.flowers) > 0 {
 		return fmt.Errorf("Provisioner.AddFlowers: cannot call more than once")
 	}
@@ -210,27 +199,6 @@ func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
 		prov.flowers[flower.String()] = flower
 	}
 	return nil
-}
-
-// root is a hack to ease testing.
-func customizeMotd(op string, status string, rootDir string) error {
-	now := time.Now().UTC().Round(time.Second)
-	line := fmt.Sprintf("%s 🌼 florist 🌺 System %s (%s)\n", now, op, status)
-	name := path.Join(rootDir, "/etc/motd")
-	slog.Debug("customize-motd", "target", name, "operation", op, "status", status)
-
-	if err := os.MkdirAll(path.Dir(name), 0o755); err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
-	if err != nil {
-		return err
-	}
-
-	_, errWrite := f.WriteString(line)
-	errClose := f.Close()
-	return JoinErrors(errWrite, errClose)
 }
 
 // User returns the current user, as set by Init.
@@ -278,5 +246,38 @@ func LowLevelInit(logOutput io.Writer, logLevel string, cacheValidity time.Durat
 
 	osPkgCacheValidity = cacheValidity
 
+	return nil
+}
+
+// root is a hack to ease testing.
+func customizeMotd(op string, status string, rootDir string) error {
+	now := time.Now().UTC().Round(time.Second)
+	line := fmt.Sprintf("%s 🌼 florist 🌺 System %s (%s)\n", now, op, status)
+	name := path.Join(rootDir, "/etc/motd")
+	slog.Debug("customize-motd", "target", name, "operation", op, "status", status)
+
+	if err := os.MkdirAll(path.Dir(name), 0o755); err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	if err != nil {
+		return err
+	}
+
+	_, errWrite := f.WriteString(line)
+	errClose := f.Close()
+	return florist.JoinErrors(errWrite, errClose)
+}
+
+func timelog(run func() error, app App) error {
+	app.log.Info("starting", "command-line", os.Args)
+	err := run()
+	elapsed := time.Since(app.start).Round(time.Millisecond)
+	if err != nil {
+		app.log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
+		return err
+	}
+	app.log.Info("exiting", "status", "success", "elapsed", elapsed)
 	return nil
 }

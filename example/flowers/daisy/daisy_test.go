@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/marco-m/florist/example/flowers/daisy"
-	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 	"github.com/marco-m/rosina/assert"
 )
 
@@ -19,8 +19,8 @@ func TestDaisyInstall(t *testing.T) {
 	// florist.SkipIfNotDisposableHost(t)
 	// because this is a special flower!
 
-	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	assert.NoError(t, err, "florist.LowLevelInit")
+	err := provisioner.LowLevelInit(io.Discard, "INFO", time.Hour)
+	assert.NoError(t, err, "provisioner.LowLevelInit")
 
 	fsys := fstest.MapFS{
 		daisy.InstallPlainFileSrc: {

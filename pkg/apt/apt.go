@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 var (
@@ -64,7 +65,7 @@ func Refresh(cacheValidity time.Duration) error {
 func Install(pkg ...string) error {
 	log := slog.With("fn", "apt.Install")
 	log.Info("updating package cache")
-	if err := Update(florist.CacheValidity()); err != nil {
+	if err := Update(provisioner.CacheValidity()); err != nil {
 		return err
 	}
 	log.Info("installing", "packages", pkg)

@@ -9,17 +9,17 @@ import (
 	"github.com/marco-m/florist/flowers/locale"
 	"github.com/marco-m/florist/flowers/ospackages"
 	"github.com/marco-m/florist/flowers/task"
-	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 func main() {
-	os.Exit(florist.MainInt(&florist.Options{
+	os.Exit(provisioner.MainInt(&provisioner.Options{
 		SetupFn:        setup,
 		PreConfigureFn: preConfigure,
 	}))
 }
 
-func setup(prov *florist.Provisioner) error {
+func setup(prov *provisioner.Provisioner) error {
 	return prov.AddFlowers(
 		&locale.Flower{
 			Inst: locale.Inst{
@@ -62,6 +62,6 @@ func setup(prov *florist.Provisioner) error {
 	)
 }
 
-func preConfigure(prov *florist.Provisioner, config *florist.Config) (any, error) {
+func preConfigure(prov *provisioner.Provisioner, config *provisioner.Config) (any, error) {
 	return nil, nil
 }
