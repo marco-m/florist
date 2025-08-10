@@ -1,4 +1,4 @@
-package florist
+package provisioner
 
 import (
 	"encoding/json"

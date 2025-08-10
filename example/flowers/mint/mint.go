@@ -7,6 +7,7 @@ import (
 	"github.com/creasty/defaults"
 
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 const Name = "mint"
@@ -54,8 +55,8 @@ func (fl *Flower) Install() error {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	username := florist.User().Username
-	groupname := florist.Group().Name
+	username := provisioner.User().Username
+	groupname := provisioner.Group().Name
 	dstPath := filepath.Join(fl.Inst.DstDir, "install.txt")
 	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
@@ -75,8 +76,8 @@ Aroma: {{.Aroma}}
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	username := florist.User().Username
-	groupname := florist.Group().Name
+	username := provisioner.User().Username
+	groupname := provisioner.Group().Name
 	dstPath := filepath.Join(fl.Inst.DstDir, "configure.txt")
 	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
-	"time"
 
 	"github.com/creasty/defaults"
 
@@ -88,10 +87,6 @@ func (fl *Flower) Install() error {
 		}
 	default:
 		return errorf("unsupported distribution: %s", osInfo.Id)
-	}
-	log.Info("Update APT repos (needed since we just added one)")
-	if err := apt.Refresh(0 * time.Second); err != nil {
-		return err
 	}
 
 	log.Info("Install packages needed by Docker upstream")

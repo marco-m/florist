@@ -1,4 +1,4 @@
-package florist
+package provisioner
 
 import (
 	"errors"
@@ -12,17 +12,13 @@ import (
 	"time"
 
 	"github.com/marco-m/clim"
-)
-
-const (
-	DefOsPkgCacheValidity = 1 * time.Hour
+	"github.com/marco-m/florist/internal"
+	"github.com/marco-m/florist/pkg/florist"
 )
 
 var (
-	// currentUser is set by Main.
+	// currentUser is set by [MainInt].
 	currentUser *user.User
-	// osPkgCacheValidity is set by Main.
-	osPkgCacheValidity time.Duration
 )
 
 // The Options passed to [MainInt]. For an example, see florist/example/main.go
@@ -33,9 +29,6 @@ type Options struct {
 	// The default log level is INFO; it can be changed to DEBUG via the --log-level
 	// command-line flag.
 	LogOutput io.Writer
-	// Optimization to avoid refreshing the OS package manager cache each time before
-	// installing an OS package. Defaults to DefOsPkgCacheValidity.
-	OsPkgCacheValidity time.Duration
 	// Set to a temporary directory during testing. DO NOT MODIFY in production code.
 	RootDir string
 	// The setup function, called before any command-line subcommand. Mandatory.
@@ -130,9 +123,6 @@ func MainErr(args []string, opts *Options) error {
 	if opts.LogOutput == nil {
 		opts.LogOutput = os.Stdout
 	}
-	if opts.OsPkgCacheValidity == 0 {
-		opts.OsPkgCacheValidity = DefOsPkgCacheValidity
-	}
 	if opts.RootDir == "" {
 		opts.RootDir = "/"
 	}
@@ -143,7 +133,7 @@ func MainErr(args []string, opts *Options) error {
 		return fmt.Errorf("florist.Main: PreConfigureFn is nil")
 	}
 
-	if err := LowLevelInit(opts.LogOutput, app.LogLevel, opts.OsPkgCacheValidity); err != nil {
+	if err := LowLevelInit(opts.LogOutput, app.LogLevel); err != nil {
 		return err
 	}
 
@@ -156,20 +146,8 @@ func MainErr(args []string, opts *Options) error {
 	return action(app)
 }
 
-func timelog(run func() error, app App) error {
-	app.log.Info("starting", "command-line", os.Args)
-	err := run()
-	elapsed := time.Since(app.start).Round(time.Millisecond)
-	if err != nil {
-		app.log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
-		return err
-	}
-	app.log.Info("exiting", "status", "success", "elapsed", elapsed)
-	return nil
-}
-
 type Provisioner struct {
-	flowers map[string]Flower
+	flowers map[string]florist.Flower
 	ordered []string
 	errs    []error
 }
@@ -182,16 +160,16 @@ func (prov *Provisioner) Errors() []error {
 
 func newProvisioner() *Provisioner {
 	return &Provisioner{
-		flowers: make(map[string]Flower),
+		flowers: make(map[string]florist.Flower),
 	}
 }
 
 // Flowers returns
-func (prov *Provisioner) Flowers() map[string]Flower {
+func (prov *Provisioner) Flowers() map[string]florist.Flower {
 	return prov.flowers
 }
 
-func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
+func (prov *Provisioner) AddFlowers(flowers ...florist.Flower) error {
 	if len(prov.flowers) > 0 {
 		return fmt.Errorf("Provisioner.AddFlowers: cannot call more than once")
 	}
@@ -209,6 +187,53 @@ func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
 		prov.ordered = append(prov.ordered, flower.String())
 		prov.flowers[flower.String()] = flower
 	}
+	return nil
+}
+
+// User returns the current user, as set by Init.
+func User() *user.User {
+	if currentUser == nil {
+		panic("florist.User: must call florist.MainInt before")
+	}
+	return currentUser
+}
+
+// Group returns the primary group of the current user, as set by Init.
+func Group() *user.Group {
+	if currentUser == nil {
+		panic("florist.Group: must call florist.MainInt before")
+	}
+	group, _ := user.LookupGroupId(currentUser.Gid)
+	return group
+}
+
+// LowLevelInit should be called only by low-level test code.
+// Absolutely do not call in non-test code! Call florist.MainInt instead!
+func LowLevelInit(logOutput io.Writer, logLevel string) error {
+	errorf := internal.MakeErrorf("provisioner.LowLevelInit")
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
+		return errorf("--log-level: %s", err)
+	}
+
+	prog := filepath.Base(os.Args[0])
+	slog.SetDefault(slog.New(slog.NewTextHandler(logOutput,
+		&slog.HandlerOptions{Level: level})).With("prog", prog))
+
+	// FIXME should this go below???
+	var err error
+	currentUser, err = user.Current()
+	if err != nil {
+		return errorf("%s", err)
+	}
+
+	if err := florist.Mkdir(florist.WorkDir, 0o755, User().Username, Group().Name); err != nil {
+		return errorf("%s", err)
+	}
+	// if err := florist.Mkdir(florist.HomeDir, 0o755, User().Username, Group().Name); err != nil {
+	// 	return errorf("%s", err)
+	// }
+
 	return nil
 }
 
@@ -230,53 +255,17 @@ func customizeMotd(op string, status string, rootDir string) error {
 
 	_, errWrite := f.WriteString(line)
 	errClose := f.Close()
-	return JoinErrors(errWrite, errClose)
+	return florist.JoinErrors(errWrite, errClose)
 }
 
-// User returns the current user, as set by Init.
-func User() *user.User {
-	if currentUser == nil {
-		panic("florist.User: must call florist.MainInt before")
-	}
-	return currentUser
-}
-
-// Group returns the primary group of the current user, as set by Init.
-func Group() *user.Group {
-	if currentUser == nil {
-		panic("florist.Group: must call florist.MainInt before")
-	}
-	group, _ := user.LookupGroupId(currentUser.Gid)
-	return group
-}
-
-func CacheValidity() time.Duration {
-	if osPkgCacheValidity == 0 {
-		panic("florist.CacheValidity: must call florist.MainInt before")
-	}
-	return osPkgCacheValidity
-}
-
-// LowLevelInit should be called only by low-level test code.
-// Absolutely do not call in non-test code! Call florist.MainInt instead!
-func LowLevelInit(logOutput io.Writer, logLevel string, cacheValidity time.Duration) error {
-	var level slog.Level
-	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
-		return fmt.Errorf("florist.Main: --log-level: %s", err)
-	}
-
-	prog := filepath.Base(os.Args[0])
-	slog.SetDefault(slog.New(slog.NewTextHandler(logOutput,
-		&slog.HandlerOptions{Level: level})).With("prog", prog))
-
-	// FIXME should this go below???
-	var err error
-	currentUser, err = user.Current()
+func timelog(run func() error, app App) error {
+	app.log.Info("starting", "command-line", os.Args)
+	err := run()
+	elapsed := time.Since(app.start).Round(time.Millisecond)
 	if err != nil {
-		return fmt.Errorf("florist.Main: %s", err)
+		app.log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
+		return err
 	}
-
-	osPkgCacheValidity = cacheValidity
-
+	app.log.Info("exiting", "status", "success", "elapsed", elapsed)
 	return nil
 }

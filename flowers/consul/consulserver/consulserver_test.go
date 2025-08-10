@@ -3,17 +3,17 @@ package consulserver_test
 import (
 	"io"
 	"testing"
-	"time"
 
 	"github.com/marco-m/florist/flowers/consul/consulserver"
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 	"github.com/marco-m/rosina/assert"
 )
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	assert.NoError(t, err, "florist.LowLevelInit")
+	err := provisioner.LowLevelInit(io.Discard, "INFO")
+	assert.NoError(t, err, "provisioner.LowLevelInit")
 
 	fl := consulserver.Flower{
 		Inst: consulserver.Inst{
@@ -30,8 +30,8 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := florist.LowLevelInit(io.Discard, "INFO", time.Hour)
-	assert.NoError(t, err, "florist.LowLevelInit")
+	err := provisioner.LowLevelInit(io.Discard, "INFO")
+	assert.NoError(t, err, "provisioner.LowLevelInit")
 
 	// FIXME Since not compatible with a client install, I should wipe client installs before...
 	// at this point, should I do it as a Flower method, Unistall(), or should I do it grossly only here?

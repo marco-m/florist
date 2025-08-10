@@ -12,6 +12,7 @@ import (
 	"github.com/creasty/defaults"
 
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 //go:embed embedded
@@ -77,7 +78,7 @@ func (fl *Flower) Init() error {
 
 func (fl *Flower) Install() error {
 	log := slog.With("flower", Name+".install")
-	userName := florist.User().Username
+	userName := provisioner.User().Username
 
 	dstPath := filepath.Join(fl.Inst.DstDir, InstallPlainFileDst)
 	log.Debug("installing file (plain)",
@@ -94,8 +95,8 @@ func (fl *Flower) Install() error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
-	username := florist.User().Username
-	groupname := florist.Group().Name
+	username := provisioner.User().Username
+	groupname := provisioner.Group().Name
 	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
@@ -112,8 +113,8 @@ func (fl *Flower) Configure() error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
-	username := florist.User().Username
-	groupname := florist.Group().Name
+	username := provisioner.User().Username
+	groupname := provisioner.Group().Name
 	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
