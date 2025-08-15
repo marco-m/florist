@@ -42,6 +42,13 @@ func SkipIfNotDisposableHost(t *testing.T) {
 	}
 }
 
+// Ptr returns a pointer to 'p'.
+// Needed to fill a struct field of primitive type (int, string and similar) when the Go
+// zero value cannot be used because it is a valid value for the field.
+func Ptr[T any](p T) *T {
+	return &p
+}
+
 func makeErrorf(prefix string) func(format string, a ...any) error {
 	return func(format string, a ...any) error {
 		return fmt.Errorf(prefix+": "+format, a...)
