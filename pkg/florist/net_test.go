@@ -25,7 +25,8 @@ func TestNetFetchMockSuccess(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, contents)
-		}))
+		},
+	))
 	defer ts.Close()
 
 	path, err := florist.NetFetch(client, ts.URL, florist.SHA256, hash, dir)
@@ -68,7 +69,7 @@ func TestNetFetchMockFailure(t *testing.T) {
 			url := fmt.Sprintf("%s/%s", ts.URL, strconv.Itoa(tcN))
 			_, err := florist.NetFetch(client, url, florist.SHA256, tc.hash, dir)
 
-			assert.ErrorContains(t, err, tc.wantErr)
+			assert.ErrorContains(t, err, tc.wantErr, "florist.NetFetch")
 		})
 	}
 }

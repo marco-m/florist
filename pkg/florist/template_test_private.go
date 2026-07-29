@@ -37,7 +37,8 @@ func TestUnderstandTemplateFailure(t *testing.T) {
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, sweaters)
 	assert.ErrorContains(t, err,
-		`template: name:1:2: executing "name" at <.Banana>: can't evaluate field Banana in type florist.Inventory`)
+		`template: name:1:2: executing "name" at <.Banana>: can't evaluate field Banana in type florist.Inventory`,
+		"tmpl.Execute")
 }
 
 func TestRenderTemplate(t *testing.T) {

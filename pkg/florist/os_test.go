@@ -48,7 +48,7 @@ func TestMkdirFailure(t *testing.T) {
 
 	// SUT
 	err = florist.Mkdir(fPath, perm, owner, group)
-	assert.ErrorContains(t, err, "unknown user")
+	assert.ErrorContains(t, err, "unknown user", "florist.Mkdir")
 }
 
 // whoami returns the user name and group name of the current user.

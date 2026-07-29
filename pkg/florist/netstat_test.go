@@ -23,7 +23,7 @@ func TestPrivateIpFailure(t *testing.T) {
 
 	test := func(t *testing.T, tc testCase) {
 		_, err := PrivateIP(tc.networkCIDR)
-		assert.ErrorContains(t, err, tc.wantErr)
+		assert.ErrorContains(t, err, tc.wantErr, "PrivateIP")
 	}
 
 	testCases := []testCase{
