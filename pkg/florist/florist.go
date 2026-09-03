@@ -46,6 +46,9 @@ func SkipIfNotDisposableHost(t *testing.T) {
 // Needed to fill a struct field of primitive type (int, string and similar) when the Go
 // zero value cannot be used because it is a valid value for the field.
 //
+// Deprecated: Since Go 1.26, this function is not needed. Call new(p) directly.
+// If you run "go fix" on your codebase, this function will be inlined for you.
+//
 //go:fix inline
 func Ptr[T any](p T) *T {
 	return new(p)
