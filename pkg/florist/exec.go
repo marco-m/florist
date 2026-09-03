@@ -26,9 +26,7 @@ func CmdRun(log *slog.Logger, cmd *exec.Cmd) error {
 	var wg sync.WaitGroup
 
 	// Collect stdout
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		var splitter Splitter
 		outScanner := bufio.NewScanner(stdout)
 		outScanner.Split(splitter.ScanWithLength)
@@ -41,7 +39,7 @@ func CmdRun(log *slog.Logger, cmd *exec.Cmd) error {
 		if err := outScanner.Err(); err != nil {
 			log.Debug("cmd-run: error reading stdout", "error", err)
 		}
-	}()
+	})
 
 	// Collect stderr
 	wg.Add(1)

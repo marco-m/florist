@@ -71,7 +71,7 @@ func (fl *Flower) Install() error {
 	}
 	// For some unfathomable reasons, the output of "localedef --list-archive"
 	// is "en_US.utf8", while LANG is "en_US.UTF-8" :-/
-	left := strings.Split(fl.Lang, ".")[0]
+	left, _, _ := strings.Cut(fl.Lang, ".")
 	if strings.Contains(string(localesArchive), left) {
 		log.Info("locale already present, skipping generation", "lang", fl.Lang)
 		return nil
