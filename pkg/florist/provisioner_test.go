@@ -59,19 +59,19 @@ func (cc *SpyFlower) Embedded() []string {
 	return nil
 }
 
-func (cc *SpyFlower) Init() error {
+func (cc *SpyFlower) Init(*florist.Garden) error {
 	*cc.Spy = append(*cc.Spy, fmt.Sprintf("SpyFlower.Init.%s.%s",
 		cc.Name, stringErr(cc.InitError)))
 	return cc.InitError
 }
 
-func (cc *SpyFlower) Install(seeds florist.Seeds) error {
+func (cc *SpyFlower) Install() error {
 	*cc.Spy = append(*cc.Spy, fmt.Sprintf("SpyFlower.Install.%s.%s",
 		cc.Name, stringErr(cc.InstallError)))
 	return cc.InstallError
 }
 
-func (cc *SpyFlower) Configure(seeds florist.Seeds) error {
+func (cc *SpyFlower) Configure() error {
 	*cc.Spy = append(*cc.Spy, fmt.Sprintf("SpyFlower.Configure.%s.%s",
 		cc.Name, stringErr(cc.ConfigureError)))
 	return cc.ConfigureError

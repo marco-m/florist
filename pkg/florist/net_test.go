@@ -2,21 +2,20 @@ package florist_test
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/marco-m/florist/internal/testhelpers"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/rosina/assert"
 )
 
 func TestNetFetchMockSuccess(t *testing.T) {
-	err := florist.LowLevelInit(io.Discard, "INFO")
-	assert.NoError(t, err, "florist.LowLevelInit")
-	dir := t.TempDir()
+	tempDir := t.TempDir()
+	testhelpers.InitFlorist(t, tempDir)
 	hash := "b493d48364afe44d11c0165cf470a4164d1e2609911ef998be868d46ade3de4e"
 	client := &http.Client{Timeout: 1 * time.Second}
 	contents := "banana"
@@ -28,7 +27,7 @@ func TestNetFetchMockSuccess(t *testing.T) {
 	))
 	defer ts.Close()
 
-	path, err := florist.NetFetch(client, ts.URL, florist.SHA256, hash, dir)
+	path, err := florist.NetFetch(client, ts.URL, florist.SHA256, hash, tempDir)
 	assert.NoError(t, err, "florist.NetFetch")
 	assert.FileEqualsString(t, path, contents)
 }

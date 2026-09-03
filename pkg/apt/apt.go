@@ -15,11 +15,19 @@ const (
 	PkgCacheValidity = 24 * time.Hour
 )
 
+type Apt struct {
+	gdn *florist.Garden
+}
+
+func New(garden *florist.Garden) Apt {
+	return Apt{gdn: garden}
+}
+
 // Installs takes care of updating the APT cache if needed and installs 'packages'.
-func Install(packages ...string) error {
+func (apt Apt) Install(packages ...string) error {
 	errorf, log := internal.MakeErrorfAndLog("apt.Install", slog.Default())
 	log.Info("updating package cache")
-	if err := update(); err != nil {
+	if err := update(apt.gdn.WorkDir()); err != nil {
 		return errorf("%s", err)
 	}
 	log.Info("installing", "packages", packages)
@@ -38,7 +46,7 @@ func Install(packages ...string) error {
 
 // Remove removes 'packages'. It is not an error if some of the packages are not
 // installed.
-func Remove(packages ...string) error {
+func (apt Apt) Remove(packages ...string) error {
 	errorf, log := internal.MakeErrorfAndLog("apt.Remove", slog.Default())
 
 	log.Info("Removing", "packages", packages)
@@ -71,11 +79,11 @@ func Remove(packages ...string) error {
 // For this reason, we now use a logic that is guaranteed to be 100% correct and
 // ironically is also simpler, although it will not detect if the APT cache has been
 // updated OOB of Florist.
-func update() error {
+func update(workDir string) error {
 	errorf, log := internal.MakeErrorfAndLog("apt.update", slog.Default())
 	now := time.Now()
 
-	expired, err := cachestate.Expired(florist.WorkDir, PkgCacheValidity)
+	expired, err := cachestate.Expired(workDir, PkgCacheValidity)
 	if err != nil {
 		return errorf("%s", err)
 	}
@@ -90,7 +98,7 @@ func update() error {
 		return errorf("%s", err)
 	}
 
-	if err := cachestate.Refresh(florist.WorkDir); err != nil {
+	if err := cachestate.Refresh(workDir); err != nil {
 		return errorf("%s", err)
 	}
 

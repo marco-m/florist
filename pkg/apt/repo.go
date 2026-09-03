@@ -32,12 +32,12 @@ import (
 //	); err != nil {
 //		return err
 //	}
-func AddRepo(name string, keyURL string, keyHash string, repoURL string) error {
+func (apt Apt) AddRepo(name string, keyURL string, keyHash string, repoURL string) error {
 	errorf, log := internal.MakeErrorfAndLog("apt.AddRepo", slog.Default())
 
 	log.Info("Download PGP key", "url", keyURL)
 	client := &http.Client{Timeout: 15 * time.Second}
-	keyPath, err := florist.NetFetch(client, keyURL, florist.SHA256, keyHash, florist.WorkDir)
+	keyPath, err := florist.NetFetch(client, keyURL, florist.SHA256, keyHash, apt.gdn.WorkDir())
 	if err != nil {
 		return errorf("%s", err)
 	}
@@ -72,7 +72,7 @@ func AddRepo(name string, keyURL string, keyHash string, repoURL string) error {
 		return errorf("%s", err)
 	}
 
-	if err := cachestate.Invalidate(florist.WorkDir); err != nil {
+	if err := cachestate.Invalidate(apt.gdn.WorkDir()); err != nil {
 		return errorf("%s", err)
 	}
 

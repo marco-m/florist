@@ -8,7 +8,7 @@ import (
 	"github.com/marco-m/florist/pkg/florist"
 )
 
-func DpkgInstall(pkgPath string) error {
+func (Apt) DpkgInstall(pkgPath string) error {
 	log := slog.With("fn", "apt.DpkgInstall")
 	log.Info("Installing", "package", pkgPath)
 

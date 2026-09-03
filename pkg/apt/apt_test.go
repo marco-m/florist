@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/marco-m/florist/internal/testhelpers"
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
 )
@@ -22,6 +23,10 @@ apt.addRepo and then apt.Install !
 func TestAptInstallAndRemove(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
 
+	tempDir := t.TempDir()
+	gdn := testhelpers.InitFlorist(t, tempDir)
+	apt := apt.New(gdn)
+
 	if err := apt.Install("ripgrep"); err != nil {
 		t.Errorf("apt.Install: %s", err)
 	}
@@ -33,6 +38,10 @@ func TestAptInstallAndRemove(t *testing.T) {
 
 func TestAddRepo(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
+
+	tempDir := t.TempDir()
+	gdn := testhelpers.InitFlorist(t, tempDir)
+	apt := apt.New(gdn)
 
 	if err := apt.AddRepo(
 		"docker",

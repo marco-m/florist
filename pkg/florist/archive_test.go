@@ -1,24 +1,24 @@
 package florist_test
 
 import (
-	"io"
 	"path/filepath"
 	"testing"
 
+	"github.com/marco-m/florist/internal/testhelpers"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/rosina/assert"
 )
 
 func TestUnzipOne(t *testing.T) {
-	florist.LowLevelInit(io.Discard, "Info")
-	dstDir := t.TempDir()
+	tempDir := t.TempDir()
+	testhelpers.InitFlorist(t, tempDir)
 
 	type testCase struct {
 		wantName string
 	}
 
 	test := func(t *testing.T, tc testCase) {
-		dstPath := filepath.Join(dstDir, tc.wantName)
+		dstPath := filepath.Join(tempDir, tc.wantName)
 
 		err := florist.UnzipOne("testdata/archive/two-files.zip",
 			tc.wantName, dstPath)
@@ -39,15 +39,15 @@ func TestUnzipOne(t *testing.T) {
 }
 
 func TestUntarOne(t *testing.T) {
-	florist.LowLevelInit(io.Discard, "Info")
-	dstDir := t.TempDir()
+	tempDir := t.TempDir()
+	testhelpers.InitFlorist(t, tempDir)
 
 	type testCase struct {
 		wantName string
 	}
 
 	test := func(t *testing.T, tc testCase) {
-		dstPath := filepath.Join(dstDir, tc.wantName)
+		dstPath := filepath.Join(tempDir, tc.wantName)
 
 		err := florist.UntarOne("testdata/archive/two-files.tgz",
 			tc.wantName, dstPath)
@@ -68,21 +68,22 @@ func TestUntarOne(t *testing.T) {
 }
 
 func TestUntarAll(t *testing.T) {
-	florist.LowLevelInit(io.Discard, "Info")
-	dstDir := t.TempDir()
+	tempDir := t.TempDir()
+	testhelpers.InitFlorist(t, tempDir)
+
 	owner, group, err := florist.WhoAmI()
 	if err != nil {
 		t.Fatalf("WhoAmI: %s", err)
 	}
 
 	tarPath := "testdata/archive/two-files.tgz"
-	err = florist.UntarAll(tarPath, dstDir, 0o644, owner, group)
+	err = florist.UntarAll(tarPath, tempDir, 0o644, owner, group)
 	if err != nil {
-		t.Fatalf("UntarAll: tar=%s, dst=%s: %s", tarPath, dstDir, err)
+		t.Fatalf("UntarAll: tar=%s, dst=%s: %s", tarPath, tempDir, err)
 	}
 
 	for _, fi := range []string{"file1.txt", "file2.txt"} {
-		have := filepath.Join(dstDir, fi)
+		have := filepath.Join(tempDir, fi)
 		want := filepath.Join("testdata/archive", fi)
 		assert.FileEqualsFile(t, have, want)
 	}
