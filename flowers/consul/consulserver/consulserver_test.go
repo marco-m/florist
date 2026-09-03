@@ -16,10 +16,8 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 	assert.NoError(t, err, "provisioner.LowLevelInit")
 
 	fl := consulserver.Flower{
-		Inst: consulserver.Inst{
-			Version: "1.11.2",
-			Hash:    "380eaff1b18a2b62d8e1d8a7cbc3f3e08b34d3f7187ee335b891ca2ba98784b3",
-		},
+		Version: "1.11.2",
+		Hash:    "380eaff1b18a2b62d8e1d8a7cbc3f3e08b34d3f7187ee335b891ca2ba98784b3",
 	}
 	err = fl.Init()
 	assert.NoError(t, err, "fl.Init")

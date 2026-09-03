@@ -48,13 +48,11 @@ func TestSshdConfigureSuccess(t *testing.T) {
 	assert.NoError(t, err, "provisioner.LowLevelInit")
 
 	fl := sshd.Flower{
-		Inst: sshd.Inst{},
-		Conf: sshd.Conf{
-			Port:                     1234,
-			SshHostEd25519Key:        SshHostEd25519Key,
-			SshHostEd25519KeyPub:     SshHostEd25519KeyPub,
-			SshHostEd25519KeyCertPub: SshHostEd25519KeyCertPub,
-		},
+		Inst:                     sshd.Inst{},
+		Port:                     1234,
+		SshHostEd25519Key:        SshHostEd25519Key,
+		SshHostEd25519KeyPub:     SshHostEd25519KeyPub,
+		SshHostEd25519KeyCertPub: SshHostEd25519KeyCertPub,
 	}
 	err = fl.Init()
 	assert.NoError(t, err, "fl.Init")

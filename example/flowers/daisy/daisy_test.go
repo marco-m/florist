@@ -31,7 +31,7 @@ func TestDaisyInstall(t *testing.T) {
 	}
 
 	fl := &daisy.Flower{
-		Inst: daisy.Inst{Fsys: fsys},
+		Fsys: fsys,
 		Conf: daisy.Conf{},
 	}
 	err = fl.Init()
@@ -68,11 +68,9 @@ func TestDaisyConfigure(t *testing.T) {
 	}
 
 	fl := &daisy.Flower{
-		Inst: daisy.Inst{Fsys: fsys},
-		Conf: daisy.Conf{
-			Environment: "dev",
-			GossipKey:   "sesamo",
-		},
+		Fsys:        fsys,
+		Environment: "dev",
+		GossipKey:   "sesamo",
 	}
 	err := fl.Init()
 	assert.NoError(t, err, "fl.Init")
