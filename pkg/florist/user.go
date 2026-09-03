@@ -18,7 +18,7 @@ type UserAddArgs struct {
 	// A list of supplementary groups to which the user will be added.
 	// The default is for the user to belong only to the initial group.
 	Groups []string
-	// The UID. Default: choosen by the system. Use [Ptr] to fill it.
+	// The UID. Default: choosen by the system. Use new() to fill it.
 	UID *int
 }
 

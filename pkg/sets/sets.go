@@ -5,7 +5,7 @@ package sets
 import (
 	"cmp"
 	"fmt"
-	"sort"
+	"slices"
 )
 
 // Set is a minimal set that takes only ordered types: any type that supports the
@@ -48,9 +48,7 @@ func (s *Set[T]) OrderedList() []T {
 	for e := range s.items {
 		elements = append(elements, e)
 	}
-	sort.Slice(elements, func(i, j int) bool {
-		return elements[i] < elements[j]
-	})
+	slices.Sort(elements)
 	return elements
 }
 

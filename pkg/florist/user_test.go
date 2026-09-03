@@ -47,7 +47,6 @@ func TestUserAddSystemSuccess(t *testing.T) {
 	homeDir := path.Join("/opt", name)
 
 	err := florist.UserAdd(name, &florist.UserAddArgs{
-
 		System:  true,
 		HomeDir: homeDir,
 	})
