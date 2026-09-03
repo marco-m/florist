@@ -49,6 +49,8 @@ type Flower struct {
 }
 
 type Inst struct {
+	gdn *florist.Garden
+
 	Version string
 	Hash    string
 	Fsys    fs.FS
@@ -73,7 +75,9 @@ func (fl *Flower) Embedded() []string {
 	return nil
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(gdn *florist.Garden) error {
+	fl.gdn = gdn
+
 	errorf := makeErrorf(Name + ".init")
 	if fl.Fsys == nil {
 		fl.Fsys = embedded
@@ -90,11 +94,11 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install(opts florist.Seeds) error {
+func (fl *Flower) Install() error {
 	errorf := makeErrorf(Name + ".install")
 	log := slog.With("flower", Name+".install")
 
-	if err := installExes(log, fl.Version, fl.Hash, "root"); err != nil {
+	if err := installExes(log, fl.Version, fl.Hash, "root", fl.gdn.WorkDir()); err != nil {
 		return errorf("%s", err)
 	}
 
@@ -117,7 +121,7 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 	return nil
 }
 
-func (fl *Flower) Configure(opts florist.Seeds) error {
+func (fl *Flower) Configure() error {
 	errorf := makeErrorf(Name + ".configure")
 	log := slog.With("flower", Name+".configure")
 
@@ -176,18 +180,18 @@ func installExes(
 	version string,
 	hash string,
 	owner string,
+	workdir string,
 ) error {
 	log.Info("Download tailscale package")
 	nameVersArch := fmt.Sprintf("tailscale_%s_amd64", version)
 	url := fmt.Sprintf("https://pkgs.tailscale.com/stable/%s.tgz", nameVersArch)
 	client := &http.Client{Timeout: 30 * time.Second}
-	tarPath, err := florist.NetFetch(client, url, florist.SHA256, hash,
-		florist.WorkDir)
+	tarPath, err := florist.NetFetch(client, url, florist.SHA256, hash, workdir)
 	if err != nil {
 		return err
 	}
 
-	workdir := path.Join(florist.WorkDir, Name)
+	workdir = path.Join(workdir, Name)
 	if err := os.MkdirAll(workdir, 0o755); err != nil {
 		return err
 	}

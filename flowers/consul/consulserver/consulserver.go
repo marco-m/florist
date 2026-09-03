@@ -35,6 +35,8 @@ type Flower struct {
 }
 
 type Inst struct {
+	gdn *florist.Garden
+
 	Version string
 	Hash    string
 	Fsys    fs.FS
@@ -60,7 +62,9 @@ func (fl *Flower) Embedded() []string {
 	return florist.ListFs(fl.Fsys)
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(gdn *florist.Garden) error {
+	fl.gdn = gdn
+
 	if fl.Fsys == nil {
 		fl.Fsys = embedded
 	}
@@ -77,16 +81,16 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install(opts florist.Seeds) error {
+func (fl *Flower) Install() error {
 	log := slog.With("flower", Name+".install")
 
-	if err := consul.CommonInstall(log, fl.Version, fl.Hash); err != nil {
+	if err := consul.CommonInstall(log, fl.Version, fl.Hash, fl.gdn.WorkDir()); err != nil {
 		return fmt.Errorf("%s.install: %s", Name, err)
 	}
 	return nil
 }
 
-func (fl *Flower) Configure(opts florist.Seeds) error {
+func (fl *Flower) Configure() error {
 	log := slog.With("flower", Name+".configure")
 
 	dst := path.Join(consul.CfgDir, filepath.Base(ConfigFile))

@@ -27,6 +27,8 @@ type Flower struct {
 }
 
 type Inst struct {
+	gdn *florist.Garden
+
 	Version string
 	Hash    string
 }
@@ -45,7 +47,9 @@ func (fl *Flower) Embedded() []string {
 	return nil
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(gdn *florist.Garden) error {
+	fl.gdn = gdn
+
 	if err := defaults.Set(fl); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
@@ -58,7 +62,7 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install(opts florist.Seeds) error {
+func (fl *Flower) Install() error {
 	log := slog.With("flower", Name+".install")
 
 	taskDst := "/usr/local/bin/task"
@@ -76,13 +80,12 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 	client := &http.Client{Timeout: 30 * time.Second}
-	tgzPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash,
-		florist.WorkDir)
+	tgzPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash, fl.gdn.WorkDir())
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	dstDir, err := os.MkdirTemp(florist.WorkDir, Name)
+	dstDir, err := os.MkdirTemp(fl.gdn.WorkDir(), Name)
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
@@ -109,7 +112,7 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 	return nil
 }
 
-func (fl *Flower) Configure(opts florist.Seeds) error {
+func (fl *Flower) Configure() error {
 	log := slog.With("flower", Name+".configure")
 	log.Debug("nothing to do")
 	return nil

@@ -24,6 +24,8 @@ type Flower struct {
 }
 
 type Inst struct {
+	gdn *florist.Garden
+
 	// Users to add to the docker supplementary group.
 	Users []string
 }
@@ -42,17 +44,20 @@ func (fl *Flower) Embedded() []string {
 	return nil
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(gdn *florist.Garden) error {
+	fl.gdn = gdn
+
 	if err := defaults.Set(fl); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 	return nil
 }
 
-func (fl *Flower) Install(opts florist.Seeds) error {
+func (fl *Flower) Install() error {
 	const step = Name + ".install"
 	errorf := makeErrorf(step)
 	log := slog.With("flower", step)
+	apt := apt.New(fl.gdn)
 
 	osInfo, err := platform.CollectInfo()
 	if err != nil {
@@ -131,7 +136,7 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 	return nil
 }
 
-func (fl *Flower) Configure(opts florist.Seeds) error {
+func (fl *Flower) Configure() error {
 	const step = Name + ".configure"
 	errorf := makeErrorf(step)
 	log := slog.With("flower", step)

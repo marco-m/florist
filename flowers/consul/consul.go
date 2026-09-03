@@ -21,7 +21,7 @@ const (
 )
 
 // CommonInstall performs the install steps common to the client and the server.
-func CommonInstall(log *slog.Logger, version string, hash string) error {
+func CommonInstall(log *slog.Logger, workdir, version, hash string) error {
 	log.Info("Add system user", "user", Username)
 	if err := florist.UserAdd(Username, &florist.UserAddArgs{
 		System:  true,
@@ -30,7 +30,7 @@ func CommonInstall(log *slog.Logger, version string, hash string) error {
 		return err
 	}
 
-	if err := installConsulExe(log, version, hash); err != nil {
+	if err := installConsulExe(log, workdir, version, hash); err != nil {
 		return err
 	}
 
@@ -42,7 +42,7 @@ func CommonInstall(log *slog.Logger, version string, hash string) error {
 	return nil
 }
 
-func installConsulExe(log *slog.Logger, version string, hash string) error {
+func installConsulExe(log *slog.Logger, workdir, version, hash string) error {
 	log.Info("Download Consul package")
 	uri, err := url.JoinPath("https://releases.hashicorp.com/consul",
 		version, "consul_"+version+"_linux_amd64.zip")
@@ -50,12 +50,12 @@ func installConsulExe(log *slog.Logger, version string, hash string) error {
 		return err
 	}
 	client := &http.Client{Timeout: 30 * time.Second}
-	zipPath, err := florist.NetFetch(client, uri, florist.SHA256, hash, florist.WorkDir)
+	zipPath, err := florist.NetFetch(client, uri, florist.SHA256, hash, workdir)
 	if err != nil {
 		return err
 	}
 
-	extracted := path.Join(florist.WorkDir, "consul")
+	extracted := path.Join(workdir, "consul")
 	log.Info("Unzipping Consul package", "dst", extracted)
 	if err := florist.UnzipOne(zipPath, "consul", extracted); err != nil {
 		return err

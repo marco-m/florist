@@ -1,34 +1,34 @@
 package consulserver_test
 
 import (
-	"io"
 	"testing"
 
 	"github.com/marco-m/florist/flowers/consul/consulserver"
+	"github.com/marco-m/florist/internal/testhelpers"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/rosina/assert"
 )
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := florist.LowLevelInit(io.Discard, "INFO")
-	assert.NoError(t, err, "florist.LowLevelInit")
+	tempDir := t.TempDir()
+	gdn := testhelpers.InitFlorist(t, tempDir)
 
 	fl := consulserver.Flower{
 		Version: "1.11.2",
 		Hash:    "380eaff1b18a2b62d8e1d8a7cbc3f3e08b34d3f7187ee335b891ca2ba98784b3",
 	}
-	err = fl.Init()
+	err := fl.Init(gdn)
 	assert.NoError(t, err, "fl.Init")
 
-	err = fl.Install(florist.Seeds{})
+	err = fl.Install()
 	assert.NoError(t, err, "fl.Install")
 }
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
 	florist.SkipIfNotDisposableHost(t)
-	err := florist.LowLevelInit(io.Discard, "INFO")
-	assert.NoError(t, err, "florist.LowLevelInit")
+	tempDir := t.TempDir()
+	gdn := testhelpers.InitFlorist(t, tempDir)
 
 	// FIXME Since not compatible with a client install, I should wipe client installs before...
 	// at this point, should I do it as a Flower method, Unistall(), or should I do it grossly only here?
@@ -49,7 +49,7 @@ func TestConsulServerInstallFailureVM(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.flower.Init()
+			err := tc.flower.Init(gdn)
 			assert.ErrorContains(t, err, tc.wantErr, "Flower.Init")
 		})
 	}

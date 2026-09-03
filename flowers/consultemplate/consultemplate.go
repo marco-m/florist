@@ -43,6 +43,8 @@ type Flower struct {
 }
 
 type Inst struct {
+	gdn *florist.Garden
+
 	Version            string
 	Hash               string
 	ConfigurationFiles []string
@@ -64,7 +66,9 @@ func (fl *Flower) Embedded() []string {
 	return nil
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(gdn *florist.Garden) error {
+	fl.gdn = gdn
+
 	if fl.Fsys == nil {
 		fl.Fsys = embedded
 	}
@@ -80,7 +84,7 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install(opts florist.Seeds) error {
+func (fl *Flower) Install() error {
 	log := slog.With("flower", Name+".install")
 
 	log.Info("Add system user 'consul-template'")
@@ -110,7 +114,7 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 	// unit file instead of starting the service, starts a dedicated consul-template),
 	// so that we can avoid having it running as root!
 
-	if err := installExe(log, fl.Version, fl.Hash, "root"); err != nil {
+	if err := installExe(log, fl.Version, fl.Hash, "root", fl.gdn.WorkDir()); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
@@ -148,7 +152,7 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 	return nil
 }
 
-func (fl *Flower) Configure(opts florist.Seeds) error {
+func (fl *Flower) Configure() error {
 	return nil
 }
 
@@ -157,17 +161,17 @@ func installExe(
 	version string,
 	hash string,
 	owner string,
+	workdir string,
 ) error {
 	log.Info("Download consul-template package")
 	url := fmt.Sprintf("https://releases.hashicorp.com/consul-template/%s/consul-template_%s_linux_amd64.zip", version, version)
 	client := &http.Client{Timeout: 30 * time.Second}
-	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash,
-		florist.WorkDir)
+	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash, workdir)
 	if err != nil {
 		return err
 	}
 
-	extracted := path.Join(florist.WorkDir, "consul-template")
+	extracted := path.Join(workdir, "consul-template")
 	log.Info("Unzipping consul-template package", "dst", extracted)
 	if err := florist.UnzipOne(zipPath, "consul-template",
 		extracted); err != nil {

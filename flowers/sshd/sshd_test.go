@@ -1,13 +1,13 @@
 package sshd_test
 
 import (
-	"io"
 	"os"
 	"testing"
 
 	"github.com/marco-m/rosina/assert"
 
 	"github.com/marco-m/florist/flowers/sshd"
+	"github.com/marco-m/florist/internal/testhelpers"
 	"github.com/marco-m/florist/pkg/florist"
 )
 
@@ -17,16 +17,16 @@ func TestSshdInstallSuccess(t *testing.T) {
 		t.Skip("This test breaks the SSH configuration. Run it only locally by setting env var FLORIST_MANUAL_TEST=ssh")
 	}
 
-	err := florist.LowLevelInit(io.Discard, "INFO")
-	assert.NoError(t, err, "florist.LowLevelInit")
+	tempDir := t.TempDir()
+	gdn := testhelpers.InitFlorist(t, tempDir)
 
 	fl := sshd.Flower{
 		Inst: sshd.Inst{},
 	}
-	err = fl.Init()
+	err := fl.Init(gdn)
 	assert.NoError(t, err, "fl.Init")
 
-	err = fl.Install(florist.Seeds{})
+	err = fl.Install()
 	assert.NoError(t, err, "fl.Install")
 
 	assert.FileContains(t, sshd.SshdConfigDst, "Port 22\n")
@@ -43,8 +43,8 @@ func TestSshdConfigureSuccess(t *testing.T) {
 		SshHostEd25519KeyPub     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFLAbr5vAYA6o0A1RCK/z1xDBWe7PEssR7lu9UtWo4ZV controller\n"
 		SshHostEd25519KeyCertPub = "ssh-ed25519-cert-v01@openssh.com AAAAIHNzaC1lZDI1NTE5LWNlcnQtdjAxQG9wZW5zc2guY29tAAAAICKzG6B7ncoyduo40F9j09SKmNHmN0fBB/88EKhUrKGQAAAAIFLAbr5vAYA6o0A1RCK/z1xDBWe7PEssR7lu9UtWo4ZVAAAAAAAAAAAAAAACAAAAE2NvbnRyb2xsZXItb3Jzb2xhYnMAAAAAAAAAAAAAAAD//////////wAAAAAAAAAAAAAAAAAAADMAAAALc3NoLWVkMjU1MTkAAAAgemiCHSBWFPq5PWhEGrBoOIMAlqNFC/e3kyKsYoYCzyoAAABTAAAAC3NzaC1lZDI1NTE5AAAAQO2pYU1CkGRyQK7PjaE/8r6aoKZEwkLfEtlpoDtmLtfxckMPxh3xPp3K2Jrkkn+2YAi92PYmeHhNEELBd82h6gA= controller\n"
 	)
-	err := florist.LowLevelInit(io.Discard, "INFO")
-	assert.NoError(t, err, "florist.LowLevelInit")
+	tempDir := t.TempDir()
+	gdn := testhelpers.InitFlorist(t, tempDir)
 
 	fl := sshd.Flower{
 		Inst:                     sshd.Inst{},
@@ -53,10 +53,10 @@ func TestSshdConfigureSuccess(t *testing.T) {
 		SshHostEd25519KeyPub:     SshHostEd25519KeyPub,
 		SshHostEd25519KeyCertPub: SshHostEd25519KeyCertPub,
 	}
-	err = fl.Init()
+	err := fl.Init(gdn)
 	assert.NoError(t, err, "fl.Init")
 
-	err = fl.Configure(florist.Seeds{})
+	err = fl.Configure()
 	assert.NoError(t, err, "fl.Configure")
 
 	assert.FileEqualsString(t, sshd.SshHostEd25519KeyDst,

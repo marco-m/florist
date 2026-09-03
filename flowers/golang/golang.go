@@ -34,6 +34,8 @@ type Flower struct {
 }
 
 type Inst struct {
+	gdn *florist.Garden
+
 	Version string
 	Hash    string
 }
@@ -52,7 +54,9 @@ func (fl *Flower) Embedded() []string {
 	return nil
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(gdn *florist.Garden) error {
+	fl.gdn = gdn
+
 	if err := defaults.Set(fl); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
@@ -65,7 +69,7 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install(opts florist.Seeds) error {
+func (fl *Flower) Install() error {
 	log := slog.With("flower", Name+".install")
 
 	goexe := path.Join(GOROOT, "bin/go")
@@ -81,18 +85,17 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 	client := &http.Client{Timeout: 30 * time.Second}
-	tgzPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash,
-		florist.WorkDir)
+	tgzPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash, fl.gdn.WorkDir())
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	log.Debug("extracting Go")
-	if err := os.RemoveAll(path.Join(florist.WorkDir, "go")); err != nil {
+	if err := os.RemoveAll(path.Join(fl.gdn.WorkDir(), "go")); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 	cmd := exec.Command("tar", "xzf", tgzPath)
-	cmd.Dir = florist.WorkDir
+	cmd.Dir = fl.gdn.WorkDir()
 	if err := florist.CmdRun(log, cmd); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
@@ -103,7 +106,7 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 	}
 
 	log.Debug("Moving Go into place")
-	if err := os.Rename(path.Join(florist.WorkDir, "go"), GOROOT); err != nil {
+	if err := os.Rename(path.Join(fl.gdn.WorkDir(), "go"), GOROOT); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
@@ -135,7 +138,7 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 	return envvar.AddPaths(log, "go", "$HOME/go/bin")
 }
 
-func (fl *Flower) Configure(opts florist.Seeds) error {
+func (fl *Flower) Configure() error {
 	log := slog.With("flower", Name+".configure")
 	log.Debug("nothing to do")
 	return nil

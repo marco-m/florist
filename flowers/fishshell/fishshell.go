@@ -36,6 +36,8 @@ type Flower struct {
 }
 
 type Inst struct {
+	gdn *florist.Garden
+
 	Usernames []string
 	// Using Fish as default shell breaks too many programs when they ssh :-(
 	SetAsDefault bool
@@ -56,7 +58,9 @@ func (fl *Flower) Embedded() []string {
 	return florist.ListFs(fl.Fsys)
 }
 
-func (fl *Flower) Init() error {
+func (fl *Flower) Init(gdn *florist.Garden) error {
+	fl.gdn = gdn
+
 	if fl.Fsys == nil {
 		fl.Fsys = embedded
 	}
@@ -69,10 +73,11 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install(opts florist.Seeds) error {
+func (fl *Flower) Install() error {
 	log := slog.With("flower", Name+".install")
 
 	log.Info("Install packages")
+	apt := apt.New(fl.gdn)
 	if err := apt.Install("fish"); err != nil {
 		return err
 	}
@@ -114,7 +119,7 @@ func (fl *Flower) Install(opts florist.Seeds) error {
 	return nil
 }
 
-func (fl *Flower) Configure(opts florist.Seeds) error {
+func (fl *Flower) Configure() error {
 	log := slog.With("flower", Name+".configure")
 	log.Debug("nothing-to-do")
 	return nil
