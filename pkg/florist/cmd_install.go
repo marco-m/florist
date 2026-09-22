@@ -26,7 +26,7 @@ func (cmd *installCmd) Run(app App) error {
 			if err := fl.Init(); err != nil {
 				return fmt.Errorf("install: %s", err)
 			}
-			if err := fl.Install(); err != nil {
+			if err := fl.Install(app.opts.Seeds); err != nil {
 				return err
 			}
 		}

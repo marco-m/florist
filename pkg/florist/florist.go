@@ -21,11 +21,11 @@ type Installer interface {
 	Description() string
 	Embedded() []string
 	Init() error
-	Install() error
+	Install(opts Seeds) error
 }
 
 type Configurer interface {
-	Configure() error
+	Configure(opts Seeds) error
 }
 
 const (

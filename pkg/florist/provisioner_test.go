@@ -65,13 +65,13 @@ func (cc *SpyFlower) Init() error {
 	return cc.InitError
 }
 
-func (cc *SpyFlower) Install() error {
+func (cc *SpyFlower) Install(seeds florist.Seeds) error {
 	*cc.Spy = append(*cc.Spy, fmt.Sprintf("SpyFlower.Install.%s.%s",
 		cc.Name, stringErr(cc.InstallError)))
 	return cc.InstallError
 }
 
-func (cc *SpyFlower) Configure() error {
+func (cc *SpyFlower) Configure(seeds florist.Seeds) error {
 	*cc.Spy = append(*cc.Spy, fmt.Sprintf("SpyFlower.Configure.%s.%s",
 		cc.Name, stringErr(cc.ConfigureError)))
 	return cc.ConfigureError

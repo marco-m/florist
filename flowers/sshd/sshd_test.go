@@ -26,7 +26,7 @@ func TestSshdInstallSuccess(t *testing.T) {
 	err = fl.Init()
 	assert.NoError(t, err, "fl.Init")
 
-	err = fl.Install()
+	err = fl.Install(florist.Seeds{})
 	assert.NoError(t, err, "fl.Install")
 
 	assert.FileContains(t, sshd.SshdConfigDst, "Port 22\n")
@@ -56,7 +56,7 @@ func TestSshdConfigureSuccess(t *testing.T) {
 	err = fl.Init()
 	assert.NoError(t, err, "fl.Init")
 
-	err = fl.Configure()
+	err = fl.Configure(florist.Seeds{})
 	assert.NoError(t, err, "fl.Configure")
 
 	assert.FileEqualsString(t, sshd.SshHostEd25519KeyDst,

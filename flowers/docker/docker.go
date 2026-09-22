@@ -49,7 +49,7 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(opts florist.Seeds) error {
 	const step = Name + ".install"
 	errorf := makeErrorf(step)
 	log := slog.With("flower", step)
@@ -131,7 +131,7 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(opts florist.Seeds) error {
 	const step = Name + ".configure"
 	errorf := makeErrorf(step)
 	log := slog.With("flower", step)

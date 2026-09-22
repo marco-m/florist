@@ -86,13 +86,13 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(opts florist.Seeds) error {
 	log := slog.With("flower", Name+".install")
 	log.Debug("nothing-to-do")
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(opts florist.Seeds) error {
 	log := slog.With("flower", Name+".configure")
 
 	log.Info("installing sshd configuration file",

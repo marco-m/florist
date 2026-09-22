@@ -38,7 +38,7 @@ func TestDaisyInstall(t *testing.T) {
 	assert.NoError(t, err, "fl.Init")
 
 	t.Run("install runs successfully", func(t *testing.T) {
-		err = fl.Install()
+		err = fl.Install(florist.Seeds{})
 		assert.NoError(t, err, "fl.Install")
 	})
 
@@ -76,7 +76,7 @@ func TestDaisyConfigure(t *testing.T) {
 	assert.NoError(t, err, "fl.Init")
 
 	t.Run("configure runs successfully", func(t *testing.T) {
-		err = fl.Configure()
+		err = fl.Configure(florist.Seeds{})
 		assert.NoError(t, err, "fl.Configure")
 	})
 

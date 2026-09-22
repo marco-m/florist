@@ -22,22 +22,28 @@ var (
 
 // The Options passed to [MainInt]. For an example, see florist/example/main.go
 type Options struct {
-	// Output for the logger. Defaults to [os.Stdout]. Before changing to [os.Stderr],
-	// consider that HashiCorp Packer renders any output to stderr in red, thus
-	// making everything look like an error.
-	// The default log level is INFO; it can be changed to DEBUG via the --log-level
-	// command-line flag.
+	// Seeds will be passed to each [Flower.Install] and [Flower.Configure].
+	Seeds
+
+	// LogOutput is the output of the logger. Defaults to [os.Stdout].
+	// Before changing to [os.Stderr], consider that HashiCorp Packer renders
+	// any output to stderr in red, thus  making everything look like an error.
 	LogOutput io.Writer
-	// Set to a temporary directory during testing. DO NOT MODIFY in production code.
-	RootDir string
-	// The setup function, called before any command-line subcommand. Mandatory.
+	// SetupFn will be called before any command-line subcommand. Mandatory.
 	SetupFn func(prov *Provisioner) error
-	// The preConfigure function, called before the command-line configure
-	// subcommand. Mandatory.
+	// PreConfigureFn will be called before the command-line "configure".
+	// Mandatory.
 	PreConfigureFn func(prov *Provisioner, config *Config) (any, error)
-	// The postConfigure function, called after the command-line configure
-	// subcommand. Optional.
+	// PostConfigureFn will be called after the command-line "configure".
+	// Optional.
 	PostConfigureFn func(prov *Provisioner, config *Config, bag any) error
+}
+
+// Seeds will be passed to each [Flower.Init] and [Flower.Configure] by [MainInt].
+type Seeds struct {
+	// RootDir can be set to a temporary directory during testing.
+	// DO NOT MODIFY in production code.
+	RootDir string
 }
 
 // MainInt is a ready-made function for the main() of your installer.

@@ -21,7 +21,7 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 	err = fl.Init()
 	assert.NoError(t, err, "fl.Init")
 
-	err = fl.Install()
+	err = fl.Install(florist.Seeds{})
 	assert.NoError(t, err, "fl.Install")
 }
 

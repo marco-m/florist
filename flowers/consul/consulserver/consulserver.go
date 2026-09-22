@@ -28,7 +28,7 @@ const (
 
 var _ florist.Flower = (*Flower)(nil)
 
-// WARNING: Do NOT install alongside a Consul client.
+// Flower for a Consul server. WARNING: Do NOT install alongside a Consul client.
 type Flower struct {
 	Inst
 	Conf
@@ -77,7 +77,7 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(opts florist.Seeds) error {
 	log := slog.With("flower", Name+".install")
 
 	if err := consul.CommonInstall(log, fl.Version, fl.Hash); err != nil {
@@ -86,7 +86,7 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(opts florist.Seeds) error {
 	log := slog.With("flower", Name+".configure")
 
 	dst := path.Join(consul.CfgDir, filepath.Base(ConfigFile))

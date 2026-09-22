@@ -51,7 +51,7 @@ func (cmd *configureCmd) Run(app App) error {
 			if err := fl.Init(); err != nil {
 				app.prov.errs = append(app.prov.errs, fmt.Errorf("flower init: %s", err))
 			}
-			if err := fl.Configure(); err != nil {
+			if err := fl.Configure(app.opts.Seeds); err != nil {
 				app.prov.errs = append(app.prov.errs, fmt.Errorf("flower configure: %s", err))
 			}
 		}

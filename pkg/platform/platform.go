@@ -1,3 +1,5 @@
+// Package platform contains platform-specific information.
+//
 // Some ideas are taken from
 // https://github.com/python-distro/distro
 // https://github.com/kdeldycke/extra-platforms

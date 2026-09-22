@@ -75,7 +75,7 @@ func (fl *Flower) Init() error {
 	return nil
 }
 
-func (fl *Flower) Install() error {
+func (fl *Flower) Install(opts florist.Seeds) error {
 	log := slog.With("flower", Name+".install")
 	userName := florist.User().Username
 
@@ -83,7 +83,8 @@ func (fl *Flower) Install() error {
 	log.Debug("installing file (plain)",
 		"src", InstallPlainFileSrc, "dst", dstPath)
 	if err := florist.CopyFileFs(
-		fl.Fsys, InstallPlainFileSrc, dstPath, 0o600, userName); err != nil {
+		fl.Fsys, InstallPlainFileSrc, dstPath, 0o600, userName,
+	); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
@@ -103,7 +104,7 @@ func (fl *Flower) Install() error {
 	return nil
 }
 
-func (fl *Flower) Configure() error {
+func (fl *Flower) Configure(opts florist.Seeds) error {
 	log := slog.With("flower", Name+".configure")
 
 	dstPath := filepath.Join(fl.Inst.DstDir, ConfigTmplFileDst)
