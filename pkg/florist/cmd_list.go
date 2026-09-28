@@ -1,4 +1,4 @@
-package provisioner
+package florist
 
 import (
 	"fmt"

@@ -8,17 +8,16 @@ import (
 	"github.com/marco-m/florist/example/flowers/daisy"
 	"github.com/marco-m/florist/example/flowers/mint"
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 func main() {
-	os.Exit(provisioner.MainInt(&provisioner.Options{
+	os.Exit(florist.MainInt(&florist.Options{
 		SetupFn:        setup,
 		PreConfigureFn: preConfigure,
 	}))
 }
 
-func setup(prov *provisioner.Provisioner) error {
+func setup(prov *florist.Provisioner) error {
 	err := prov.AddFlowers(
 		&daisy.Flower{
 			Inst: daisy.Inst{
@@ -33,7 +32,7 @@ func setup(prov *provisioner.Provisioner) error {
 	return nil
 }
 
-func preConfigure(prov *provisioner.Provisioner, config *provisioner.Config) (any, error) {
+func preConfigure(prov *florist.Provisioner, config *florist.Config) (any, error) {
 	prov.Flowers()[daisy.Name].(*daisy.Flower).Conf = daisy.Conf{
 		Environment: config.Get("Environment"),
 		GossipKey:   config.Get("GossipKey"),

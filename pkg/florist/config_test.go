@@ -1,4 +1,4 @@
-package provisioner_test
+package florist_test
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/marco-m/florist/pkg/provisioner"
+	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/rosina/assert"
 )
 
@@ -96,7 +96,7 @@ func TestConfigLookupFailure(t *testing.T) {
 	}
 }
 
-func setupConfig(t *testing.T, dir string, kvs map[string]string) *provisioner.Config {
+func setupConfig(t *testing.T, dir string, kvs map[string]string) *florist.Config {
 	t.Helper()
 
 	file := filepath.Join(dir, "config.json")
@@ -106,7 +106,7 @@ func setupConfig(t *testing.T, dir string, kvs map[string]string) *provisioner.C
 	err = os.WriteFile(file, data, 0o664)
 	assert.NoError(t, err, "WriteFile")
 
-	cfg, err := provisioner.NewConfig(file)
+	cfg, err := florist.NewConfig(file)
 	assert.NoError(t, err, "NewConfig")
 
 	return cfg

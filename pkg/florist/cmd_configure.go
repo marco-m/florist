@@ -1,11 +1,10 @@
-package provisioner
+package florist
 
 import (
 	"fmt"
 	"path/filepath"
 
 	"github.com/marco-m/clim"
-	"github.com/marco-m/florist/pkg/florist"
 )
 
 type configureCmd struct {
@@ -21,7 +20,7 @@ func newConfigureCmd(parent *clim.CLI[App]) error {
 	}
 
 	if err := cli.AddFlags(&clim.Flag{
-		Value: clim.String(&configureCmd.Settings, filepath.Join(florist.HomeDir, "config.json")),
+		Value: clim.String(&configureCmd.Settings, filepath.Join(HomeDir, "config.json")),
 		Long:  "settings", Help: "Settings file (JSON)",
 	}); err != nil {
 		return err
@@ -77,7 +76,7 @@ func (cmd *configureCmd) Run(app App) error {
 			app.prov.errs = append(app.prov.errs, err)
 		}
 
-		if err := florist.JoinErrors(app.prov.errs...); err != nil {
+		if err := JoinErrors(app.prov.errs...); err != nil {
 			return fmt.Errorf("configure: %s", err)
 		}
 		return nil

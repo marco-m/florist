@@ -6,12 +6,11 @@ import (
 	"testing"
 
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/florist/pkg/provisioner"
 	"github.com/marco-m/rosina/assert"
 )
 
 func TestUnzipOne(t *testing.T) {
-	provisioner.LowLevelInit(io.Discard, "Info")
+	florist.LowLevelInit(io.Discard, "Info")
 	dstDir := t.TempDir()
 
 	type testCase struct {
@@ -40,7 +39,7 @@ func TestUnzipOne(t *testing.T) {
 }
 
 func TestUntarOne(t *testing.T) {
-	provisioner.LowLevelInit(io.Discard, "Info")
+	florist.LowLevelInit(io.Discard, "Info")
 	dstDir := t.TempDir()
 
 	type testCase struct {
@@ -69,7 +68,7 @@ func TestUntarOne(t *testing.T) {
 }
 
 func TestUntarAll(t *testing.T) {
-	provisioner.LowLevelInit(io.Discard, "Info")
+	florist.LowLevelInit(io.Discard, "Info")
 	dstDir := t.TempDir()
 	owner, group, err := florist.WhoAmI()
 	if err != nil {

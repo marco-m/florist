@@ -1,4 +1,4 @@
-package provisioner_test
+package florist_test
 
 import (
 	"errors"
@@ -8,29 +8,28 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/marco-m/florist/pkg/florist"
-	"github.com/marco-m/florist/pkg/provisioner"
 )
 
 func TestProvisionerConfigureZeroFlowers(t *testing.T) {
 	var spy []string
-	opts := &provisioner.Options{
+	opts := &florist.Options{
 		LogOutput: io.Discard,
 		RootDir:   t.TempDir(),
-		SetupFn: func(prov *provisioner.Provisioner) error {
+		SetupFn: func(prov *florist.Provisioner) error {
 			spy = append(spy, "SetupFn")
 			return nil
 		},
-		PreConfigureFn: func(prov *provisioner.Provisioner, config *provisioner.Config) (any, error) {
+		PreConfigureFn: func(prov *florist.Provisioner, config *florist.Config) (any, error) {
 			spy = append(spy, "PreConfigureFn")
 			return nil, nil
 		},
-		PostConfigureFn: func(prov *provisioner.Provisioner, config *provisioner.Config, bag any) error {
+		PostConfigureFn: func(prov *florist.Provisioner, config *florist.Config, bag any) error {
 			spy = append(spy, "PostConfigureFn")
 			return nil
 		},
 	}
 	cmdline := []string{"program", "configure", "--settings=testdata/simple.json"}
-	err := provisioner.MainErr(cmdline, opts)
+	err := florist.MainErr(cmdline, opts)
 	if err != nil {
 		t.Errorf("error: %s", err)
 	}
@@ -88,27 +87,27 @@ func stringErr(err error) string {
 
 func TestProvisionerConfigureTwoFlowers(t *testing.T) {
 	var spy []string
-	opts := &provisioner.Options{
+	opts := &florist.Options{
 		LogOutput: io.Discard,
 		RootDir:   t.TempDir(),
-		SetupFn: func(prov *provisioner.Provisioner) error {
+		SetupFn: func(prov *florist.Provisioner) error {
 			spy = append(spy, "SetupFn")
 			return prov.AddFlowers(
 				&SpyFlower{Spy: &spy, Name: "A"},
 				&SpyFlower{Spy: &spy, Name: "B"},
 			)
 		},
-		PreConfigureFn: func(prov *provisioner.Provisioner, config *provisioner.Config) (any, error) {
+		PreConfigureFn: func(prov *florist.Provisioner, config *florist.Config) (any, error) {
 			spy = append(spy, "PreConfigureFn")
 			return nil, nil
 		},
-		PostConfigureFn: func(prov *provisioner.Provisioner, config *provisioner.Config, bag any) error {
+		PostConfigureFn: func(prov *florist.Provisioner, config *florist.Config, bag any) error {
 			spy = append(spy, "PostConfigureFn")
 			return nil
 		},
 	}
 	cmdline := []string{"program", "configure", "--settings=testdata/simple.json"}
-	err := provisioner.MainErr(cmdline, opts)
+	err := florist.MainErr(cmdline, opts)
 	if err != nil {
 		t.Errorf("error: %s", err)
 	}
@@ -130,10 +129,10 @@ func TestProvisionerConfigureTwoFlowers(t *testing.T) {
 // Before, it was terminating on first error.
 func TestProvisionerIntermediateErrorsKeepsGoing(t *testing.T) {
 	var spy []string
-	opts := &provisioner.Options{
+	opts := &florist.Options{
 		LogOutput: io.Discard,
 		RootDir:   t.TempDir(),
-		SetupFn: func(prov *provisioner.Provisioner) error {
+		SetupFn: func(prov *florist.Provisioner) error {
 			spy = append(spy, "SetupFn")
 			return prov.AddFlowers(
 				&SpyFlower{
@@ -144,21 +143,21 @@ func TestProvisionerIntermediateErrorsKeepsGoing(t *testing.T) {
 				&SpyFlower{Spy: &spy, Name: "B"},
 			)
 		},
-		PreConfigureFn: func(prov *provisioner.Provisioner, config *provisioner.Config) (any, error) {
+		PreConfigureFn: func(prov *florist.Provisioner, config *florist.Config) (any, error) {
 			err := errors.New("E3")
 			spy = append(spy, "PreConfigureFn."+err.Error())
 			return nil, err
 		},
-		PostConfigureFn: func(prov *provisioner.Provisioner, config *provisioner.Config, bag any) error {
+		PostConfigureFn: func(prov *florist.Provisioner, config *florist.Config, bag any) error {
 			spy = append(spy,
 				"PostConfigureFn.<nil>",
-				"PostConfigureFn.Provisioner.Errors."+stringErr(florist.JoinErrors(prov.Errors()...)),
+				"PostConfigureFn.florist.Errors."+stringErr(florist.JoinErrors(prov.Errors()...)),
 			)
 			return nil
 		},
 	}
 	cmdline := []string{"program", "configure", "--settings=testdata/simple.json"}
-	err := provisioner.MainErr(cmdline, opts)
+	err := florist.MainErr(cmdline, opts)
 	{
 		have := err.Error()
 		want := "configure: preconfigure: E3; flower init: E1; flower configure: E2"
@@ -175,7 +174,7 @@ func TestProvisionerIntermediateErrorsKeepsGoing(t *testing.T) {
 			"SpyFlower.Init.B.<nil>",
 			"SpyFlower.Configure.B.<nil>",
 			"PostConfigureFn.<nil>",
-			"PostConfigureFn.Provisioner.Errors.preconfigure: E3; flower init: E1; flower configure: E2",
+			"PostConfigureFn.florist.Errors.preconfigure: E3; flower init: E1; flower configure: E2",
 		}
 		if diff := cmp.Diff(want, spy); diff != "" {
 			t.Errorf("spy mismatch:\n--- want\n+++ have\n%s", diff)

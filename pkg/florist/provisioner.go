@@ -1,4 +1,4 @@
-package provisioner
+package florist
 
 import (
 	"errors"
@@ -13,7 +13,6 @@ import (
 
 	"github.com/marco-m/clim"
 	"github.com/marco-m/florist/internal"
-	"github.com/marco-m/florist/pkg/florist"
 )
 
 var (
@@ -23,7 +22,7 @@ var (
 
 // The Options passed to [MainInt]. For an example, see florist/example/main.go
 type Options struct {
-	// Output for the logger. Defaults to os.Stdout. Before changing to os.Stderr,
+	// Output for the logger. Defaults to [os.Stdout]. Before changing to [os.Stderr],
 	// consider that HashiCorp Packer renders any output to stderr in red, thus
 	// making everything look like an error.
 	// The default log level is INFO; it can be changed to DEBUG via the --log-level
@@ -147,7 +146,7 @@ func MainErr(args []string, opts *Options) error {
 }
 
 type Provisioner struct {
-	flowers map[string]florist.Flower
+	flowers map[string]Flower
 	ordered []string
 	errs    []error
 }
@@ -160,29 +159,29 @@ func (prov *Provisioner) Errors() []error {
 
 func newProvisioner() *Provisioner {
 	return &Provisioner{
-		flowers: make(map[string]florist.Flower),
+		flowers: make(map[string]Flower),
 	}
 }
 
 // Flowers returns
-func (prov *Provisioner) Flowers() map[string]florist.Flower {
+func (prov *Provisioner) Flowers() map[string]Flower {
 	return prov.flowers
 }
 
-func (prov *Provisioner) AddFlowers(flowers ...florist.Flower) error {
+func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
 	if len(prov.flowers) > 0 {
-		return fmt.Errorf("Provisioner.AddFlowers: cannot call more than once")
+		return fmt.Errorf("florist.AddFlowers: cannot call more than once")
 	}
 	for i, flower := range flowers {
 		if flower.String() == "" {
-			return fmt.Errorf("Provisioner.AddFlowers: flower %d has empty name", i)
+			return fmt.Errorf("florist.AddFlowers: flower %d has empty name", i)
 		}
 		if flower.Description() == "" {
-			return fmt.Errorf("Provisioner.AddFlowers: flower %s has empty description",
+			return fmt.Errorf("florist.AddFlowers: flower %s has empty description",
 				flower)
 		}
 		if _, found := prov.flowers[flower.String()]; found {
-			return fmt.Errorf("Provisioner.AddFlowers: flower with same name already exists: %s", flower)
+			return fmt.Errorf("florist.AddFlowers: flower with same name already exists: %s", flower)
 		}
 		prov.ordered = append(prov.ordered, flower.String())
 		prov.flowers[flower.String()] = flower
@@ -210,7 +209,7 @@ func Group() *user.Group {
 // LowLevelInit should be called only by low-level test code.
 // Absolutely do not call in non-test code! Call florist.MainInt instead!
 func LowLevelInit(logOutput io.Writer, logLevel string) error {
-	errorf := internal.MakeErrorf("provisioner.LowLevelInit")
+	errorf := internal.MakeErrorf("florist.LowLevelInit")
 	var level slog.Level
 	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
 		return errorf("--log-level: %s", err)
@@ -227,10 +226,10 @@ func LowLevelInit(logOutput io.Writer, logLevel string) error {
 		return errorf("%s", err)
 	}
 
-	if err := florist.Mkdir(florist.WorkDir, 0o755, User().Username, Group().Name); err != nil {
+	if err := Mkdir(WorkDir, 0o755, User().Username, Group().Name); err != nil {
 		return errorf("%s", err)
 	}
-	// if err := florist.Mkdir(florist.HomeDir, 0o755, User().Username, Group().Name); err != nil {
+	// if err := Mkdir(HomeDir, 0o755, User().Username, Group().Name); err != nil {
 	// 	return errorf("%s", err)
 	// }
 
@@ -255,7 +254,7 @@ func customizeMotd(op string, status string, rootDir string) error {
 
 	_, errWrite := f.WriteString(line)
 	errClose := f.Close()
-	return florist.JoinErrors(errWrite, errClose)
+	return JoinErrors(errWrite, errClose)
 }
 
 func timelog(run func() error, app App) error {
