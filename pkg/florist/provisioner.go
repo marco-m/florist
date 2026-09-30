@@ -9,6 +9,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/marco-m/clim"
@@ -91,7 +92,7 @@ func MainErr(args []string, opts *Options) error {
 		opts:  opts,
 	}
 
-	cli, err := clim.NewTop[App](prog, "A 🌼 florist 🌺 provisioner", nil)
+	cli, err := clim.NewTop(prog, "A 🌼 florist 🌺 provisioner")
 	if err != nil {
 		return err
 	}
@@ -104,17 +105,20 @@ func MainErr(args []string, opts *Options) error {
 		return err
 	}
 
-	if err := newListCmd(cli); err != nil {
+	listCmd, err := newListCmd(cli)
+	if err != nil {
 		return err
 	}
-	if err := newInstallCmd(cli); err != nil {
+	installCmd, err := newInstallCmd(cli)
+	if err != nil {
 		return err
 	}
-	if err := newConfigureCmd(cli); err != nil {
+	configureCmd, err := newConfigureCmd(cli)
+	if err != nil {
 		return err
 	}
 
-	action, err := cli.Parse(args[1:])
+	command, err := cli.Parse(args[1:])
 	if err != nil {
 		return err
 	}
@@ -148,7 +152,18 @@ func MainErr(args []string, opts *Options) error {
 		return fmt.Errorf("florist.Main: setup: %s", err)
 	}
 
-	return action(app)
+	_, subcommand, _ := strings.CutLast(command, " ")
+	switch subcommand {
+	case "list":
+		return listCmd.Run(app)
+	case "install":
+		return installCmd.Run(app)
+	case "configure":
+		return configureCmd.Run(app)
+
+	default:
+		return fmt.Errorf("internal error: unwired command: %s", command)
+	}
 }
 
 type Provisioner struct {

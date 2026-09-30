@@ -8,11 +8,14 @@ import (
 
 type listCmd struct{}
 
-func newListCmd(parent *clim.CLI[App]) error {
+func newListCmd(parent *clim.CLI) (*listCmd, error) {
 	listCmd := listCmd{}
 
-	_, err := clim.NewSub(parent, "list", "list the flowers and their files", listCmd.Run)
-	return err
+	_, err := clim.NewSub(parent, "list", "list the flowers and their files")
+	if err != nil {
+		return nil, err
+	}
+	return &listCmd, err
 }
 
 func (cmd *listCmd) Run(app App) error {

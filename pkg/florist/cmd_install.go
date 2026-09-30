@@ -8,11 +8,11 @@ import (
 
 type installCmd struct{}
 
-func newInstallCmd(parent *clim.CLI[App]) error {
+func newInstallCmd(parent *clim.CLI) (*installCmd, error) {
 	installCmd := installCmd{}
 
-	_, err := clim.NewSub(parent, "install", "install the flowers", installCmd.Run)
-	return err
+	_, err := clim.NewSub(parent, "install", "install the flowers")
+	return &installCmd, err
 }
 
 func (cmd *installCmd) Run(app App) error {

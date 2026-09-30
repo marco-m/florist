@@ -11,22 +11,22 @@ type configureCmd struct {
 	Settings string
 }
 
-func newConfigureCmd(parent *clim.CLI[App]) error {
+func newConfigureCmd(parent *clim.CLI) (*configureCmd, error) {
 	configureCmd := configureCmd{}
 
-	cli, err := clim.NewSub(parent, "configure", "configure the flowers", configureCmd.Run)
+	cli, err := clim.NewSub(parent, "configure", "configure the flowers")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := cli.AddFlags(&clim.Flag{
 		Value: clim.String(&configureCmd.Settings, filepath.Join(HomeDir, "config.json")),
 		Long:  "settings", Help: "Settings file (JSON)",
 	}); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &configureCmd, nil
 }
 
 func (cmd *configureCmd) Run(app App) error {

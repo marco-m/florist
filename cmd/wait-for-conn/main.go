@@ -38,7 +38,7 @@ type Application struct {
 
 func mainErr(args []string) error {
 	var app Application
-	cli, err := clim.NewTop("wait-for-conn", "waits for a network service to be up", app.run)
+	cli, err := clim.NewTop("wait-for-conn", "waits for a network service to be up")
 	if err != nil {
 		return err
 	}
@@ -65,15 +65,14 @@ func mainErr(args []string) error {
 		return err
 	}
 
-	action, err := cli.Parse(args)
-	if err != nil {
+	if _, err := cli.Parse(args); err != nil {
 		return err
 	}
 
-	return action(0)
+	return app.run()
 }
 
-func (app *Application) run(uctx int) error {
+func (app *Application) run() error {
 	now := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), app.MaxWait)
 	defer cancel()
