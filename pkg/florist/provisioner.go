@@ -61,15 +61,18 @@ type Seeds struct {
 //
 // See also [MainErr].
 func MainInt(opts *Options) int {
-	err := MainErr(os.Args, opts)
-	if err == nil {
+	if err := MainErr(os.Args, opts); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return ExitCode(err)
+	}
+	return 0
+}
+
+// ExitCode can be used with [MainErr]. See also [MainInt].
+func ExitCode(err error) int {
+	if err == nil || errors.Is(err, clim.ErrHelp) {
 		return 0
 	}
-	if errors.Is(err, clim.ErrHelp) {
-		fmt.Fprintln(os.Stdout, err)
-		return 0
-	}
-	fmt.Fprintln(os.Stderr, err)
 	return 1
 }
 
@@ -83,7 +86,7 @@ type App struct {
 }
 
 // MainErr is a ready-made function for the main() of your installer.
-// See also [MainInt].
+// See also [MainInt] and [ExitCode].
 func MainErr(args []string, opts *Options) error {
 	prog := filepath.Base(os.Args[0])
 	app := App{
@@ -160,7 +163,6 @@ func MainErr(args []string, opts *Options) error {
 		return installCmd.Run(app)
 	case "configure":
 		return configureCmd.Run(app)
-
 	default:
 		return fmt.Errorf("internal error: unwired command: %s", command)
 	}
