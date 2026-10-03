@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/marco-m/florist/example/flowers/daisy"
 	"github.com/marco-m/florist/example/flowers/mint"
@@ -14,6 +15,14 @@ func main() {
 	os.Exit(florist.MainInt(&florist.Options{
 		SetupFn:        setup,
 		PreConfigureFn: preConfigure,
+		//
+		// Sometimes the OS default tempDir is too small. You can use TempDir
+		// to override.
+		// TempDir: "/path/with/enough/space",
+		//
+		// WARNING: RootDir is to be set ONLY for test. Here we set it
+		// ONLY BECAUSE this is a sample provisioner!!!
+		RootDir: filepath.Join(os.TempDir(), "example-florist"),
 	}))
 }
 

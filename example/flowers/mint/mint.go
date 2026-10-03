@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/creasty/defaults"
-
 	"github.com/marco-m/florist/pkg/florist"
 )
 
@@ -19,11 +17,13 @@ type Flower struct {
 }
 
 type Inst struct {
-	DstDir string `default:"/tmp/mint"`
+	gdn *florist.Garden
+
+	DstDir string
 }
 
 type Conf struct {
-	Aroma string `default:"PepperMint"`
+	Aroma string
 }
 
 func (fl *Flower) String() string {
@@ -38,33 +38,38 @@ func (fl *Flower) Embedded() []string {
 	return nil
 }
 
-func (fl *Flower) Init() error {
-	if err := defaults.Set(fl); err != nil {
-		return fmt.Errorf("%s: %s", Name, err)
+func (fl *Flower) Init(gdn *florist.Garden) error {
+	fl.gdn = gdn
+
+	// Defaults.
+	if fl.DstDir == "" {
+		fl.DstDir = filepath.Join(gdn.WorkDir(), "daisy")
 	}
+	if fl.Aroma == "" {
+		fl.Aroma = "PepperMint"
+	}
+
 	return nil
 }
 
-func (fl *Flower) Install(opts florist.Seeds) error {
+func (fl *Flower) Install() error {
 	// log := slog.With("flower", Name + ".install")
-
 	text := `DstDir: {{.DstDir}}\n`
 	rendered, err := florist.TemplateFromText(text, fl, "template-name")
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	username := florist.User().Username
-	groupname := florist.Group().Name
 	dstPath := filepath.Join(fl.Inst.DstDir, "install.txt")
-	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
+	if err := florist.WriteFile(dstPath, rendered, 0o600,
+		fl.gdn.User(), fl.gdn.Group()); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
 	return nil
 }
 
-func (fl *Flower) Configure(opts florist.Seeds) error {
+func (fl *Flower) Configure() error {
 	// log := slog.With("flower", Name + ".configure")
 
 	text := `DstDir: {{.DstDir}}
@@ -75,10 +80,9 @@ Aroma: {{.Aroma}}
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 
-	username := florist.User().Username
-	groupname := florist.Group().Name
 	dstPath := filepath.Join(fl.Inst.DstDir, "configure.txt")
-	if err := florist.WriteFile(dstPath, rendered, 0o600, username, groupname); err != nil {
+	if err := florist.WriteFile(dstPath, rendered, 0o600,
+		fl.gdn.User(), fl.gdn.Group()); err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 

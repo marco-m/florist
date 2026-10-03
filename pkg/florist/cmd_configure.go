@@ -29,58 +29,58 @@ func newConfigureCmd(parent *clim.CLI) (*configureCmd, error) {
 	return &configureCmd, nil
 }
 
-func (cmd *configureCmd) Run(app App) error {
+func (cmd *configureCmd) Run(gdn *Garden) error {
 	run := func() error {
 		config, err := NewConfig(cmd.Settings)
 		if err != nil {
-			app.prov.errs = append(app.prov.errs, err)
+			gdn.prov.errs = append(gdn.prov.errs, err)
 		}
 
-		app.log.Info("preconfigure-running")
+		gdn.log.Info("preconfigure-running")
 		var bag any
-		if bag, err = app.opts.PreConfigureFn(app.prov, config); err != nil {
-			app.prov.errs = append(app.prov.errs, fmt.Errorf("preconfigure: %s", err))
+		if bag, err = gdn.opts.PreConfigureFn(gdn.prov, config); err != nil {
+			gdn.prov.errs = append(gdn.prov.errs, fmt.Errorf("preconfigure: %s", err))
 		}
 
-		app.log.Info("configuring-each-flower", "flowers-count", len(app.prov.flowers),
-			"flowers", app.prov.ordered)
+		gdn.log.Info("configuring-each-flower", "flowers-count", len(gdn.prov.flowers),
+			"flowers", gdn.prov.ordered)
 
-		for _, k := range app.prov.ordered {
-			fl := app.prov.flowers[k]
-			app.log.Info("configuring", "flower", fl.String())
-			if err := fl.Init(); err != nil {
-				app.prov.errs = append(app.prov.errs, fmt.Errorf("flower init: %s", err))
+		for _, k := range gdn.prov.ordered {
+			fl := gdn.prov.flowers[k]
+			gdn.log.Info("configuring", "flower", fl.String())
+			if err := fl.Init(gdn); err != nil {
+				gdn.prov.errs = append(gdn.prov.errs, fmt.Errorf("flower init: %s", err))
 			}
-			if err := fl.Configure(app.opts.Seeds); err != nil {
-				app.prov.errs = append(app.prov.errs, fmt.Errorf("flower configure: %s", err))
+			if err := fl.Configure(); err != nil {
+				gdn.prov.errs = append(gdn.prov.errs, fmt.Errorf("flower configure: %s", err))
 			}
 		}
 
 		if cfgErr := config.Errors(); cfgErr != nil {
-			app.prov.errs = append(app.prov.errs, cfgErr)
+			gdn.prov.errs = append(gdn.prov.errs, cfgErr)
 		}
-		if app.opts.PostConfigureFn != nil {
-			app.log.Info("postconfigure-running")
-			if err := app.opts.PostConfigureFn(app.prov, config, bag); err != nil {
-				app.prov.errs = append(app.prov.errs, fmt.Errorf("postconfigure: %s", err))
+		if gdn.opts.PostConfigureFn != nil {
+			gdn.log.Info("postconfigure-running")
+			if err := gdn.opts.PostConfigureFn(gdn.prov, config, bag); err != nil {
+				gdn.prov.errs = append(gdn.prov.errs, fmt.Errorf("postconfigure: %s", err))
 			}
 		} else {
-			app.log.Info("postconfigure-nothing-to-run")
+			gdn.log.Info("postconfigure-nothing-to-run")
 		}
 
 		status := "✅ success"
-		if len(app.prov.errs) > 0 {
+		if len(gdn.prov.errs) > 0 {
 			status = "❌ failure"
 		}
-		if err := customizeMotd("configured", status, app.opts.RootDir); err != nil {
-			app.prov.errs = append(app.prov.errs, err)
+		if err := customizeMotd("configured", status, gdn.opts.RootDir); err != nil {
+			gdn.prov.errs = append(gdn.prov.errs, err)
 		}
 
-		if err := JoinErrors(app.prov.errs...); err != nil {
+		if err := JoinErrors(gdn.prov.errs...); err != nil {
 			return fmt.Errorf("configure: %s", err)
 		}
 		return nil
 	}
 
-	return timelog(run, app)
+	return timelog(run, gdn)
 }

@@ -69,18 +69,18 @@ func WriteFile(fname string, data string,
 ) error {
 	slog.Debug("WriteFile", "name", fname)
 	if err := os.WriteFile(fname, []byte(data), mode); err != nil {
-		return fmt.Errorf("florist.WriteFile: %s", err)
+		return fmt.Errorf("florist.WriteFile: os.WriteFile: %s", err)
 	}
 	// We call Chmod explicitly because os.WriteFile does _not_ change the
 	// mode _if_ the file already exists.
 	if err := os.Chmod(fname, mode); err != nil {
-		return fmt.Errorf("florist.WriteFile: %s", err)
+		return fmt.Errorf("florist.WriteFile: os.Chmod: %s", err)
 	}
 	if err := Chown(fname, owner); err != nil {
-		return fmt.Errorf("florist.WriteFile: %s", err)
+		return fmt.Errorf("florist.WriteFile: Chown: %s", err)
 	}
 	if err := Chgrp(fname, group); err != nil {
-		return fmt.Errorf("florist.WriteFile: %s", err)
+		return fmt.Errorf("florist.WriteFile: Chgrp: %s", err)
 	}
 
 	return nil

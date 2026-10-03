@@ -15,25 +15,25 @@ func newInstallCmd(parent *clim.CLI) (*installCmd, error) {
 	return &installCmd, err
 }
 
-func (cmd *installCmd) Run(app App) error {
+func (cmd *installCmd) Run(gdn *Garden) error {
 	run := func() error {
-		app.log.Info("installing", "flowers-count", len(app.prov.flowers),
-			"flowers", app.prov.ordered)
+		gdn.log.Info("installing", "flowers-count", len(gdn.prov.flowers),
+			"flowers", gdn.prov.ordered)
 
-		for _, k := range app.prov.ordered {
-			fl := app.prov.flowers[k]
-			app.log.Info("installing", "flower", fl.String())
-			if err := fl.Init(); err != nil {
+		for _, k := range gdn.prov.ordered {
+			fl := gdn.prov.flowers[k]
+			gdn.log.Info("installing", "flower", fl.String())
+			if err := fl.Init(gdn); err != nil {
 				return fmt.Errorf("install: %s", err)
 			}
-			if err := fl.Install(app.opts.Seeds); err != nil {
+			if err := fl.Install(); err != nil {
 				return err
 			}
 		}
 
 		status := "✅  success"
-		return customizeMotd("installed", status, app.opts.RootDir)
+		return customizeMotd("installed", status, gdn.opts.RootDir)
 	}
 
-	return timelog(run, app)
+	return timelog(run, gdn)
 }

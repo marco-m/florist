@@ -18,10 +18,10 @@ func newListCmd(parent *clim.CLI) (*listCmd, error) {
 	return &listCmd, err
 }
 
-func (cmd *listCmd) Run(app App) error {
-	for _, k := range app.prov.ordered {
-		fl := app.prov.flowers[k]
-		if err := fl.Init(); err != nil {
+func (cmd *listCmd) Run(gdn *Garden) error {
+	for _, k := range gdn.prov.ordered {
+		fl := gdn.prov.flowers[k]
+		if err := fl.Init(gdn); err != nil {
 			return err
 		}
 		fmt.Printf("%s -- %s\n", fl, fl.Description())

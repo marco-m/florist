@@ -11,9 +11,8 @@ import (
 )
 
 const (
-	// WorkDir is the temporary directory where to store downloaded packages and similar.
-	WorkDir = "/tmp/florist"
 	// HomeDir is the directory where to find the default JSON settings file.
+	// If not existing, will be created.
 	HomeDir = "/opt/florist"
 )
 
@@ -33,15 +32,16 @@ type Installer interface {
 	// See https://pkg.go.dev/embed
 	Embedded() []string
 	// Init is called at ANY subcommand: list, install, configure.
-	Init() error
+	// It should store gdn so that it can be used by the other methods.
+	Init(gdn *Garden) error
 	// Install is called at install time, after Init.
-	Install(opts Seeds) error
+	Install() error
 }
 
 // Part of a Flower.
 type Configurer interface {
 	// Configure is called at configure time, after Init.
-	Configure(opts Seeds) error
+	Configure() error
 }
 
 // SkipIfNotDisposableHost skips the test if it is running on a precious host.

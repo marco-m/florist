@@ -6,31 +6,16 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"os/user"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/marco-m/clim"
-	"github.com/marco-m/florist/internal"
-)
-
-var (
-	// currentUser is set by [MainInt].
-	currentUser *user.User
 )
 
 // The Options passed to [MainInt]. For an example, see florist/example/main.go
 type Options struct {
-	// Seeds will be passed to each [Flower.Install] and [Flower.Configure].
-	Seeds
-
-	// LogOutput is the output of the logger. Defaults to [os.Stdout].
-	// Before changing to [os.Stderr], consider that HashiCorp Packer renders
-	// any output to stderr in red, thus  making everything look like an error.
-	LogOutput io.Writer
-
 	// The SetupFn user callback will be invoked before any command-line
 	// subcommand. It is meant to call [Provisioner.AddFlowers].
 	// Mandatory.
@@ -43,17 +28,25 @@ type Options struct {
 	// The PostConfigureFn user callback will be invoked after the command-line
 	// "configure". Optional.
 	PostConfigureFn func(prov *Provisioner, config *Config, bag any) error
-}
 
-// Seeds will be passed to each [Flower.Install] and [Flower.Configure] by
-// [MainInt].
-// See also: [Options].
-type Seeds struct {
+	// LogOutput is the output of the logger. Defaults to [os.Stdout].
+	// Before changing to [os.Stderr], consider that HashiCorp Packer renders
+	// any output to stderr in red, thus  making everything look like an error.
+	LogOutput io.Writer
+
+	// TempDir is the base temporary directory where to store downloaded
+	// packages and similar. Defaults to [os.TempDir].
+	// It is used to set [App.WorkDir] as filepath.Join(TempDir, "florist").
+	TempDir string
+
 	// RootDir can be set to a temporary directory during testing.
 	// The default is /, the real root of the filesystems.
 	// DO NOT MODIFY in production code.
 	// WARNING: almost no code respects this parameter.
 	RootDir string
+
+	//
+	LogLevel slog.Level
 }
 
 // MainInt is a ready-made function for the main() of your installer.
@@ -86,25 +79,10 @@ func ExitCode(err error) int {
 	return 1
 }
 
-type App struct {
-	LogLevel string
-	//
-	start time.Time
-	log   *slog.Logger
-	prov  *Provisioner
-	opts  *Options
-}
-
 // MainErr is a ready-made function for the main() of your installer.
 // See also [MainInt] and [ExitCode].
 func MainErr(args []string, opts *Options) error {
 	prog := filepath.Base(os.Args[0])
-	app := App{
-		start: time.Now(),
-		prov:  newProvisioner(),
-		opts:  opts,
-	}
-
 	cli, err := clim.NewTop(prog, "A 🌼 florist 🌺 provisioner")
 	if err != nil {
 		return err
@@ -112,7 +90,7 @@ func MainErr(args []string, opts *Options) error {
 
 	if err := cli.AddFlags(
 		&clim.Flag{
-			Value: clim.String(&app.LogLevel, "INFO"),
+			Value: clim.LogLevel(&opts.LogLevel, slog.LevelInfo),
 			Long:  "log-level", Help: "set the log level",
 		}); err != nil {
 		return err
@@ -142,12 +120,6 @@ func MainErr(args []string, opts *Options) error {
 	// 	return fmt.Errorf("florist.Main: function already called")
 	// }
 
-	if opts.LogOutput == nil {
-		opts.LogOutput = os.Stdout
-	}
-	if opts.RootDir == "" {
-		opts.RootDir = "/"
-	}
 	if opts.SetupFn == nil {
 		return fmt.Errorf("florist.Main: SetupFn is nil")
 	}
@@ -155,24 +127,23 @@ func MainErr(args []string, opts *Options) error {
 		return fmt.Errorf("florist.Main: PreConfigureFn is nil")
 	}
 
-	if err := LowLevelInit(opts.LogOutput, app.LogLevel); err != nil {
+	gdn, err := NewGarden(opts)
+	if err != nil {
 		return err
 	}
 
-	app.log = slog.Default()
-
-	if err := opts.SetupFn(app.prov); err != nil {
+	if err := opts.SetupFn(gdn.prov); err != nil {
 		return fmt.Errorf("florist.Main: setup: %s", err)
 	}
 
 	_, subcommand, _ := strings.CutLast(command, " ")
 	switch subcommand {
 	case "list":
-		return listCmd.Run(app)
+		return listCmd.Run(gdn)
 	case "install":
-		return installCmd.Run(app)
+		return installCmd.Run(gdn)
 	case "configure":
-		return configureCmd.Run(app)
+		return configureCmd.Run(gdn)
 	default:
 		return fmt.Errorf("internal error: unwired command: %s", command)
 	}
@@ -225,50 +196,6 @@ func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
 	return nil
 }
 
-// User returns the current user, as set by Init.
-func User() *user.User {
-	if currentUser == nil {
-		panic("florist.User: must call florist.MainInt before")
-	}
-	return currentUser
-}
-
-// Group returns the primary group of the current user, as set by Init.
-func Group() *user.Group {
-	if currentUser == nil {
-		panic("florist.Group: must call florist.MainInt before")
-	}
-	group, _ := user.LookupGroupId(currentUser.Gid)
-	return group
-}
-
-// LowLevelInit should be called only by low-level test code.
-// Absolutely do not call in non-test code! Call florist.MainInt instead!
-func LowLevelInit(logOutput io.Writer, logLevel string) error {
-	errorf := internal.MakeErrorf("florist.LowLevelInit")
-	var level slog.Level
-	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
-		return errorf("--log-level: %s", err)
-	}
-
-	prog := filepath.Base(os.Args[0])
-	slog.SetDefault(slog.New(slog.NewTextHandler(logOutput,
-		&slog.HandlerOptions{Level: level})).With("prog", prog))
-
-	// FIXME should this go below???
-	var err error
-	currentUser, err = user.Current()
-	if err != nil {
-		return errorf("%s", err)
-	}
-
-	if err := Mkdir(WorkDir, 0o755, User().Username, Group().Name); err != nil {
-		return errorf("%s", err)
-	}
-
-	return nil
-}
-
 // rootDir is a hack to ease testing. See [Options.RootDir].
 func customizeMotd(op string, status string, rootDir string) error {
 	now := time.Now().UTC().Round(time.Second)
@@ -290,14 +217,14 @@ func customizeMotd(op string, status string, rootDir string) error {
 	return JoinErrors(errWrite, errClose)
 }
 
-func timelog(run func() error, app App) error {
-	app.log.Info("starting", "command-line", os.Args)
+func timelog(run func() error, gdn *Garden) error {
+	gdn.log.Info("starting", "command-line", os.Args)
 	err := run()
-	elapsed := time.Since(app.start).Round(time.Millisecond)
+	elapsed := time.Since(gdn.start).Round(time.Millisecond)
 	if err != nil {
-		app.log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
+		gdn.log.Error("exiting", "status", "failure", "error", err, "elapsed", elapsed)
 		return err
 	}
-	app.log.Info("exiting", "status", "success", "elapsed", elapsed)
+	gdn.log.Info("exiting", "status", "success", "elapsed", elapsed)
 	return nil
 }

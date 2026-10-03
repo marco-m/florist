@@ -1,13 +1,12 @@
 package daisy_test
 
 import (
-	"io"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
 
 	"github.com/marco-m/florist/example/flowers/daisy"
-	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/internal/testhelpers"
 	"github.com/marco-m/rosina/assert"
 )
 
@@ -18,8 +17,8 @@ func TestDaisyInstall(t *testing.T) {
 	// florist.SkipIfNotDisposableHost(t)
 	// because this is a special flower!
 
-	err := florist.LowLevelInit(io.Discard, "INFO")
-	assert.NoError(t, err, "florist.LowLevelInit")
+	tempDir := t.TempDir()
+	gdn := testhelpers.InitFlorist(t, tempDir)
 
 	fsys := fstest.MapFS{
 		daisy.InstallPlainFileSrc: {
@@ -34,11 +33,11 @@ func TestDaisyInstall(t *testing.T) {
 		Fsys: fsys,
 		Conf: daisy.Conf{},
 	}
-	err = fl.Init()
+	err := fl.Init(gdn)
 	assert.NoError(t, err, "fl.Init")
 
 	t.Run("install runs successfully", func(t *testing.T) {
-		err = fl.Install(florist.Seeds{})
+		err = fl.Install()
 		assert.NoError(t, err, "fl.Install")
 	})
 
@@ -61,6 +60,10 @@ func TestDaisyConfigure(t *testing.T) {
 	// florist.SkipIfNotDisposableHost(t)
 	// because this is a special flower!
 
+	// tempDir := t.TempDir()
+	tempDir := "/Users/mmolteni/tmp/ciccio"
+	gdn := testhelpers.InitFlorist(t, tempDir)
+
 	fsys := fstest.MapFS{
 		daisy.ConfigTmplFileSrc: {
 			Data: []byte(`{{.PetalColor}} {{.Environment}} {{.GossipKey}}`),
@@ -72,11 +75,11 @@ func TestDaisyConfigure(t *testing.T) {
 		Environment: "dev",
 		GossipKey:   "sesamo",
 	}
-	err := fl.Init()
+	err := fl.Init(gdn)
 	assert.NoError(t, err, "fl.Init")
 
 	t.Run("configure runs successfully", func(t *testing.T) {
-		err = fl.Configure(florist.Seeds{})
+		err = fl.Configure()
 		assert.NoError(t, err, "fl.Configure")
 	})
 
