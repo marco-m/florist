@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marco-m/florist/internal"
+	"github.com/marco-m/florist/internal/testhelpers"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/rosina/diff"
 )
@@ -21,7 +21,7 @@ func TestCmdRunBasicSuccess(t *testing.T) {
 	var buf bytes.Buffer
 	log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
 		Level:       slog.LevelDebug,
-		ReplaceAttr: internal.RemoveTime,
+		ReplaceAttr: testhelpers.RemoveTime,
 	}))
 
 	err := florist.CmdRun(log, exec.Command("true"))
@@ -38,7 +38,7 @@ func TestCmdRunBasicFailure(t *testing.T) {
 	var buf bytes.Buffer
 	log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
 		Level:       slog.LevelDebug,
-		ReplaceAttr: internal.RemoveTime,
+		ReplaceAttr: testhelpers.RemoveTime,
 	}))
 
 	err := florist.CmdRun(log, exec.Command("false"))
@@ -107,7 +107,7 @@ func TestCmdRunProcWritesToStdoutAndStderr(t *testing.T) {
 	var buf bytes.Buffer
 	log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
 		Level:       slog.LevelDebug,
-		ReplaceAttr: internal.RemoveTime,
+		ReplaceAttr: testhelpers.RemoveTime,
 	}))
 
 	err := florist.CmdRun(log, fakeExecCommand("anything-goes-this-is-a-fake"))
