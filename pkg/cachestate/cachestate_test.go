@@ -1,82 +1,93 @@
 package cachestate_test
 
 import (
+	"errors"
+	"io/fs"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/marco-m/florist/internal"
 	"github.com/marco-m/florist/pkg/cachestate"
+	"github.com/marco-m/rosina/assert"
 )
 
-func TestCacheStateIsNotValidBeforeUpdate(t *testing.T) {
-	chache := cachestate.New(time.Hour, t.TempDir(), internal.MakeTestLog())
+func TestNonExistingStateFileIsExpired(t *testing.T) {
+	stateDir := t.TempDir()
+	_, err := os.Stat(cachestate.StateFile(stateDir))
+	assert.True(t, errors.Is(err, fs.ErrNotExist), "file does not exist")
 
-	have, want := chache.IsValid(), false
-	if have != want {
-		t.Errorf("\nCacheState.Isvalid: have: %v; want: %v", have, want)
-	}
+	expired, err := cachestate.Expired(stateDir, time.Hour)
+	assert.NoError(t, err, "Expired")
+	assert.True(t, expired, "Expired")
 }
 
-func TestCacheStateIsValidAfterUpdate(t *testing.T) {
-	cache := cachestate.New(time.Hour, t.TempDir(), internal.MakeTestLog())
+func TestRefreshCreatesStateFile(t *testing.T) {
+	stateDir := t.TempDir()
 
-	err := cache.Update()
-	if err != nil {
-		t.Fatalf("\n%s (type: %T)", err, err)
-	}
+	err := cachestate.Refresh(stateDir)
+	assert.NoError(t, err, "Refresh")
 
-	have, want := cache.IsValid(), true
-	if have != want {
-		t.Errorf("\nCacheState.Isvalid: have: %v; want: %v", have, want)
-	}
+	_, err = os.Stat(cachestate.StateFile(stateDir))
+	assert.NoError(t, err, "file created")
 }
 
-func TestCacheStateExpired(t *testing.T) {
-	cache := cachestate.New(time.Millisecond, t.TempDir(), internal.MakeTestLog())
+func TestRefreshCreatesValidStateFile(t *testing.T) {
+	stateDir := t.TempDir()
 
-	err := cache.Update()
-	if err != nil {
-		t.Fatalf("\n%s (type: %T)", err, err)
-	}
+	err := cachestate.Refresh(stateDir)
+	assert.NoError(t, err, "Refresh")
 
-	// Validity too short: expired.
-	time.Sleep(5 * time.Millisecond)
-	have, want := cache.IsValid(), false
-	if have != want {
-		t.Errorf("\nCacheState.Isvalid too short: have: %v; want: %v", have, want)
-	}
+	expired, err := cachestate.Expired(stateDir, time.Hour)
+	assert.NoError(t, err, "Expired")
+	assert.False(t, expired, "Expired")
 }
 
-func TestFullLifeCycle(t *testing.T) {
-	cache := cachestate.New(time.Hour, t.TempDir(), internal.MakeTestLog())
+func TestStateFileFullLyfecycle(t *testing.T) {
+	stateDir := t.TempDir()
 
-	err := cache.Update()
-	if err != nil {
-		t.Fatalf("\nUpdate 1: %s (type: %T)", err, err)
-	}
+	err := cachestate.Refresh(stateDir)
+	assert.NoError(t, err, "Refresh")
 
-	have, want := cache.IsValid(), true
-	if have != want {
-		t.Errorf("\nCacheState.Isvalid 1: have: %v; want: %v", have, want)
-	}
+	// Check that just after Refresh it is not expired.
+	expired, err := cachestate.Expired(stateDir, time.Hour)
+	assert.NoError(t, err, "Expired")
+	assert.False(t, expired, "Expired")
 
-	err = cache.Invalidate()
-	if err != nil {
-		t.Fatalf("\n%s (type: %T)", err, err)
-	}
+	// Check that it expires after a while
+	time.Sleep(10 * time.Millisecond)
+	expired, err = cachestate.Expired(stateDir, time.Millisecond)
+	assert.NoError(t, err, "Expired")
+	assert.True(t, expired, "Expired")
 
-	have, want = cache.IsValid(), false
-	if have != want {
-		t.Errorf("\nCacheState.Isvalid 2: have: %v; want: %v", have, want)
-	}
+	// Check that an additional Refresh actually resets the expiration
+	err = cachestate.Refresh(stateDir)
+	assert.NoError(t, err, "Refresh")
+	expired, err = cachestate.Expired(stateDir, time.Hour)
+	assert.NoError(t, err, "Expired")
+	assert.False(t, expired, "Expired")
+}
 
-	err = cache.Update()
-	if err != nil {
-		t.Fatalf("\nUpdate 2: %s (type: %T)", err, err)
-	}
+func TestInvalidateWhenStateFileExists(t *testing.T) {
+	stateDir := t.TempDir()
 
-	have, want = cache.IsValid(), true
-	if have != want {
-		t.Errorf("\nCacheState.Isvalid 3: have: %v; want: %v", have, want)
-	}
+	err := cachestate.Refresh(stateDir)
+	assert.NoError(t, err, "Refresh")
+
+	err = cachestate.Invalidate(stateDir)
+	assert.NoError(t, err, "Invalidate")
+
+	expired, err := cachestate.Expired(stateDir, time.Hour)
+	assert.NoError(t, err, "Expired")
+	assert.True(t, expired, "Expired")
+}
+
+func TestInvalidateWhenStateFileDoesNotExists(t *testing.T) {
+	stateDir := t.TempDir()
+
+	err := cachestate.Invalidate(stateDir)
+	assert.NoError(t, err, "Invalidate")
+
+	expired, err := cachestate.Expired(stateDir, time.Hour)
+	assert.NoError(t, err, "Expired")
+	assert.True(t, expired, "Expired")
 }

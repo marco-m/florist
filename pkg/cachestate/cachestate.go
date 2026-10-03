@@ -1,74 +1,81 @@
+// CacheState represents anything with an expiration time. Its state is
+// persisted to disk.
 package cachestate
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/marco-m/florist/internal"
 	"github.com/marco-m/florist/pkg/florist"
 )
 
-// CacheState is an object that can be updated or invalidated, whose state is persisted to
-// disk. Treat it as a singleton: only ONE instance should be used. Create an instance
-// with [New].
-type CacheState struct {
-	validity  time.Duration
-	stateFile string // Used to persist the state.
-	log       *slog.Logger
-}
+// Expired returns whether the state persisted below stateDir is expired.
+// It is expired if it has been last refreshed before (now - validity).
+// If the state does not exist, it is considered expired.
+// Note that you can store only ONE state per directory stateDir.
+func Expired(stateDir string, validity time.Duration) (bool, error) {
+	const op = "cache.Expired"
+	stateFile := StateFile(stateDir)
+	log := slog.Default().With("state", stateFile)
 
-// New returns a new [CacheState] in state invalid. Use [CacheState.Update] to make
-// it valid.
-func New(validity time.Duration, rootDir string, log *slog.Logger) CacheState {
-	return CacheState{
-		validity:  validity,
-		stateFile: filepath.Join(rootDir, "cachestate.txt"),
-		log:       internal.MakeLog("cachestate", log),
-	}
-}
-
-// IsValid returns true if the last operation on the cache has been [CacheState.Update]
-// and it happened within the amount of time specified by the parameter 'validity' of
-// [New].
-func (cache CacheState) IsValid() bool {
-	info, err := os.Stat(cache.stateFile)
-	if errors.Is(err, fs.ErrNotExist) {
-		return false
-	}
-	// FIXME is this robust enough or will this cause obscure bugs later???
+	info, err := os.Stat(stateFile)
 	if err != nil {
-		cache.log.Warn("read-info", "error", err)
-		return false
+		if errors.Is(err, fs.ErrNotExist) {
+			// Not an error.
+			return true, nil
+		}
+		// Real error.
+		return true, fmt.Errorf("%s: %s", op, err)
 	}
 
 	cacheAge := time.Since(info.ModTime())
-	cache.log.Debug("cache-info", "cache-validity", cache.validity,
+	log.Info(op, "cache-validity", validity,
 		"cache-age", florist.HumanDuration(cacheAge))
 
-	return cacheAge < cache.validity
+	return cacheAge > validity, nil
 }
 
-// Update makes the cache valid, for the amount of time specified specified by the
-// parameter 'validity' of [New].
-func (cache CacheState) Update() error {
-	errorf := internal.MakeErrorf("cachestate.Update")
-	// Create or truncate the named file.
-	_, err := os.Create(cache.stateFile)
+// Refresh resets the validity of the state persisted below stateDir.
+// If the state does not exist, Refresh creates it.
+// Note that you can store only ONE state per directory stateDir.
+func Refresh(stateDir string) error {
+	const op = "cachestate.Refresh"
+	stateFile := StateFile(stateDir)
+	// Create or truncate the named file. In both cases, the file modification
+	// time is updated.
+	_, err := os.Create(stateFile)
 	if err != nil {
-		return errorf("%s", err)
+		return fmt.Errorf("%s: %s", op, err)
 	}
 	return nil
 }
 
-// Invalidate makes the cache invalid. The operation is idempotent.
-func (cache CacheState) Invalidate() error {
-	err := os.Remove(cache.stateFile)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil
+// Invalidate forces the expiration of the state persisted below stateDir.
+// Note that you can store only ONE state per directory stateDir.
+func Invalidate(stateDir string) error {
+	const op = "cachestate.Invalidate"
+	err := os.Remove(StateFile(stateDir))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// Not an error.
+			return nil
+		}
+		// Real error.
+		return fmt.Errorf("%s: %s", op, err)
 	}
-	return err
+	return nil
+}
+
+// StateFile returns the path of the state file below stateDir.
+// It does NOT verify whether the directory or the file exist.
+// This function is normally not needed.
+// Note that you can store only ONE state per directory stateDir.
+func StateFile(stateDir string) string {
+	const stateName = "florist-persisted-state"
+	return filepath.Join(stateDir, stateName)
 }
