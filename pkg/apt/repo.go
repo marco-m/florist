@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/marco-m/florist/internal"
+	"github.com/marco-m/florist/pkg/cachestate"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/florist/pkg/platform"
 )
@@ -71,7 +72,7 @@ func AddRepo(name string, keyURL string, keyHash string, repoURL string) error {
 		return errorf("%s", err)
 	}
 
-	if err := cacheState.Invalidate(); err != nil {
+	if err := cachestate.Invalidate(florist.WorkDir); err != nil {
 		return errorf("%s", err)
 	}
 

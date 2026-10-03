@@ -15,8 +15,6 @@ const (
 	PkgCacheValidity = 24 * time.Hour
 )
 
-var cacheState = cachestate.New(PkgCacheValidity, florist.WorkDir, slog.Default())
-
 // Installs takes care of updating the APT cache if needed and installs 'packages'.
 func Install(packages ...string) error {
 	errorf, log := internal.MakeErrorfAndLog("apt.Install", slog.Default())
@@ -60,33 +58,6 @@ func Remove(packages ...string) error {
 // update calls "apt-get update", if needed.
 // It is optimized, in order to do actual work only if the cache is expired or if a previous
 // call to [AddRepo] requires an update. It does the right thing for you.
-func update() error {
-	errorf, log := internal.MakeErrorfAndLog("apt.update", slog.Default())
-	now := time.Now()
-
-	valid := isCacheValid()
-	if valid {
-		log.Debug("cache-validity", "valid", valid, "decision", "skip")
-		return nil
-	}
-	log.Debug("cache-validity", "valid", valid, "decision", "proceed")
-
-	cmd := exec.Command("apt-get", "update")
-	if err := florist.CmdRun(log, cmd); err != nil {
-		return errorf("%s", err)
-	}
-
-	if err := cacheState.Update(); err != nil {
-		return errorf("%s", err)
-	}
-
-	elapsed := time.Since(now).Truncate(time.Millisecond)
-	log.Info("updated-package-cache", "elapsed", elapsed)
-
-	return nil
-}
-
-// isCacheValid returns true if the APT cache has not expired.
 //
 // Running "apt-get update" can take more than 20s, which can be more than the total time
 // taken by Florist. For this reason, we avoid running an update if the cache age is less
@@ -100,6 +71,31 @@ func update() error {
 // For this reason, we now use a logic that is guaranteed to be 100% correct and
 // ironically is also simpler, although it will not detect if the APT cache has been
 // updated OOB of Florist.
-func isCacheValid() bool {
-	return cacheState.IsValid()
+func update() error {
+	errorf, log := internal.MakeErrorfAndLog("apt.update", slog.Default())
+	now := time.Now()
+
+	expired, err := cachestate.Expired(florist.WorkDir, PkgCacheValidity)
+	if err != nil {
+		return errorf("%s", err)
+	}
+	if !expired {
+		log.Debug("cache-validity", "expired", expired, "decision", "skip")
+		return nil
+	}
+	log.Debug("cache-validity", "expired", expired, "decision", "proceed")
+
+	cmd := exec.Command("apt-get", "update")
+	if err := florist.CmdRun(log, cmd); err != nil {
+		return errorf("%s", err)
+	}
+
+	if err := cachestate.Refresh(florist.WorkDir); err != nil {
+		return errorf("%s", err)
+	}
+
+	elapsed := time.Since(now).Truncate(time.Millisecond)
+	log.Info("updated-package-cache", "elapsed", elapsed)
+
+	return nil
 }
