@@ -20,12 +20,12 @@ func newListCmd(parent *clim.CLI) (*listCmd, error) {
 
 func (cmd *listCmd) Run(app App) error {
 	for _, k := range app.prov.ordered {
-		v := app.prov.flowers[k]
-		if err := v.Init(); err != nil {
+		fl := app.prov.flowers[k]
+		if err := fl.Init(); err != nil {
 			return err
 		}
-		fmt.Printf("%s -- %s\n", v, v.Description())
-		for _, fi := range v.Embedded() {
+		fmt.Printf("%s -- %s\n", fl, fl.Description())
+		for _, fi := range fl.Embedded() {
 			fmt.Printf("  %s\n", fi)
 		}
 	}

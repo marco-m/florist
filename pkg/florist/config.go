@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+// Config allows the user callback passed to [Options.PreConfigureFn] to
+// reference the K/V pairs contained in the JSON file specified by command-line
+// flag "PROG configure --settings PATH".
+// See also: [newConfigureCmd].
 type Config struct {
 	settings     map[string]string
 	errs         []string
@@ -35,12 +39,12 @@ func parse(path string, data any) error {
 }
 
 // Get returns the value of key k if found. If the key is missing, it returns
-// the empty string and adds the error to the list returned by Errors.
+// the empty string and adds the error to the list returned by [Config.Errors].
 // This allows a simple sequence of calling Get multiple times and checking for
 // all the keys that were missing keys only once at the end, by calling Errors.
 //
 // If on the other end you want to know immediately if the key is missing, use
-// Lookup.
+// [Config.Lookup].
 func (cfg *Config) Get(k string) string {
 	v, found := cfg.settings[k]
 
@@ -61,8 +65,8 @@ func (cfg *Config) GetDefault(k string, defValue string) string {
 }
 
 // Lookup returns the value of key k if found. If the key is missing, it returns
-// an error. Contrary to Get, it does not append a lookup failure to the errors
-// returned by Errors.
+// an error. Contrary to [Config.Get], it does not append a lookup failure to
+// the errors returned by [Config.Errors].
 func (cfg *Config) Lookup(k string) (string, error) {
 	v, found := cfg.settings[k]
 	if !found {
@@ -71,6 +75,7 @@ func (cfg *Config) Lookup(k string) (string, error) {
 	return v, nil
 }
 
+// Errors returns the errors collected during the invocations of [Config.Get].
 func (cfg *Config) Errors() error {
 	if len(cfg.errs) > 0 {
 		return fmt.Errorf("%s (file: %s)", strings.Join(cfg.errs, "; "),

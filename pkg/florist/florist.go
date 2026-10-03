@@ -11,25 +11,37 @@ import (
 	"testing"
 )
 
+// Implementing Flower makes a flower a Flower :-)
 type Flower interface {
 	Installer
 	Configurer
 }
 
+// Part of a Flower.
 type Installer interface {
+	// String is the one-word name of the Flower.
 	String() string
+	// Description is a one-line description of the Flower.
 	Description() string
+	// Embedded returns the files embedded in the Flower.
+	// See https://pkg.go.dev/embed
 	Embedded() []string
+	// Init is called at ANY subcommand: list, install, configure.
 	Init() error
+	// Install is called at install time, after Init.
 	Install(opts Seeds) error
 }
 
+// Part of a Flower.
 type Configurer interface {
+	// Configure is called at configure time, after Init.
 	Configure(opts Seeds) error
 }
 
 const (
+	// WorkDir is the temporary directory where to store downloaded packages and similar.
 	WorkDir = "/tmp/florist"
+	// HomeDir is the directory where to find the default JSON settings file.
 	HomeDir = "/opt/florist"
 )
 

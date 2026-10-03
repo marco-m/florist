@@ -1,4 +1,4 @@
-// This program is a small florist provisioner.
+// This program is a small 🌼 florist 🌺 provisioner.
 package main
 
 import (

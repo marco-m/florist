@@ -30,20 +30,29 @@ type Options struct {
 	// Before changing to [os.Stderr], consider that HashiCorp Packer renders
 	// any output to stderr in red, thus  making everything look like an error.
 	LogOutput io.Writer
-	// SetupFn will be called before any command-line subcommand. Mandatory.
+
+	// The SetupFn user callback will be invoked before any command-line
+	// subcommand. It is meant to call [Provisioner.AddFlowers].
+	// Mandatory.
 	SetupFn func(prov *Provisioner) error
-	// PreConfigureFn will be called before the command-line "configure".
+	// The PreConfigureFn user callback will be invoked before the command-line
+	// "configure". It is meant to configure the flowers that have been added
+	// by [Options.SetupFn], referencing the K/V pairs of [Config].
 	// Mandatory.
 	PreConfigureFn func(prov *Provisioner, config *Config) (any, error)
-	// PostConfigureFn will be called after the command-line "configure".
-	// Optional.
+	// The PostConfigureFn user callback will be invoked after the command-line
+	// "configure". Optional.
 	PostConfigureFn func(prov *Provisioner, config *Config, bag any) error
 }
 
-// Seeds will be passed to each [Flower.Init] and [Flower.Configure] by [MainInt].
+// Seeds will be passed to each [Flower.Install] and [Flower.Configure] by
+// [MainInt].
+// See also: [Options].
 type Seeds struct {
 	// RootDir can be set to a temporary directory during testing.
+	// The default is /, the real root of the filesystems.
 	// DO NOT MODIFY in production code.
+	// WARNING: almost no code respects this parameter.
 	RootDir string
 }
 
@@ -68,7 +77,8 @@ func MainInt(opts *Options) int {
 	return 0
 }
 
-// ExitCode can be used with [MainErr]. See also [MainInt].
+// ExitCode can be used with [MainErr].
+// If using [MainInt], you do not need this function.
 func ExitCode(err error) int {
 	if err == nil || errors.Is(err, clim.ErrHelp) {
 		return 0
@@ -186,11 +196,14 @@ func newProvisioner() *Provisioner {
 	}
 }
 
-// Flowers returns
+// Flowers returns the flowers known to the provisioner.
+// See also: [Provisioner.AddFlowers].
 func (prov *Provisioner) Flowers() map[string]Flower {
 	return prov.flowers
 }
 
+// AddFlowers adds flowers to the provisioner.
+// Meant to be called from the [Options.SetupFn] callback of the user program.
 func (prov *Provisioner) AddFlowers(flowers ...Flower) error {
 	if len(prov.flowers) > 0 {
 		return fmt.Errorf("florist.AddFlowers: cannot call more than once")
@@ -252,14 +265,11 @@ func LowLevelInit(logOutput io.Writer, logLevel string) error {
 	if err := Mkdir(WorkDir, 0o755, User().Username, Group().Name); err != nil {
 		return errorf("%s", err)
 	}
-	// if err := Mkdir(HomeDir, 0o755, User().Username, Group().Name); err != nil {
-	// 	return errorf("%s", err)
-	// }
 
 	return nil
 }
 
-// root is a hack to ease testing.
+// rootDir is a hack to ease testing. See [Options.RootDir].
 func customizeMotd(op string, status string, rootDir string) error {
 	now := time.Now().UTC().Round(time.Second)
 	line := fmt.Sprintf("%s 🌼 florist 🌺 System %s (%s)\n", now, op, status)
