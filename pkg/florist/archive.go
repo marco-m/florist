@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/marco-m/florist/internal"
 	"github.com/marco-m/florist/pkg/sets"
 )
 
@@ -134,7 +135,7 @@ func UntarSome(tarPath, dstDir string, some []string, perm os.FileMode, owner, g
 		fn = "UntarAll"
 	}
 	log := slog.With("fn", fn)
-	errorf := makeErrorf(fn)
+	errorf := internal.MakeErrorf(fn)
 
 	log.Debug(fn, "phase", "starting", "tarPath", tarPath, "dstDir", dstDir, "some", some)
 

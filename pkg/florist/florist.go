@@ -4,11 +4,17 @@ package florist
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
+)
+
+const (
+	// WorkDir is the temporary directory where to store downloaded packages and similar.
+	WorkDir = "/tmp/florist"
+	// HomeDir is the directory where to find the default JSON settings file.
+	HomeDir = "/opt/florist"
 )
 
 // Implementing Flower makes a flower a Flower :-)
@@ -38,13 +44,6 @@ type Configurer interface {
 	Configure(opts Seeds) error
 }
 
-const (
-	// WorkDir is the temporary directory where to store downloaded packages and similar.
-	WorkDir = "/tmp/florist"
-	// HomeDir is the directory where to find the default JSON settings file.
-	HomeDir = "/opt/florist"
-)
-
 // SkipIfNotDisposableHost skips the test if it is running on a precious host.
 func SkipIfNotDisposableHost(t *testing.T) {
 	t.Helper()
@@ -64,10 +63,4 @@ func SkipIfNotDisposableHost(t *testing.T) {
 //go:fix inline
 func Ptr[T any](p T) *T {
 	return new(p)
-}
-
-func makeErrorf(prefix string) func(format string, a ...any) error {
-	return func(format string, a ...any) error {
-		return fmt.Errorf(prefix+": "+format, a...)
-	}
 }

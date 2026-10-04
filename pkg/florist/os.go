@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"text/template"
+
+	"github.com/marco-m/florist/internal"
 )
 
 // ListFs returns a list of the files (not directories) in fsys.
@@ -86,7 +88,7 @@ func WriteFile(fname string, data string,
 
 // WhoAmI returns the user and group of the current user, as strings.
 func WhoAmI() (string, string, error) {
-	errorf := makeErrorf("WhoAmI")
+	errorf := internal.MakeErrorf("WhoAmI")
 
 	theUser, err := user.Current()
 	if err != nil {
@@ -142,7 +144,7 @@ func Chgrp(fpath string, groupname string) error {
 
 // ChOwnMod sets 'mode', 'owner' and 'group' of file 'name'.
 func ChOwnMod(name string, mode os.FileMode, owner string, group string) error {
-	errorf := makeErrorf("ChOwnMod")
+	errorf := internal.MakeErrorf("ChOwnMod")
 
 	theOwner, err := user.Lookup(owner)
 	if err != nil {
