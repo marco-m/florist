@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/pulumi/pulumi-hcloud/sdk/go/hcloud"
@@ -10,15 +11,23 @@ import (
 )
 
 const (
-	// Choose one close to you.
+	// Choose a location near you.
 	// https://docs.hetzner.com/cloud/general/locations/#what-locations-are-there
 	Location = "nbg1"
 
+	// The less expensive:
+	// 2 vCPU, 4 GB RAM, 40 GB SSD, 20 TB traffic, €5.93/month
+	ServerType = "cx23"
+
+	OsVersion = "debian-12"
+	// OsVersion = "debian-13"
+
 	AnyIPv4 = pulumi.String("0.0.0.0/0")
 	AnyIPv6 = pulumi.String("::/0")
-
-	User = "florist"
 )
+
+// Treat this as a constant!
+var kUsers = []string{"florist", "banana"}
 
 func main() {
 	pulumi.Run(run)
@@ -55,7 +64,7 @@ func run(ctx *pulumi.Context) error {
 
 	image, err := hcloud.GetImage(ctx,
 		&hcloud.GetImageArgs{
-			Name:             pulumi.StringRef("debian-12"),
+			Name:             pulumi.StringRef(OsVersion),
 			MostRecent:       pulumi.BoolRef(true),
 			WithArchitecture: pulumi.StringRef("x86"),
 		})
@@ -76,8 +85,8 @@ func run(ctx *pulumi.Context) error {
 	server, err := hcloud.NewServer(ctx, "florist",
 		&hcloud.ServerArgs{
 			// https://www.hetzner.com/cloud/#pricing
-			ServerType: pulumi.String("cx22"),
-			Image:      pulumi.String(strconv.Itoa(image.Id)),
+			ServerType: pulumi.String(ServerType),
+			Image:      pulumi.String(strconv.Itoa(*image.Id)),
 			Location:   pulumi.String(Location),
 			Labels:     labels,
 			PublicNets: hcloud.ServerPublicNetArray{
@@ -91,8 +100,10 @@ func run(ctx *pulumi.Context) error {
 				},
 			},
 			FirewallIds: pulumi.IntArray{firewall.ID().ApplyT(strconv.Atoi).(pulumi.IntOutput)},
-			// Set the SSH public key for the root user to the key with this name.
-			SshKeys: pulumi.ToStringArray([]string{User}),
+			// Set the SSH public keys for the root user to the public keys with these
+			// names. Must have been provisioned beforehand in the Hetzner console for
+			// the project.
+			SshKeys: pulumi.ToStringArray(kUsers),
 		},
 		pulumi.ResourceHooks(&pulumi.ResourceHookBinding{
 			AfterCreate: []*pulumi.ResourceHook{createHook},
@@ -121,7 +132,12 @@ func sshConfigCreateHook(args *pulumi.ResourceHookArgs) error {
 	ipv6 := args.NewOutputs["ipv6Address"].StringValue()
 	name := args.NewOutputs["name"].StringValue()
 
-	return writeSSHConfig(sshConfigFileName, name, ipv4, ipv6)
+	fileName, err := filepath.Abs(sshConfigFileName)
+	if err != nil {
+		return err
+	}
+	fmt.Println("WRITING SSH CONFIG FILE", fileName)
+	return writeSSHConfig(fileName, name, ipv4, ipv6)
 }
 
 func sshConfigDeleteHook(args *pulumi.ResourceHookArgs) error {
@@ -133,19 +149,27 @@ func sshConfigDeleteHook(args *pulumi.ResourceHookArgs) error {
 	ipv6 := args.OldOutputs["ipv6Address"].StringValue()
 	name := args.OldOutputs["name"].StringValue()
 
-	fmt.Println("old ipv4", ipv4)
-	fmt.Println("old ipv6", ipv6)
+	fmt.Println("old IPv4", ipv4)
+	fmt.Println("old IPv6", ipv6)
 	fmt.Println("old serverName", name)
 
-	fmt.Println("DELETING FILE", sshConfigFileName)
-	// If an after hook returns an error, Pulumi will log a warning diagnostic and the
-	// Pulumi operation will continue, which is what we want in this case.
+	fileName, err := filepath.Abs(sshConfigFileName)
+	if err != nil {
+		return err
+	}
+	fmt.Println("DELETING SSH CONFIG FILE", fileName)
+	// If an after hook returns an error, Pulumi will log a warning diagnostic and
+	// the Pulumi operation will continue, which is what we want in this case.
 	// See https://www.pulumi.com/docs/iac/concepts/options/hooks/
-	return os.Remove(sshConfigFileName)
+	// UPDATE I saw that returning an error now misses up pulumi ???
+	// return os.Remove(fileName)
+	if err := os.Remove(fileName); err != nil {
+		fmt.Println(err)
+	}
+	return nil
 }
 
 func writeSSHConfig(fileName, serverName, ipv4Address, ipv6Address string) error {
-	fmt.Println("writing", fileName)
 	out, err := os.Create(fileName)
 	if err != nil {
 		return fmt.Errorf("createSSHConfig: %w", err)
@@ -157,19 +181,20 @@ func writeSSHConfig(fileName, serverName, ipv4Address, ipv6Address string) error
 # USAGE: Add at the top (must be at the top) of $HOME/.ssh/config the line:
 #   Include ~/src/hw/florist/ssh.config.pulumi
 #
-# Then, you can simply do "ssh florist-hcloud" without the need to specify the flag
-# "-F ssh.config.pulumi", nor to ssh nor to any utility that uses ssh.
+# Then, you can simply do "ssh florist-hcloud" without the need to specify the
+# flag "-F ssh.config.pulumi", nor to ssh nor to any utility that uses ssh.
 
 Host florist-hcloud
   # (Pulumi: %s)
   User root
-  HostName %s
+  # Mutagen doesn't like IPv6 ???
+  #HostName %s
   HostName %s
   CheckHostIP no
   StrictHostKeyChecking no
   #UserKnownHostsFile ~/.ssh/florist-known_hosts
   UserKnownHostsFile /dev/null
-  IdentityFile ~/.ssh/florist-id_ed25519
+  IdentityFile ~/.ssh/florist.pub
   IdentitiesOnly yes
   RequestTTY yes
 `, serverName, ipv6Address, ipv4Address)

@@ -179,11 +179,15 @@ tasks:
 
   wait-for-conn:
     cmds:
-      # Sometimes SSH is not ready yet when VM just created :-/
+      # Sometimes SSH is not ready yet when VM is just created.
       -  go run ./cmd/wait-for-conn --verbose --max-wait=30s --address [{{.ADDR}}]:22
     vars:
       ADDR:
-        sh: envchain florist pulumi -C pulumi stack output IPv6
+        # sh: envchain florist pulumi -C pulumi stack output IPv6
+        # There is no IPv6 when using the phone hotspot :-(
+        # TODO I could pass both addresses (IPv4 and IPv6) to wait-for-conn ?
+        # but then I would have to pass the working address back to ssh ...
+        sh: envchain florist pulumi -C pulumi stack output IPv4
 
   pulumi:all:
     desc: Bring up, run tests, tear down.
@@ -223,8 +227,6 @@ tasks:
         --ignore='*' \
         --ignore='!cover*' \
         ~/src/hw/florist/bin florist-hcloud:~/florist/bin
-
-
 
   pulumi:mutagen:stop:
     cmds:

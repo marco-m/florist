@@ -80,11 +80,11 @@ For a real-world example, see the orsolabs project (FIXME ADD LINK)
     $ ./example -h
     example -- A 🌼 florist 🌺 provisioner.
     Usage: example [--log-level LEVEL] <command> [<args>]
-    
+
     Options:
       --log-level LEVEL      log level [default: INFO]
       --help, -h             display this help and exit
-    
+
     Commands:
       list                   list the flowers and their files
       install
@@ -102,12 +102,12 @@ Excerpt HCL configuration:
       source "<provider>.cfg" {
         ...
       }
-    
+
       provisioner "file" {
         source      = "path/to/<project>-florist"
         destination = "/tmp/<project>-florist"
       }
-    
+
       provisioner "shell" {
         inline = ["sudo /tmp/<project>-florist install <BOUQUET>"]
       }
@@ -168,16 +168,16 @@ This is the normal sequence to perform when developing.
 
     ## Restore snapshot and restart VM
     $ task vm:restore
-    
+
     ## Connect to the VM directly (bypass vagrant, way faster)
     $ ssh -F ssh.config.vagrant florist-dev
     ... System installed by 🌼 florist 🌺
-    
+
     ## == following happens in the VM ==
-    
+
     ## The florist/ directory is a shared mount with the host
     vagrant@florist-dev:~$ cd florist
-    
+
     ## Check out the example installer
     vagrant@florist-dev $ ./bin/example-florist -h
 
@@ -220,9 +220,9 @@ This will restore a pristine VM snapshot (very fast) and run the tests (leaving 
 
     ## Connect to the VM directly (bypass vagrant, way faster)
     $ ssh -F ssh.config.vagrant florist-dev
-    
+
     ## == following happens in the VM ==
-    
+
     ## The florist/ directory is a shared mount with the host
     vagrant@florist-dev:~$ cd florist
     vagrant@florist-dev:~$ sudo task test:all
