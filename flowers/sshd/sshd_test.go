@@ -7,7 +7,7 @@ import (
 	"github.com/marco-m/rosina/assert"
 
 	"github.com/marco-m/florist/flowers/sshd"
-	"github.com/marco-m/florist/internal/testhelpers"
+	"github.com/marco-m/florist/pkg/testhelpers"
 	"github.com/marco-m/florist/pkg/florist"
 )
 

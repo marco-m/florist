@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marco-m/florist/internal/testhelpers"
+	"github.com/marco-m/florist/pkg/testhelpers"
 	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/rosina/assert"
 )

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/marco-m/florist/internal/testhelpers"
+	"github.com/marco-m/florist/pkg/testhelpers"
 	"github.com/marco-m/florist/pkg/apt"
 	"github.com/marco-m/florist/pkg/florist"
 )
