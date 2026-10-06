@@ -125,7 +125,7 @@ func UntarOne(tarPath string, name string, dstPath string) error {
 // UntarSome extracts the files in tar file 'tarPath' that match the list in 'some'. File
 // 'tarPath' is expected to be compressed with gzip. UntarSome saves the matching files to
 // directory 'dstDir', which must exist beforehand, and applies to them 'perm', 'owner'
-// and 'group'. UntarSome disregards the file permissions and ownrship that are present in
+// and 'group'. UntarSome disregards the file permissions and ownership that are present in
 // the tarfile. If any file in 'some' is not found, UntarSome returns an error. In case
 // the archive is hierarchical, UntarSome flattens any directory. This behavior might
 // change. See also [UntarAll].
@@ -212,7 +212,7 @@ func UntarSome(tarPath, dstDir string, some []string, perm os.FileMode, owner, g
 // UntarAll extracts all files from tar file 'tarPath'. File 'tarPath' is expected to be
 // compressed with gzip. UntarSome saves the matching files to directory 'dstDir', which
 // must exist beforehand, and applies to them 'perm', 'owner' and 'group'. UntarAll
-// disregards the file permissions and ownrship that are present in the tarfile. In case
+// disregards the file permissions and ownership that are present in the tarfile. In case
 // the archive is hierarchical, UntarAll flattens any directory. This behavior might
 // change. See also [UntarSome].
 func UntarAll(tarPath, dstDir string, perm os.FileMode, owner, group string) error {

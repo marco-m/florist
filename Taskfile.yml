@@ -56,7 +56,7 @@ tasks:
         map:
           darwin: '26.6%'
           linux: '26.8%'
-      # Can be set from command-line, see usage in .cirrus.yml
+      # Can be set from command-line, for example in CI
       COVERAGE: '{{default (index .COVERAGE_MAP OS) .COVERAGE}}'
     cmds:
       - cmd: |
