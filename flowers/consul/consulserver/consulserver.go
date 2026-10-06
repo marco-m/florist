@@ -84,7 +84,7 @@ func (fl *Flower) Init(gdn *florist.Garden) error {
 func (fl *Flower) Install() error {
 	log := slog.With("flower", Name+".install")
 
-	if err := consul.CommonInstall(log, fl.Version, fl.Hash, fl.gdn.WorkDir()); err != nil {
+	if err := consul.CommonInstall(log, fl.gdn.WorkDir(), fl.Version, fl.Hash); err != nil {
 		return fmt.Errorf("%s.install: %s", Name, err)
 	}
 	return nil

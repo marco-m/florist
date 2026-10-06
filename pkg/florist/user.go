@@ -114,7 +114,8 @@ func GroupAdd(groupname string, args *GroupAddArgs) error {
 	log := slog.With("group", groupname)
 	log.Info("group-add")
 
-	cmdline := []string{groupname}
+	// --force: exit with success status if the specified group already exists
+	cmdline := []string{"--force", groupname}
 	// Arguments.
 	if args == nil {
 		args = &GroupAddArgs{}

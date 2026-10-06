@@ -43,7 +43,8 @@ func CommonInstall(log *slog.Logger, workdir, version, hash string) error {
 }
 
 func installConsulExe(log *slog.Logger, workdir, version, hash string) error {
-	log.Info("Download Consul package")
+	const fn = "installConsulExe"
+	log.Info(fn, "step", "download-consul-package", "version", version)
 	uri, err := url.JoinPath("https://releases.hashicorp.com/consul",
 		version, "consul_"+version+"_linux_amd64.zip")
 	if err != nil {

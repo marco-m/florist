@@ -36,12 +36,12 @@ func setup(prov *florist.Provisioner) error {
 			},
 		},
 		&task.Flower{
-			Version: "3.44.0",
-			Hash:    "d6c9c0a14793659766ee0c06f9843452942ae6982a3151c6bbd78959c1682b82",
+			Version: "3.54.0",
+			Hash:    "680859dbb4d881a9c72d4d9a8f510825450849af8567deacd7302c01124416fb",
 		},
 		&golang.Flower{
-			Version: "1.24.5",
-			Hash:    "10ad9e86233e74c0f6590fe5426895de6bf388964210eac34a6d83f38918ecdc",
+			Version: "1.27.1",
+			Hash:    "63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445",
 		},
 		&fishshell.Flower{
 			Usernames: []string{"root", "vagrant"},

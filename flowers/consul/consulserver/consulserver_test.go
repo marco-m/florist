@@ -15,8 +15,8 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 	gdn := testhelpers.InitFlorist(t, tempDir)
 
 	fl := consulserver.Flower{
-		Version: "1.11.2",
-		Hash:    "380eaff1b18a2b62d8e1d8a7cbc3f3e08b34d3f7187ee335b891ca2ba98784b3",
+		Version: "2.0.4",
+		Hash:    "7a28033850a24fd411722593931625d8b548a27646c3ab70c1379ea7fd2af423",
 	}
 	err := fl.Init(gdn)
 	assert.NoError(t, err, "fl.Init")
