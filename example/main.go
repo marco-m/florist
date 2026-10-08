@@ -6,8 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/marco-m/florist/example/flowers/daisy"
-	"github.com/marco-m/florist/example/flowers/mint"
+	"example/flowers/daisy"
+	"example/flowers/mint"
+
 	"github.com/marco-m/florist/pkg/florist"
 )
 

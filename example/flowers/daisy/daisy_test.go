@@ -5,7 +5,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/marco-m/florist/example/flowers/daisy"
+	"example/flowers/daisy"
+
 	"github.com/marco-m/florist/pkg/testhelpers"
 	"github.com/marco-m/rosina/assert"
 )

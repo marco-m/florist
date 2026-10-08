@@ -13,6 +13,7 @@ require (
 require github.com/alecthomas/repr v0.5.4 // indirect
 
 retract (
+	v0.7.0
 	v0.4.3
 	v0.3.1
 	v0.3.0
