@@ -8,11 +8,10 @@ import (
 
 	"github.com/marco-m/florist/flowers/sshd"
 	"github.com/marco-m/florist/pkg/testhelpers"
-	"github.com/marco-m/florist/pkg/florist"
 )
 
 func TestSshdInstallSuccess(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 	if os.Getenv("FLORIST_MANUAL_TEST") != "ssh" {
 		t.Skip("This test breaks the SSH configuration. Run it only locally by setting env var FLORIST_MANUAL_TEST=ssh")
 	}
@@ -33,7 +32,7 @@ func TestSshdInstallSuccess(t *testing.T) {
 }
 
 func TestSshdConfigureSuccess(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 	if os.Getenv("FLORIST_MANUAL_TEST") != "ssh" {
 		t.Skip("This test breaks the SSH configuration. Run it only locally by setting env var FLORIST_MANUAL_TEST=ssh")
 	}

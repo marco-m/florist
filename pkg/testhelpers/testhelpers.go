@@ -21,6 +21,14 @@ func MakeTestLog() *slog.Logger {
 	return slog.New(slog.DiscardHandler)
 }
 
+// SkipIfNotDisposableHost skips the test if it is running on a precious host.
+func SkipIfNotDisposableHost(t *testing.T) {
+	t.Helper()
+	if !florist.IsDisposableHost() {
+		t.Skip("skip: this host is not disposable")
+	}
+}
+
 func InitFlorist(t *testing.T, tempDir string) *florist.Garden {
 	t.Helper()
 	opts := florist.Options{TempDir: tempDir}

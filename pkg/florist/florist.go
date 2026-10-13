@@ -4,10 +4,10 @@ package florist
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
-	"path/filepath"
-	"testing"
 )
 
 const (
@@ -44,15 +44,6 @@ type Configurer interface {
 	Configure() error
 }
 
-// SkipIfNotDisposableHost skips the test if it is running on a precious host.
-func SkipIfNotDisposableHost(t *testing.T) {
-	t.Helper()
-	_, err := os.Stat(filepath.Join(HomeDir, "disposable"))
-	if errors.Is(err, fs.ErrNotExist) {
-		t.Skip("skip: this host is not disposable")
-	}
-}
-
 // Ptr returns a pointer to 'p'.
 // Needed to fill a struct field of primitive type (int, string and similar) when the Go
 // zero value cannot be used because it is a valid value for the field.
@@ -63,4 +54,29 @@ func SkipIfNotDisposableHost(t *testing.T) {
 //go:fix inline
 func Ptr[T any](p T) *T {
 	return new(p)
+}
+
+// Treat this as a constant. Override only for testing of Florist itself.
+// Unexported on purpose.
+var kDisposableMarkerPath = "/florist.disposable"
+
+// Use only for testing.
+func IsDisposableHost() bool {
+	_, err := os.Stat(kDisposableMarkerPath)
+	if err == nil {
+		// Expected when file exists.
+		return true
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		// Expected when file does not exist.
+		return false
+	}
+	// Unexpected other error. Fail-safe and report this as NOT disposable!
+	slog.Info("florist.IsDisposableHost", "error", err)
+	return false
+}
+
+// Use only for testing.
+func SetDisposableHost() error {
+	return fmt.Errorf("florist.SetDisposableHost: not implemented")
 }

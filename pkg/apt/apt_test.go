@@ -6,9 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/marco-m/florist/pkg/testhelpers"
 	"github.com/marco-m/florist/pkg/apt"
-	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/testhelpers"
 )
 
 /*
@@ -21,7 +20,7 @@ apt.addRepo and then apt.Install !
 */
 
 func TestAptInstallAndRemove(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 
 	tempDir := t.TempDir()
 	gdn := testhelpers.InitFlorist(t, tempDir)
@@ -37,7 +36,7 @@ func TestAptInstallAndRemove(t *testing.T) {
 }
 
 func TestAddRepo(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 
 	tempDir := t.TempDir()
 	gdn := testhelpers.InitFlorist(t, tempDir)

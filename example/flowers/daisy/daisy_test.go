@@ -15,7 +15,7 @@ import (
 
 func TestDaisyInstall(t *testing.T) {
 	// WARNING: In this case we do not call
-	// florist.SkipIfNotDisposableHost(t)
+	// testhelpers.SkipIfNotDisposableHost(t)
 	// because this is a special flower!
 
 	tempDir := t.TempDir()
@@ -58,7 +58,7 @@ func TestDaisyInstall(t *testing.T) {
 
 func TestDaisyConfigure(t *testing.T) {
 	// WARNING: In this case we do not call
-	// florist.SkipIfNotDisposableHost(t)
+	// testhelpers.SkipIfNotDisposableHost(t)
 	// because this is a special flower!
 
 	// tempDir := t.TempDir()

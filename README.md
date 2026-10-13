@@ -195,12 +195,12 @@ As such, you don't want to run the installer on your development machine. Same r
 
 The convention taken by the tests to reduce the possibility of an error is the following.
 
-When preparing the VM, target `vm:init` will create directory `/opt/florist/disposable`; its presence means that the machine can be subjected to destructive tests.
+When preparing the VM, target `vm:init` will create file `/florist.disposable`; its presence means that the machine can be subjected to destructive tests.
 
 Tests that exercise a destructive functionality begin with
 
     func TestSshAddAuthorizedKeysVM(t *testing.T) {
-        florist.SkipIfNotDisposableHost(t)
+        testhelpers.SkipIfNotDisposableHost(t)
         ...
 
 so that they will be skipped when running by mistake on the host. You can use the same conventions for your own tests.

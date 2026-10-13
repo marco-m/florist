@@ -5,12 +5,11 @@ import (
 
 	"github.com/marco-m/florist/flowers/consul/consulserver"
 	"github.com/marco-m/florist/pkg/testhelpers"
-	"github.com/marco-m/florist/pkg/florist"
 	"github.com/marco-m/rosina/assert"
 )
 
 func TestConsulServerInstallSuccessVM(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 	tempDir := t.TempDir()
 	gdn := testhelpers.InitFlorist(t, tempDir)
 
@@ -26,7 +25,7 @@ func TestConsulServerInstallSuccessVM(t *testing.T) {
 }
 
 func TestConsulServerInstallFailureVM(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 	tempDir := t.TempDir()
 	gdn := testhelpers.InitFlorist(t, tempDir)
 
@@ -56,7 +55,7 @@ func TestConsulServerInstallFailureVM(t *testing.T) {
 }
 
 func TestConsulClientConfigureVM(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 
 	// FIXME WRITEME
 	// cfgFile := path.Join(consul.CfgDir, filepath.Base(consulserver.ConfigFile))

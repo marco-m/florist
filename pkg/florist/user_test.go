@@ -9,10 +9,11 @@ import (
 	"testing"
 
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/testhelpers"
 )
 
 func TestUserAddSuccess(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 
 	// Ensure user doesn't exist.
 	name := "florist-" + strconv.Itoa(rand.IntN(100_000)+200_000)
@@ -40,7 +41,7 @@ func TestUserAddSuccess(t *testing.T) {
 }
 
 func TestUserAddSystemSuccess(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 
 	// Ensure user doesn't exist.
 	name := "florist-" + strconv.Itoa(rand.IntN(100_000)+200_000)
@@ -65,7 +66,7 @@ func TestUserAddSystemSuccess(t *testing.T) {
 }
 
 func TestUserAddWithSupplementaryGroupsSuccess(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 
 	// Ensure user doesn't exist.
 	name := "florist-" + strconv.Itoa(rand.IntN(100_000)+200_000)
@@ -85,7 +86,7 @@ func TestUserAddWithSupplementaryGroupsSuccess(t *testing.T) {
 }
 
 func TestUserAddWithSupplementaryGroupsFailure(t *testing.T) {
-	florist.SkipIfNotDisposableHost(t)
+	testhelpers.SkipIfNotDisposableHost(t)
 
 	// Ensure user doesn't exist.
 	name := "florist-" + strconv.Itoa(rand.IntN(100_000)+200_000)
