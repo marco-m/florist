@@ -2,11 +2,11 @@
 package tailscale
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"io/fs"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -185,8 +185,9 @@ func installExes(
 	log.Info("Download tailscale package")
 	nameVersArch := fmt.Sprintf("tailscale_%s_amd64", version)
 	url := fmt.Sprintf("https://pkgs.tailscale.com/stable/%s.tgz", nameVersArch)
-	client := &http.Client{Timeout: 30 * time.Second}
-	tarPath, err := florist.NetFetch(client, url, florist.SHA256, hash, workdir)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	tarPath, err := florist.NetFetch(ctx, url, florist.SHA256, hash, workdir)
 	if err != nil {
 		return err
 	}

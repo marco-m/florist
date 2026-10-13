@@ -1,6 +1,7 @@
 package florist_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -8,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marco-m/florist/pkg/testhelpers"
 	"github.com/marco-m/florist/pkg/florist"
+	"github.com/marco-m/florist/pkg/testhelpers"
 	"github.com/marco-m/rosina/assert"
 )
 
@@ -18,6 +19,7 @@ func TestNetFetchMockSuccess(t *testing.T) {
 	testhelpers.InitFlorist(t, tempDir)
 	hash := "b493d48364afe44d11c0165cf470a4164d1e2609911ef998be868d46ade3de4e"
 	client := &http.Client{Timeout: 1 * time.Second}
+	ctx := context.Background()
 	contents := "banana"
 
 	ts := httptest.NewServer(http.HandlerFunc(
@@ -27,7 +29,7 @@ func TestNetFetchMockSuccess(t *testing.T) {
 	))
 	defer ts.Close()
 
-	path, err := florist.NetFetch(client, ts.URL, florist.SHA256, hash, tempDir)
+	path, err := florist.NetFetchWithClient(ctx, client, ts.URL, florist.SHA256, hash, tempDir)
 	assert.NoError(t, err, "florist.NetFetch")
 	assert.FileEqualsString(t, path, contents)
 }
@@ -58,6 +60,7 @@ func TestNetFetchMockFailure(t *testing.T) {
 
 	dir := t.TempDir()
 	client := &http.Client{Timeout: 1 * time.Second}
+	ctx := context.Background()
 
 	for tcN, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -65,7 +68,7 @@ func TestNetFetchMockFailure(t *testing.T) {
 			defer ts.Close()
 
 			url := fmt.Sprintf("%s/%s", ts.URL, strconv.Itoa(tcN))
-			_, err := florist.NetFetch(client, url, florist.SHA256, tc.hash, dir)
+			_, err := florist.NetFetchWithClient(ctx, client, url, florist.SHA256, tc.hash, dir)
 
 			assert.ErrorContains(t, err, tc.wantErr, "florist.NetFetch")
 		})

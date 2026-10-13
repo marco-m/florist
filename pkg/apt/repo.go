@@ -1,9 +1,9 @@
 package apt
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -36,8 +36,9 @@ func (apt Apt) AddRepo(name string, keyURL string, keyHash string, repoURL strin
 	errorf, log := internal.MakeErrorfAndLog("apt.AddRepo", slog.Default())
 
 	log.Info("Download PGP key", "url", keyURL)
-	client := &http.Client{Timeout: 15 * time.Second}
-	keyPath, err := florist.NetFetch(client, keyURL, florist.SHA256, keyHash, apt.gdn.WorkDir())
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	keyPath, err := florist.NetFetch(ctx, keyURL, florist.SHA256, keyHash, apt.gdn.WorkDir())
 	if err != nil {
 		return errorf("%s", err)
 	}

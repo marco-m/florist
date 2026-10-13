@@ -2,11 +2,11 @@
 package consultemplate
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"io/fs"
 	"log/slog"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -166,8 +166,9 @@ func installExe(
 	log.Info("Download consul-template package")
 	url := fmt.Sprintf("https://releases.hashicorp.com/consul-template/%s/consul-template_%s_linux_amd64.zip",
 		version, version)
-	client := &http.Client{Timeout: 30 * time.Second}
-	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash, workdir)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	zipPath, err := florist.NetFetch(ctx, url, florist.SHA256, hash, workdir)
 	if err != nil {
 		return err
 	}

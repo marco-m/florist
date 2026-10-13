@@ -1,6 +1,7 @@
 package florist
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -18,13 +19,36 @@ const (
 	SHA256 Hash = iota + 1
 )
 
-// NetFetch uses client to download url to dstDir, returning the path of the
-// downloaded file.
+// NetFetch downloads url to dstDir, returning the path of the downloaded file.
 // Directory dstDir must exist.
 // If after the download the hash doesn't match, it will return an error.
 // If the file in dstDir exists and the hash matches, it will not be
 // redownloaded.
-func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDir string) (string, error) {
+func NetFetch(
+	ctx context.Context,
+	url string,
+	hashType Hash,
+	hash string,
+	dstDir string,
+) (string, error) {
+	client := &http.Client{}
+	return NetFetchWithClient(ctx, client, url, hashType, hash, dstDir)
+}
+
+// NetFetchWithClient uses client to download url to dstDir, returning the path
+// of the downloaded file.
+// Directory dstDir must exist.
+// If after the download the hash doesn't match, it will return an error.
+// If the file in dstDir exists and the hash matches, it will not be
+// redownloaded.
+func NetFetchWithClient(
+	ctx context.Context,
+	client *http.Client,
+	url string,
+	hashType Hash,
+	hash string,
+	dstDir string,
+) (string, error) {
 	log := slog.With("url", url)
 
 	if len(url) == 0 {
@@ -56,7 +80,7 @@ func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDi
 	}
 	defer dst.Close()
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", fmt.Errorf("NetFetch: %w", err)
 	}
