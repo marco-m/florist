@@ -80,6 +80,13 @@ func (fl *Flower) Install() error {
 	log.Info("Download Go package", "version", fl.Version)
 	uri := fmt.Sprintf("https://golang.org/dl/go%s.linux-amd64.tar.gz", fl.Version)
 	// I observed a timeout of 30s on Hetzner Cloud.
+	// After more research, I think I found the cause. "Google Cloud Armor"
+	// blocks random Hetzner IPs from pulling Kubernetes images and I think there is
+	// something similar for downloading Go packages from https://golang.org/dl.
+	// See for example https://github.com/kubernetes/registry.k8s.io/issues/138.
+	// https://sofianedjerbi.com/en/blog/hetzner-ips-blocked-registry-k8s/
+	// Sigh. At this point to be really safe I need to "mirror" the Go package
+	// on Hetzner S3, OOB ...
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	tgzPath, err := florist.NetFetch(ctx, uri, florist.SHA256, fl.Hash, fl.gdn.WorkDir())

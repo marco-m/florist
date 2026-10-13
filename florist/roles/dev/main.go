@@ -40,8 +40,8 @@ func setup(prov *florist.Provisioner) error {
 			Hash:    "680859dbb4d881a9c72d4d9a8f510825450849af8567deacd7302c01124416fb",
 		},
 		&golang.Flower{
-			Version: "1.27.1",
-			Hash:    "63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445",
+			Version: "1.27.2",
+			Hash:    "ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5",
 		},
 		&fishshell.Flower{
 			Usernames: []string{"root", "vagrant"},
