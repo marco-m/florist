@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	url2 "net/url"
 	"os"
 	"time"
 
@@ -74,12 +73,7 @@ func (fl *Flower) Install() error {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
 	log.Info("Download gopass package")
-	uri, err := url2.JoinPath("https://github.com/gopasspw/gopass/releases/download",
-		"v"+fl.Version,
-		"gopass_"+fl.Version+"_linux_amd64.deb")
-	if err != nil {
-		return fmt.Errorf("%s: %s", Name, err)
-	}
+	uri := fmt.Sprintf("https://github.com/gopasspw/gopass/releases/download/v%s/gopass_%s_linux_amd64.deb", fl.Version, fl.Version)
 	client := &http.Client{Timeout: 30 * time.Second}
 	pkgPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash,
 		fl.gdn.WorkDir())

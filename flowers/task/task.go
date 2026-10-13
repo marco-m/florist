@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -74,11 +73,7 @@ func (fl *Flower) Install() error {
 
 	log.Info("downloading Task", "version", fl.Version)
 	// https://github.com/go-task/task/releases/download/v3.9.0/task_linux_amd64.tar.gz
-	uri, err := url.JoinPath("https://github.com/go-task/task/releases/download/",
-		"v"+fl.Version, "task_linux_amd64.tar.gz")
-	if err != nil {
-		return fmt.Errorf("%s: %s", Name, err)
-	}
+	uri := fmt.Sprintf("https://github.com/go-task/task/releases/download/v%s/task_linux_amd64.tar.gz", fl.Version)
 	client := &http.Client{Timeout: 30 * time.Second}
 	tgzPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash, fl.gdn.WorkDir())
 	if err != nil {

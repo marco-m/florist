@@ -3,9 +3,9 @@
 package consul
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"time"
@@ -45,11 +45,7 @@ func CommonInstall(log *slog.Logger, workdir, version, hash string) error {
 func installConsulExe(log *slog.Logger, workdir, version, hash string) error {
 	const fn = "installConsulExe"
 	log.Info(fn, "step", "download-consul-package", "version", version)
-	uri, err := url.JoinPath("https://releases.hashicorp.com/consul",
-		version, "consul_"+version+"_linux_amd64.zip")
-	if err != nil {
-		return err
-	}
+	uri := fmt.Sprintf("https://releases.hashicorp.com/consul/%s/consul_%s_linux_amd64.zip", version, version)
 	client := &http.Client{Timeout: 30 * time.Second}
 	zipPath, err := florist.NetFetch(client, uri, florist.SHA256, hash, workdir)
 	if err != nil {

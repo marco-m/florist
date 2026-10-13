@@ -164,7 +164,8 @@ func installExe(
 	workdir string,
 ) error {
 	log.Info("Download consul-template package")
-	url := fmt.Sprintf("https://releases.hashicorp.com/consul-template/%s/consul-template_%s_linux_amd64.zip", version, version)
+	url := fmt.Sprintf("https://releases.hashicorp.com/consul-template/%s/consul-template_%s_linux_amd64.zip",
+		version, version)
 	client := &http.Client{Timeout: 30 * time.Second}
 	zipPath, err := florist.NetFetch(client, url, florist.SHA256, hash, workdir)
 	if err != nil {
