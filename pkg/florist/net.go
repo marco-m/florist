@@ -18,8 +18,8 @@ const (
 	SHA256 Hash = iota + 1
 )
 
-// NetFetch uses client to download url to dstDir, returning the path of the downloaded
-// file.
+// NetFetch uses client to download url to dstDir, returning the path of the
+// downloaded file.
 // Directory dstDir must exist.
 // If after the download the hash doesn't match, it will return an error.
 // If the file in dstDir exists and the hash matches, it will not be
@@ -64,28 +64,32 @@ func NetFetch(client *http.Client, url string, hashType Hash, hash string, dstDi
 	start := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("NetFetch: %w", err)
+		elapsed := time.Since(start)
+		return "", fmt.Errorf("NetFetch: %w (elapsed: %v)", err, elapsed)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		elapsed := time.Since(start)
 		return "", fmt.Errorf("NetFetch: received %d %s (GET %s) (elapsed: %v)",
-			resp.StatusCode, http.StatusText(resp.StatusCode), url, time.Since(start))
+			resp.StatusCode, http.StatusText(resp.StatusCode), url, elapsed)
 	}
 
 	hasher.Reset()
 	mw := io.MultiWriter(dst, hasher)
 
 	if _, err := io.Copy(mw, resp.Body); err != nil {
+		elapsed := time.Since(start)
 		return "", fmt.Errorf("NetFetch: saving %s to %s: %w (elapsed: %v)",
-			url, dstPath, err, time.Since(start))
+			url, dstPath, err, elapsed)
 	}
 	elapsed := time.Since(start).Round(time.Millisecond)
 	log.Debug("downloaded", "elapsed", elapsed)
 
 	have := hex.EncodeToString(hasher.Sum(nil))
 	if have != hash {
-		return "", fmt.Errorf("NetFetch: hash mismatch: have: %s; want: %s", have, hash)
+		return "", fmt.Errorf("NetFetch: hash mismatch: have: %s; want: %s (elapsed: %v)",
+			have, hash, elapsed)
 	}
 	log.Debug("", "dstPath", dstPath)
 

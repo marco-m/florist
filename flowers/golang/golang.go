@@ -84,6 +84,7 @@ func (fl *Flower) Install() error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", Name, err)
 	}
+	// I observed a timeout of 30s on Hetzner Cloud.
 	client := &http.Client{Timeout: 30 * time.Second}
 	tgzPath, err := florist.NetFetch(client, uri, florist.SHA256, fl.Hash, fl.gdn.WorkDir())
 	if err != nil {
