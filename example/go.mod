@@ -1,6 +1,6 @@
 module example
 
-go 1.27.1
+go 1.27.3
 
 require (
 	github.com/marco-m/florist v0.0.0 // Version not used, see "replace" below.
