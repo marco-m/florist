@@ -31,7 +31,7 @@ func (apt Apt) Install(packages ...string) error {
 		return errorf("%s", err)
 	}
 	log.Info("installing", "packages", packages)
-	args := []string{"install", "--no-install-recommends", "-y"}
+	args := []string{"install", "--no-install-recommends", "--yes", "--quiet"}
 	args = append(args, packages...)
 	cmd := exec.Command("apt-get", args...)
 	cmd.Env = os.Environ()
@@ -50,9 +50,29 @@ func (apt Apt) Remove(packages ...string) error {
 	errorf, log := internal.MakeErrorfAndLog("apt.Remove", slog.Default())
 
 	log.Info("Removing", "packages", packages)
-	args := []string{"remove", "-y"}
+	args := []string{"remove", "--yes", "--quiet"}
 	args = append(args, packages...)
 	cmd := exec.Command("apt-get", args...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
+
+	if err := florist.CmdRun(log, cmd); err != nil {
+		return errorf("%s", err)
+	}
+
+	return nil
+}
+
+// Upgrade updates the all the existing packages.
+func (apt Apt) Upgrade() error {
+	errorf, log := internal.MakeErrorfAndLog("apt.Upgrade", slog.Default())
+
+	log.Info("updating package cache")
+	if err := update(apt.gdn.WorkDir()); err != nil {
+		return errorf("%s", err)
+	}
+	log.Info("Upgrading existing packages")
+	cmd := exec.Command("apt-get", "upgrade", "--yes", "--quiet")
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "DEBIAN_FRONTEND=noninteractive")
 
