@@ -23,8 +23,9 @@ type Flower struct {
 type Inst struct {
 	gdn *florist.Garden
 
-	Add    []string
-	Remove []string
+	Add     []string // Packages to install.
+	Remove  []string // Packages to remove.
+	Upgrade bool     // If true, upgrade all existing packages.
 }
 
 type Conf struct{}
@@ -69,6 +70,13 @@ func (fl *Flower) Install() error {
 	if len(fl.Remove) > 0 {
 		log.Info("removing packages")
 		if err := apt.Remove(fl.Remove...); err != nil {
+			return err
+		}
+	}
+
+	if fl.Upgrade {
+		log.Info("upgrading existing packages")
+		if err := apt.Upgrade(); err != nil {
 			return err
 		}
 	}
